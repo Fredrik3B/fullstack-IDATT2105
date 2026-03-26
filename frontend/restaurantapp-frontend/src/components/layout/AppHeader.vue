@@ -47,6 +47,7 @@ export default {
   border-bottom: 1px solid var(--color-dark-secondary);
   position: sticky;
   top: 0;
+  width: 100%;
   z-index: 100;
 }
 
