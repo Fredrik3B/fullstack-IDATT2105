@@ -4,6 +4,18 @@ import java.util.Collection;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
+/**
+ * Authentication token created from validated JWT claims.
+ *
+ * <p>{@code setAuthenticated(true)} is called in the constructor because
+ * this token is only instantiated by {@link JwtAuthFilter} after the
+ * JWT signature and expiration have been verified by {@link JwtService}.</p>
+ *
+ * @see JwtAuthFilter
+ * @see JwtAuthenticatedPrincipal
+ * @author Fredrik Borbe
+ * @version 0.1
+ */
 public class JwtAuthenticationToken extends AbstractAuthenticationToken {
   private final JwtAuthenticatedPrincipal principal;
 
