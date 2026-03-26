@@ -1,22 +1,15 @@
 package no.ntnu.resturant_manager.model;
 
-import java.time.LocalDateTime;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "tasks")
-public class TaskModel {
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+public class TaskModel extends AuditableEntity {
 
 	@Column(nullable = false, length = 120)
 	private String title;
@@ -24,37 +17,18 @@ public class TaskModel {
 	@Column(length = 1000)
 	private String description;
 
+	@Column(name = "order_index", nullable = false)
+	private int orderIndex;
+
 	@Column(nullable = false)
-	private boolean completed;
+	private boolean requiredTask = true;
 
-	@Column(name = "created_at", nullable = false, updatable = false)
-	private LocalDateTime createdAt;
+	@Column(nullable = false)
+	private boolean active = true;
 
-	public TaskModel() {
-		// Required by JPA
-	}
-
-	public TaskModel(String title, String description) {
-		this.title = title;
-		this.description = description;
-		this.completed = false;
-	}
-
-	@PrePersist
-	public void onCreate() {
-		this.createdAt = LocalDateTime.now();
-		if (!this.completed) {
-			this.completed = false;
-		}
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "checklist_id", nullable = false)
+	private ChecklistModel checklist;
 
 	public String getTitle() {
 		return title;
@@ -72,20 +46,35 @@ public class TaskModel {
 		this.description = description;
 	}
 
-	public boolean isCompleted() {
-		return completed;
+	public int getOrderIndex() {
+		return orderIndex;
 	}
 
-	public void setCompleted(boolean completed) {
-		this.completed = completed;
+	public void setOrderIndex(int orderIndex) {
+		this.orderIndex = orderIndex;
 	}
 
-	public LocalDateTime getCreatedAt() {
-		return createdAt;
+	public boolean isRequiredTask() {
+		return requiredTask;
 	}
 
-	public void setCreatedAt(LocalDateTime createdAt) {
-		this.createdAt = createdAt;
+	public void setRequiredTask(boolean requiredTask) {
+		this.requiredTask = requiredTask;
+	}
+
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
+	public ChecklistModel getChecklist() {
+		return checklist;
+	}
+
+	public void setChecklist(ChecklistModel checklist) {
+		this.checklist = checklist;
 	}
 }
-
