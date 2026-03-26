@@ -1,0 +1,63 @@
+<script setup>
+import ChecklistDashboard from '../../components/checklists/ChecklistDashboard.vue'
+
+const cards = [
+  {
+    title: 'Skjenkerutine',
+    subtitle: 'IK-Alkohol - daglig',
+    statusLabel: '2/5 fullfort',
+    statusTone: 'warning',
+    progress: 40,
+    featured: true,
+    moduleChip: 'IK-Alkohol',
+    sections: [
+      {
+        title: 'Opplaering og sertifisering',
+        items: [
+          { label: 'Bekreft intern opplaering for kveldsskift', meta: '08:00', state: 'completed' }
+        ]
+      },
+      {
+        title: 'Daglig logging',
+        items: [
+          { label: 'Loggfor antall avviste gjester', meta: 'Avventer', state: 'pending', highlighted: true },
+          { label: 'Bekreft ansvarlig skjenking gjennomgaatt', meta: 'Manglar', state: 'todo' }
+        ]
+      },
+      {
+        title: 'Dokumentasjon',
+        items: [
+          { label: 'Sjekk gyldighet pa skjenkesertifikat', meta: '18:00', state: 'todo' },
+          { label: 'Registrer eventuelle avvik i vaktlogg', meta: 'Etter stengetid', state: 'todo' }
+        ]
+      }
+    ]
+  },
+  {
+    title: 'Helgerapport',
+    subtitle: 'Ukentlig - fredag',
+    statusLabel: 'Planlagt',
+    statusTone: 'muted',
+    progress: null,
+    sections: [
+      {
+        title: 'Kontrollpunkt',
+        items: [
+          { label: 'Bekreft bemanningsplan for helg', meta: 'Fredag', state: 'todo' },
+          { label: 'Gjennomga lager for alkoholfrie alternativ', meta: 'Fredag', state: 'todo' }
+        ]
+      }
+    ]
+  }
+]
+</script>
+
+<template>
+  <ChecklistDashboard
+    module-label="IK-Alkohol"
+    title="Sjekklister"
+    date-label="Torsdag 26. mars 2026"
+    active-period="Daglig"
+    :cards="cards"
+  />
+</template>
