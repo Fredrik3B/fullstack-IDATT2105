@@ -1,2 +1,2 @@
 # fullstack-IDATT2105
-Resturant management application
+Restaurant management application
