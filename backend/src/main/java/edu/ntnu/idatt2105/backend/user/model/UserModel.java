@@ -29,7 +29,7 @@ public class UserModel {
   @Column(nullable = false)
   private UUID organizationId;
 
-  @Column(nullable = false)
+  @Column(nullable = false, unique = true)
   private String username;
 
   @Column(nullable = false)
