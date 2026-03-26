@@ -85,54 +85,7 @@ class User {
   boolean active
 }
 
-class Role {
-  ADMIN
-  MANAGER
-  EMPLOYEE
-}
 
-class ChecklistFrequency {
-  DAILY
-  WEEKLY
-  MONTHLY
-  AD_HOC
-}
-
-class ComplianceArea {
-  IK_MAT
-  IK_ALKOHOL
-  GENERAL
-}
-
-class TemperatureZone {
-  FRIDGE
-  FREEZER
-  HOT_HOLDING
-  COLD_STORAGE
-  RECEIVING
-}
-
-class DeviationSeverity {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-class DeviationStatus {
-  OPEN
-  IN_PROGRESS
-  RESOLVED
-  CLOSED
-}
-
-class AlcoholComplianceType {
-  AGE_VERIFICATION
-  INCIDENT_LOG
-  STAFF_TRAINING
-  CLOSING_ROUTINE
-  LICENSE_REVIEW
-}
 
 AuditableEntity <|-- Organization
 AuditableEntity <|-- User
