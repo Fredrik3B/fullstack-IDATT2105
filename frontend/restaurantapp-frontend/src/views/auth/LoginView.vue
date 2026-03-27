@@ -100,9 +100,9 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
+const auth = useAuthStore()
 
 const form = reactive({ email: '', password: '' })
 const errors = reactive({ email: '', password: '' })
@@ -117,14 +117,8 @@ function clearError(field) {
 
 function validate() {
   let valid = true
-  if (!form.email.trim()) {
-    errors.email = 'E-post er påkrevd'
-    valid = false
-  }
-  if (!form.password) {
-    errors.password = 'Passord er påkrevd'
-    valid = false
-  }
+  if (!form.email.trim()) { errors.email = 'E-post er påkrevd'; valid = false }
+  if (!form.password) { errors.password = 'Passord er påkrevd'; valid = false }
   return valid
 }
 
@@ -133,9 +127,7 @@ async function handleLogin() {
   isLoading.value = true
   loginError.value = ''
   try {
-    // TODO: replace with real API call
-    await new Promise(resolve => setTimeout(resolve, 800))
-    router.push({ name: 'dashboard' })
+    await auth.login(form.email, form.password)
   } catch {
     loginError.value = 'Feil e-post eller passord. Prøv igjen.'
   } finally {
