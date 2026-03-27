@@ -333,9 +333,7 @@ p {
 }
 
 .task-row.completed .task-label,
-.task-row.completed .task-meta,
-.task-row.todo .task-label,
-.task-row.todo .task-meta {
+.task-row.completed .task-meta {
   color: #c2bfd9;
 }
 
