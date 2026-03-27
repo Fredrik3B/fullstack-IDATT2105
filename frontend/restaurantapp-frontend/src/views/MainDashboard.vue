@@ -1,7 +1,5 @@
 <template>
   <div class="dashboard-root">
-    <AppHeader />
-
     <!-- Welcome banner -->
     <section class="welcome-banner">
       <div class="welcome-glow"></div>
@@ -71,7 +69,6 @@
 </template>
 
 <script setup>
-import AppHeader from '../components/layout/AppHeader.vue'
 </script>
 
 <style scoped>

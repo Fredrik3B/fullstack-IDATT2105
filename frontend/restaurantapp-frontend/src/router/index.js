@@ -1,35 +1,37 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import icFoodLayout from '../views/ic-food/icFoodLayout.vue'
-import icFoodDashboard from '../views/ic-food/icFoodDashboard.vue'
-import icAlcoholLayout from '../views/ic-alcohol/icAlcoholLayout.vue'
-import icAlcoholDashboard from '../views/ic-alcohol/icAlcoholDashboard.vue'
+import AppLayout from '../components/layout/AppLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      redirect: '/ic-alcohol'
-    },
-    {
-      path: '/ic-food',
-      component: icFoodLayout,
+      component: AppLayout,
       children: [
         {
           path: '',
+          name: 'dashboard',
+          component: () => import('../views/MainDashboard.vue')
+        },
+        {
+          path: 'ic-food',
           name: 'ic-food',
-          component: icFoodDashboard
-        }
-      ]
-    },
-    {
-      path: '/ic-alcohol',
-      component: icAlcoholLayout,
-      children: [
+          component: () => import('../views/ic-food/icFoodDashboard.vue')
+        },
         {
-          path: '',
+          path: 'ic-alcohol',
           name: 'ic-alcohol',
-          component: icAlcoholDashboard
+          component: () => import('../views/ic-alcohol/icAlcoholDashboard.vue')
+        },
+        {
+          path: 'documents',
+          name: 'documents',
+          component: () => import('../views/DocumentsView.vue')
+        },
+        {
+          path: 'reports',
+          name: 'reports',
+          component: () => import('../views/ReportsView.vue')
         }
       ]
     }
