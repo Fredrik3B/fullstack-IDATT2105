@@ -3,9 +3,9 @@ import ChecklistDashboard from '../../components/checklists/ChecklistDashboard.v
 
 const cards = [
   {
-    title: 'Morgenrutine',
-    subtitle: 'Daglig - apning',
-    statusLabel: '4/5 fullfort',
+    title: 'Before opening',
+    subtitle: 'Daily - opening',
+    statusLabel: '4/5 completed',
     statusTone: 'success',
     progress: 80,
     sections: [
@@ -109,9 +109,9 @@ const cards = [
 
 <template>
   <ChecklistDashboard
-    module-label="IK-Mat"
-    title="Sjekklister"
-    date-label="Torsdag 26. mars 2026"
+    module-label="IC-Food"
+    title="Checklists"
+    date-label="Insert-date"
     active-period="Daglig"
     :cards="cards"
   />
