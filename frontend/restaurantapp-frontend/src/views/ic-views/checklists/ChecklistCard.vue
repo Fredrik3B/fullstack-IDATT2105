@@ -68,7 +68,7 @@ defineProps({
   },
   moduleChip: {
     type: String,
-    default: ''
+    default: 'IC-Food'
   }
 })
 </script>
