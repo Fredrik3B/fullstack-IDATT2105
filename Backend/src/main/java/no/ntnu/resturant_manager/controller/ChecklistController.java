@@ -2,6 +2,7 @@ package no.ntnu.resturant_manager.controller;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,7 +29,7 @@ public class ChecklistController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public ChecklistResponse createChecklist(@RequestBody CreateChecklistRequest request) {
+	public ChecklistResponse createChecklist(@Valid @RequestBody CreateChecklistRequest request) {
 		return checklistService.createChecklist(request);
 	}
 
