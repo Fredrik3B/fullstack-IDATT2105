@@ -130,9 +130,9 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
+const auth = useAuthStore()
 
 const form = reactive({ name: '', email: '', password: '', confirmPassword: '' })
 const errors = reactive({ name: '', email: '', password: '', confirmPassword: '' })
@@ -174,9 +174,8 @@ async function handleSubmit() {
   isLoading.value = true
   submitError.value = ''
   try {
-    // TODO: POST /api/auth/register — user is created and immediately active
-    await new Promise(resolve => setTimeout(resolve, 800))
-    router.push({ name: 'onboarding' })
+    await auth.register(form.name, form.email, form.password)
+    // auth.register() handles the redirect to /onboarding
   } catch {
     submitError.value = 'Noe gikk galt. Prøv igjen.'
   } finally {
