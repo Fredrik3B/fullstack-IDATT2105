@@ -75,9 +75,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			checklist.getFrequency(),
 			checklist.getComplianceArea(),
 			checklist.isActive(),
-			checklist.getOrganization() != null ? checklist.getOrganization().getId() : null,
-			checklist.getCreatedAt(),
-			checklist.getUpdatedAt()
+			checklist.getOrganization() != null ? checklist.getOrganization().getId() : null
 		);
 	}
 

@@ -72,9 +72,7 @@ public class TaskServiceImpl implements TaskService {
 			task.getOrderIndex(),
 			task.isRequiredTask(),
 			task.isActive(),
-			task.getChecklist() != null ? task.getChecklist().getId() : null,
-			task.getCreatedAt(),
-			task.getUpdatedAt()
+			task.getChecklist() != null ? task.getChecklist().getId() : null
 		);
 	}
 
