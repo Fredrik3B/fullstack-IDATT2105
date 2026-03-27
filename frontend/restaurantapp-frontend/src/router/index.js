@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import icFoodLayout from '../views/ic-food/icFoodLayout.vue'
+import AppLayout from '../components/layout/AppLayout.vue'
+import MainDashboard from '../views/MainDashboard.vue'
+import DocumentsView from '../views/DocumentsView.vue'
+import ReportsView from '../views/ReportsView.vue'
 import icFoodDashboard from '../views/ic-food/icFoodDashboard.vue'
-import icAlcoholLayout from '../views/ic-alcohol/icAlcoholLayout.vue'
 import icAlcoholDashboard from '../views/ic-alcohol/icAlcoholDashboard.vue'
 
 const router = createRouter({
@@ -9,27 +11,32 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/ic-alcohol'
-    },
-    {
-      path: '/ic-food',
-      component: icFoodLayout,
+      component: AppLayout,
       children: [
         {
           path: '',
+          name: 'dashboard',
+          component: MainDashboard
+        },
+        {
+          path: 'ic-food',
           name: 'ic-food',
           component: icFoodDashboard
-        }
-      ]
-    },
-    {
-      path: '/ic-alcohol',
-      component: icAlcoholLayout,
-      children: [
+        },
         {
-          path: '',
+          path: 'ic-alcohol',
           name: 'ic-alcohol',
           component: icAlcoholDashboard
+        },
+        {
+          path: 'documents',
+          name: 'documents',
+          component: DocumentsView
+        },
+        {
+          path: 'reports',
+          name: 'reports',
+          component: ReportsView
         }
       ]
     }
