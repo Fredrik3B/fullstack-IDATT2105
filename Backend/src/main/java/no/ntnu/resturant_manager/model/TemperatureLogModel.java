@@ -34,7 +34,7 @@ public class TemperatureLogModel extends AuditableEntity {
 	@Column(name = "maximum_allowed", precision = 5, scale = 2)
 	private BigDecimal maximumAllowed;
 
-	@Column(length = 1000)
+	@Column(length = 100)
 	private String notes;
 
 	@Column(name = "recorded_at", nullable = false)

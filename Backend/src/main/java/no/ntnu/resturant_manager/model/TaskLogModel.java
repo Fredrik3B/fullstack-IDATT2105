@@ -17,7 +17,7 @@ public class TaskLogModel extends AuditableEntity {
 	@Column(nullable = false)
 	private boolean completed;
 
-	@Column(length = 1000)
+	@Column(length = 100)
 	private String notes;
 
 	@Column(name = "completed_at", nullable = false)

@@ -14,7 +14,7 @@ public class TaskModel extends AuditableEntity {
 	@Column(nullable = false, length = 120)
 	private String title;
 
-	@Column(length = 1000)
+	@Column(length = 100)
 	private String description;
 
 	@Column(name = "order_index", nullable = false)
@@ -25,6 +25,9 @@ public class TaskModel extends AuditableEntity {
 
 	@Column(nullable = false)
 	private boolean active = true;
+
+	@Column (nullable = false)
+	private int organisationId;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "checklist_id", nullable = false)
@@ -76,5 +79,13 @@ public class TaskModel extends AuditableEntity {
 
 	public void setChecklist(ChecklistModel checklist) {
 		this.checklist = checklist;
+	}
+
+	public int getOrganisationId() {
+		return organisationId;
+	}
+
+	public void setOrganisationId(int organisationId) {
+		this.organisationId = organisationId;
 	}
 }
