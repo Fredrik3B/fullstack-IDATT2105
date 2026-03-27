@@ -1,5 +1,5 @@
 <script setup>
-import ChecklistDashboard from '../../components/checklists/ChecklistDashboard.vue'
+import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
 
 const cards = [
   {
