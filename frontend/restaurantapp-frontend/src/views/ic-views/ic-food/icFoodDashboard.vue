@@ -1,11 +1,14 @@
 <script setup>
-import ChecklistDashboard from '../../components/checklists/ChecklistDashboard.vue'
+import { ref } from 'vue'
+import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
+import { recalcCardProgress as recalcCardProgressForCard } from '../checklists/recalcCardProgress'
 
-const cards = [
+
+const cards = ref([
   {
-    title: 'Morgenrutine',
-    subtitle: 'Daglig - apning',
-    statusLabel: '4/5 fullfort',
+    title: 'Before opening',
+    subtitle: 'Daily - opening',
+    statusLabel: '4/5 completed',
     statusTone: 'success',
     progress: 80,
     sections: [
@@ -19,7 +22,7 @@ const cards = [
       {
         title: 'Hygiene',
         items: [
-          { label: 'Rengjoring av arbeidsflater', meta: '08:30', state: 'completed' },
+          { label: 'Rengjoring av arbeidsflater', meta: '08:30', state: 'pending'},
           { label: 'Kontroller varmholder-temperatur', meta: 'Gjenstar', state: 'pending', highlighted: true },
           { label: 'Sjekk merking og datoer pa varer', meta: '09:00', state: 'completed' }
         ]
@@ -104,15 +107,58 @@ const cards = [
       }
     ]
   }
-]
+])
+
+function recalcCardProgress(cardIndex) {
+  recalcCardProgressForCard(cards.value[cardIndex])
+}
+
+function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
+  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
+  if (task.state === 'completed') {
+    task.state = 'todo'
+  } else {
+    task.state = 'completed'
+    task.highlighted = false
+  }
+
+  recalcCardProgress(cardIndex)
+}
+
+function togglePending({ cardIndex, sectionIndex, taskIndex }) {
+  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
+  const isPending = task.state === 'pending'
+
+  if (isPending) {
+    task.state = 'todo'
+    task.highlighted = false
+  } else {
+    task.state = 'pending'
+    task.highlighted = true
+  }
+
+  recalcCardProgress(cardIndex)
+}
+
+cards.value.forEach((card, idx) => {
+  const hasCountLabel = /\d+\s*\/\s*\d+/.test(String(card.statusLabel ?? ''))
+  if (card.progress !== null || hasCountLabel) recalcCardProgress(idx)
+})
+
+function editChecklist({ cardIndex }) {
+  console.log("Placeholder: open UI for checklist editing| cardIndex: ", cardIndex)
+}
 </script>
 
 <template>
   <ChecklistDashboard
-    module-label="IK-Mat"
-    title="Sjekklister"
-    date-label="Torsdag 26. mars 2026"
+    module-label="IC-Food"
+    title="Checklists"
+    date-label="Insert-date"
     active-period="Daglig"
     :cards="cards"
+    @toggle-task="toggleTask"
+    @toggle-pending="togglePending"
+    @edit-checklist="editChecklist"
   />
 </template>

@@ -10,9 +10,12 @@
 
     <div class="cards-grid">
       <ChecklistCard
-        v-for="card in cards"
+        v-for="(card, cardIndex) in cards"
         :key="card.title"
         v-bind="card"
+        @toggle-task="$emit('toggle-task', {cardIndex, ...$event})"
+        @toggle-pending="$emit('toggle-pending', {cardIndex, ...$event})"
+        @edit-checklist="$emit('edit-checklist', { cardIndex })"
       />
     </div>
   </section>
@@ -48,6 +51,9 @@ defineProps({
     required: true
   }
 })
+
+defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist'])
+
 </script>
 
 <style scoped>

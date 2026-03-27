@@ -1,7 +1,9 @@
 <script setup>
-import ChecklistDashboard from '../../components/checklists/ChecklistDashboard.vue'
+import { ref } from 'vue'
+import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
+import { recalcCardProgress as recalcCardProgressForCard } from '../checklists/recalcCardProgress'
 
-const cards = [
+const cards = ref([
   {
     title: 'Skjenkerutine',
     subtitle: 'IK-Alkohol - daglig',
@@ -49,7 +51,47 @@ const cards = [
       }
     ]
   }
-]
+])
+
+function recalcCardProgress(cardIndex) {
+  recalcCardProgressForCard(cards.value[cardIndex])
+}
+
+function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
+  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
+  if (task.state === 'completed') {
+    task.state = 'todo'
+  } else {
+    task.state = 'completed'
+    task.highlighted = false
+  }
+
+  recalcCardProgress(cardIndex)
+}
+
+function togglePending({ cardIndex, sectionIndex, taskIndex }) {
+  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
+  const isPending = task.state === 'pending'
+
+  if (isPending) {
+    task.state = 'todo'
+    task.highlighted = false
+  } else {
+    task.state = 'pending'
+    task.highlighted = true
+  }
+
+  recalcCardProgress(cardIndex)
+}
+
+cards.value.forEach((card, idx) => {
+  const hasCountLabel = /\d+\s*\/\s*\d+/.test(String(card.statusLabel ?? ''))
+  if (card.progress !== null || hasCountLabel) recalcCardProgress(idx)
+})
+
+function editChecklist({ cardIndex }) {
+  console.log("Placeholder: open UI for checklist editing| cardIndex: ", cardIndex)
+}
 </script>
 
 <template>
@@ -59,5 +101,8 @@ const cards = [
     date-label="Torsdag 26. mars 2026"
     active-period="Daglig"
     :cards="cards"
+    @toggle-task="toggleTask"
+    @toggle-pending="togglePending"
+    @edit-checklist="editChecklist"
   />
 </template>

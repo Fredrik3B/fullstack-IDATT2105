@@ -37,12 +37,26 @@ const router = createRouter({
         {
           path: 'ic-food',
           name: 'ic-food',
-          component: () => import('../views/ic-food/icFoodDashboard.vue')
+          component: () => import('../views/ic-views/ic-food/icFoodLayout.vue'),
+          children: [
+            {
+              path: '',
+              name: 'ic-food-dashboard',
+              component: () => import('../views/ic-views/ic-food/icFoodDashboard.vue')
+            }
+          ]
         },
         {
           path: 'ic-alcohol',
           name: 'ic-alcohol',
-          component: () => import('../views/ic-alcohol/icAlcoholDashboard.vue')
+          component: () => import('../views/ic-views/ic-alcohol/icAlcoholLayout.vue'),
+          children: [
+            {
+              path: '',
+              name: 'ic-alcohol-dashboard',
+              component: () => import('../views/ic-views/ic-alcohol/icAlcoholDashboard.vue')
+            }
+          ]
         },
         {
           path: 'documents',
