@@ -5,6 +5,9 @@
         <div class="title-row">
           <h2>{{ title }}</h2>
           <span v-if="moduleChip" class="module-chip">{{ moduleChip }}</span>
+          <span>
+            <button type="button" class="edit-button" @click="handleEditChecklist">Edit Checklist</button>
+          </span>
         </div>
         <p>{{ subtitle }}</p>
       </div>
@@ -17,17 +20,17 @@
       </div>
     </header>
 
-    <div v-for="section in sections" :key="section.title" class="section">
+    <div v-for="(section, sectionIndex) in sections" :key="section.title" class="section">
       <div class="section-label">{{ section.title }}</div>
 
       <ul class="task-list">
         <li
-          v-for="task in section.items"
+          v-for="(task, taskIndex) in section.items"
           :key="task.label"
           class="task-row"
           :class="[task.state, { highlighted: task.highlighted }]"
         >
-          <span class="task-marker"></span>
+          <button type="button" class="task-marker" @click="handleToggle(sectionIndex, taskIndex)">test</button>
           <span class="task-label">{{ task.label }}</span>
           <span class="task-meta">{{ task.meta }}</span>
         </li>
@@ -71,6 +74,16 @@ defineProps({
     default: 'IC-Food'
   }
 })
+
+const emit = defineEmits(['toggle-task', 'edit-checklist'])
+
+function handleToggle(sectionIndex, taskIndex) {
+  emit('toggle-task', { sectionIndex, taskIndex })
+}
+
+function handleEditChecklist() {
+  emit('edit-checklist')
+}
 </script>
 
 <style scoped>
