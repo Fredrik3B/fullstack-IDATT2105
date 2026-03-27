@@ -1,10 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AppLayout from '../components/layout/AppLayout.vue'
-import MainDashboard from '../views/MainDashboard.vue'
-import DocumentsView from '../views/DocumentsView.vue'
-import ReportsView from '../views/ReportsView.vue'
-import icFoodDashboard from '../views/ic-food/icFoodDashboard.vue'
-import icAlcoholDashboard from '../views/ic-alcohol/icAlcoholDashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,27 +11,27 @@ const router = createRouter({
         {
           path: '',
           name: 'dashboard',
-          component: MainDashboard
+          component: () => import('../views/MainDashboard.vue')
         },
         {
           path: 'ic-food',
           name: 'ic-food',
-          component: icFoodDashboard
+          component: () => import('../views/ic-food/icFoodDashboard.vue')
         },
         {
           path: 'ic-alcohol',
           name: 'ic-alcohol',
-          component: icAlcoholDashboard
+          component: () => import('../views/ic-alcohol/icAlcoholDashboard.vue')
         },
         {
           path: 'documents',
           name: 'documents',
-          component: DocumentsView
+          component: () => import('../views/DocumentsView.vue')
         },
         {
           path: 'reports',
           name: 'reports',
-          component: ReportsView
+          component: () => import('../views/ReportsView.vue')
         }
       ]
     }
