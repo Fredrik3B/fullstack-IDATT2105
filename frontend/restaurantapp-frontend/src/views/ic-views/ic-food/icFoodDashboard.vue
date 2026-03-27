@@ -1,7 +1,9 @@
 <script setup>
+import { ref } from 'vue'
 import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
 
-const cards = [
+
+const cards = ref([
   {
     title: 'Before opening',
     subtitle: 'Daily - opening',
@@ -104,7 +106,20 @@ const cards = [
       }
     ]
   }
-]
+])
+
+function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
+  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
+  if (task.state === 'completed') {
+    task.state = 'todo'
+  } else {
+    task.state = 'completed'
+  }
+}
+
+function editChecklist({ cardIndex }) {
+  console.log("Placeholder: open UI for checklist editing| cardIndex: ", cardIndex)
+}
 </script>
 
 <template>
@@ -114,5 +129,7 @@ const cards = [
     date-label="Insert-date"
     active-period="Daglig"
     :cards="cards"
+    @toggle-task="toggleTask"
+    @edit-checklist="editChecklist"
   />
 </template>

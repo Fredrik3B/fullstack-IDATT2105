@@ -30,7 +30,7 @@
           class="task-row"
           :class="[task.state, { highlighted: task.highlighted }]"
         >
-          <button type="button" class="task-marker" @click="handleToggle(sectionIndex, taskIndex)">test</button>
+          <button type="button" class="task-marker" @click="handleToggle(sectionIndex, taskIndex)"></button>
           <span class="task-label">{{ task.label }}</span>
           <span class="task-meta">{{ task.meta }}</span>
         </li>
