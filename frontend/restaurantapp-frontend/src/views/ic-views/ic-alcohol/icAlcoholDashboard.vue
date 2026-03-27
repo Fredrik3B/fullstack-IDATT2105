@@ -58,6 +58,20 @@ function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
     task.state = 'todo'
   } else {
     task.state = 'completed'
+    task.highlighted = false
+  }
+}
+
+function togglePending({ cardIndex, sectionIndex, taskIndex }) {
+  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
+  const isPending = task.state === 'pending'
+
+  if (isPending) {
+    task.state = 'todo'
+    task.highlighted = false
+  } else {
+    task.state = 'pending'
+    task.highlighted = true
   }
 }
 
@@ -74,6 +88,7 @@ function editChecklist({ cardIndex }) {
     active-period="Daglig"
     :cards="cards"
     @toggle-task="toggleTask"
+    @toggle-pending="togglePending"
     @edit-checklist="editChecklist"
   />
 </template>

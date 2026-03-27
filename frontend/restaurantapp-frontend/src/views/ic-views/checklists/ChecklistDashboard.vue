@@ -14,8 +14,8 @@
         :key="card.title"
         v-bind="card"
         @toggle-task="$emit('toggle-task', {cardIndex, ...$event})"
+        @toggle-pending="$emit('toggle-pending', {cardIndex, ...$event})"
         @edit-checklist="$emit('edit-checklist', { cardIndex })"
-
       />
     </div>
   </section>
@@ -52,7 +52,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['toggle-task', 'edit-checklist'])
+defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist'])
 
 </script>
 
