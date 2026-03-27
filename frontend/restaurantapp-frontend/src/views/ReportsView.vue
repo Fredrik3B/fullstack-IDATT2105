@@ -1,7 +1,5 @@
 <template>
   <div class="page-root">
-    <AppHeader />
-
     <!-- Page banner -->
     <section class="page-banner">
       <div class="page-banner-inner">
@@ -113,7 +111,6 @@
 </template>
 
 <script setup>
-import AppHeader from '../components/layout/AppHeader.vue'
 </script>
 
 <style scoped>
