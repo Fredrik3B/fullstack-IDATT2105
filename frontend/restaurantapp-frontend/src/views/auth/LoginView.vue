@@ -1,6 +1,6 @@
 <template>
-  <div class="login-page">
-    <div class="login-card">
+  <div class="auth-page">
+    <div class="auth-card">
 
       <div class="brand">
         <div class="brand-logo">
@@ -17,29 +17,31 @@
         <p class="card-subtitle">Skriv inn dine opplysninger for å fortsette</p>
       </div>
 
-      <form class="login-form" @submit.prevent="handleLogin">
-        <div class="field-group" :class="{ 'has-error': errors.username }">
-          <label class="field-label" for="username">Brukernavn</label>
+      <form class="auth-form" @submit.prevent="handleLogin">
+        <div class="field-group" :class="{ 'has-error': errors.email }">
+          <label class="field-label" for="email">E-post</label>
           <div class="field-wrapper">
             <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10 10C12.2091 10 14 8.20914 14 6C14 3.79086 12.2091 2 10 2C7.79086 2 6 3.79086 6 6C6 8.20914 7.79086 10 10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M3 18C3 15.2386 6.13401 13 10 13C13.866 13 17 15.2386 17 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M2 7L10 12L18 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
             <input
-              id="username"
-              v-model="form.username"
-              type="text"
+              id="email"
+              v-model="form.email"
+              type="email"
               class="field-input"
-              placeholder="brukernavn"
-              autocomplete="username"
-              @input="clearError('username')"
+              placeholder="navn@restaurant.no"
+              autocomplete="email"
+              @input="clearError('email')"
             />
           </div>
-          <span v-if="errors.username" class="field-error">{{ errors.username }}</span>
+          <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
         </div>
 
         <div class="field-group" :class="{ 'has-error': errors.password }">
-          <label class="field-label" for="password">Passord</label>
+          <div class="label-row">
+            <label class="field-label" for="password">Passord</label>
+          </div>
           <div class="field-wrapper">
             <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="3" y="9" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
@@ -68,7 +70,7 @@
           <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
         </div>
 
-        <div v-if="loginError" class="login-error">
+        <div v-if="loginError" class="alert alert--error">
           <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
             <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -77,15 +79,20 @@
           {{ loginError }}
         </div>
 
-        <button type="submit" class="btn-login" :disabled="isLoading">
+        <button type="submit" class="btn-primary" :disabled="isLoading">
           <span v-if="!isLoading">Logg inn</span>
           <span v-else class="spinner"></span>
         </button>
       </form>
 
+      <div class="auth-footer">
+        <span class="auth-footer-text">Har du ikke konto?</span>
+        <RouterLink to="/register" class="auth-link">Registrer deg</RouterLink>
+      </div>
+
     </div>
 
-    <p class="footer-text">
+    <p class="page-footer">
       IKSystem &copy; {{ new Date().getFullYear() }} &mdash; Internkontroll for næringsmiddelvirksomheter
     </p>
   </div>
@@ -97,16 +104,8 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const form = reactive({
-  username: '',
-  password: ''
-})
-
-const errors = reactive({
-  username: '',
-  password: ''
-})
-
+const form = reactive({ email: '', password: '' })
+const errors = reactive({ email: '', password: '' })
 const showPassword = ref(false)
 const isLoading = ref(false)
 const loginError = ref('')
@@ -118,8 +117,8 @@ function clearError(field) {
 
 function validate() {
   let valid = true
-  if (!form.username.trim()) {
-    errors.username = 'Brukernavn er påkrevd'
+  if (!form.email.trim()) {
+    errors.email = 'E-post er påkrevd'
     valid = false
   }
   if (!form.password) {
@@ -131,16 +130,14 @@ function validate() {
 
 async function handleLogin() {
   if (!validate()) return
-
   isLoading.value = true
   loginError.value = ''
-
   try {
     // TODO: replace with real API call
     await new Promise(resolve => setTimeout(resolve, 800))
     router.push({ name: 'dashboard' })
   } catch {
-    loginError.value = 'Feil brukernavn eller passord. Prøv igjen.'
+    loginError.value = 'Feil e-post eller passord. Prøv igjen.'
   } finally {
     isLoading.value = false
   }
@@ -148,7 +145,8 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.login-page {
+/* ── Page shell ── */
+.auth-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -160,9 +158,9 @@ async function handleLogin() {
 }
 
 /* ── Card ── */
-.login-card {
+.auth-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   background: var(--color-bg-primary);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.06);
@@ -239,7 +237,7 @@ async function handleLogin() {
 }
 
 /* ── Form ── */
-.login-form {
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -249,6 +247,12 @@ async function handleLogin() {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .field-label {
@@ -284,13 +288,11 @@ async function handleLogin() {
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
   box-sizing: border-box;
 }
 
-.field-input::placeholder {
-  color: var(--color-text-hint);
-}
+.field-input::placeholder { color: var(--color-text-hint); }
 
 .field-input:focus {
   border-color: var(--color-dark-secondary);
@@ -298,13 +300,8 @@ async function handleLogin() {
   background: var(--color-bg-primary);
 }
 
-.has-error .field-input {
-  border-color: var(--color-danger);
-}
-
-.has-error .field-input:focus {
-  box-shadow: 0 0 0 3px rgba(204, 51, 51, 0.12);
-}
+.has-error .field-input { border-color: var(--color-danger); }
+.has-error .field-input:focus { box-shadow: 0 0 0 3px rgba(204, 51, 51, 0.12); }
 
 .toggle-password {
   position: absolute;
@@ -322,42 +319,36 @@ async function handleLogin() {
   transition: color var(--transition-fast);
 }
 
-.toggle-password:hover {
-  color: var(--color-text-secondary);
-}
-
-.toggle-password svg {
-  width: 16px;
-  height: 16px;
-}
+.toggle-password:hover { color: var(--color-text-secondary); }
+.toggle-password svg { width: 16px; height: 16px; }
 
 .field-error {
   font-size: var(--font-size-xs);
   color: var(--color-danger);
 }
 
-/* ── Login error banner ── */
-.login-error {
+/* ── Alerts ── */
+.alert {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  background: var(--color-danger-bg);
-  border: 1px solid var(--color-danger-border);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
+}
+
+.alert svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.alert--error {
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
   color: var(--color-danger-text);
 }
 
-.login-error svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  color: var(--color-danger);
-}
+.alert--error svg { color: var(--color-danger); }
 
-/* ── Submit button ── */
-.btn-login {
+/* ── Primary button ── */
+.btn-primary {
   height: 48px;
   width: 100%;
   background: var(--color-dark-primary);
@@ -375,18 +366,9 @@ async function handleLogin() {
   margin-top: var(--space-2);
 }
 
-.btn-login:hover:not(:disabled) {
-  background: var(--color-dark-secondary);
-}
-
-.btn-login:active:not(:disabled) {
-  transform: scale(0.99);
-}
-
-.btn-login:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.btn-primary:hover:not(:disabled) { background: var(--color-dark-secondary); }
+.btn-primary:active:not(:disabled) { transform: scale(0.99); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── Spinner ── */
 .spinner {
@@ -398,12 +380,35 @@ async function handleLogin() {
   animation: spin 0.7s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Footer link row ── */
+.auth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
-/* ── Footer ── */
-.footer-text {
+.auth-footer-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.auth-link {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-dark-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.auth-link:hover { color: var(--color-text-primary); }
+
+/* ── Page footer ── */
+.page-footer {
   font-size: var(--font-size-xs);
   color: rgba(255, 255, 255, 0.3);
   text-align: center;
@@ -412,12 +417,7 @@ async function handleLogin() {
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
-  .login-card {
-    padding: var(--space-8) var(--space-6);
-  }
-
-  .card-title {
-    font-size: var(--font-size-xl);
-  }
+  .auth-card { padding: var(--space-8) var(--space-6); }
+  .card-title { font-size: var(--font-size-xl); }
 }
 </style>
