@@ -12,12 +12,11 @@
 
       <!-- Navigation -->
       <nav class="header-nav">
-        <a href="#" class="nav-item active">Dashbord</a>
-        <a href="#" class="nav-item">IC-Food</a>
-        <a href="#" class="nav-item">IC-Alcohol</a>
-        <a href="#" class="nav-item">Reports</a>
-        <a href="#" class="nav-item">Documents</a>
-
+        <RouterLink to="/" class="nav-item" exact-active-class="active">Dashbord</RouterLink>
+        <RouterLink to="/ic-food" class="nav-item" active-class="active">IC-Food</RouterLink>
+        <RouterLink to="/ic-alcohol" class="nav-item" active-class="active">IC-Alcohol</RouterLink>
+        <RouterLink to="/reports" class="nav-item" active-class="active">Reports</RouterLink>
+        <RouterLink to="/documents" class="nav-item" active-class="active">Documents</RouterLink>
       </nav>
 
       <div class="header-actions">
@@ -35,10 +34,8 @@
   </header>
 </template>
 
-<script>
-export default {
-  name: 'AppHeader'
-}
+<script setup>
+import { RouterLink } from 'vue-router'
 </script>
 
 <style scoped>

@@ -1,12 +1,12 @@
 <template>
-  <section class="module-layout module-layout--food">
+  <section class="module-layout module-layout--alcohol">
     <router-view />
   </section>
 </template>
 
 <script>
 export default {
-  name: 'IcFoodLayout'
+  name: 'IcAlcoholLayout'
 }
 </script>
 
