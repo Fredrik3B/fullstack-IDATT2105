@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.user.controller;
 
 import edu.ntnu.idatt2105.backend.security.JwtService;
+import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
@@ -23,33 +24,30 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
   private final UserService userService;
-  private final JwtService jwtService;
 
   @PostMapping("/register")
   public ResponseEntity<LoginResponse> register(@RequestBody @Valid CreateUserRequest request) {
-    UserModel user = userService.register(request);
-    return buildLoginResponse(user);
+    AuthDto result = userService.register(request);
+    return buildLoginResponse(result);
   }
 
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
-    UserModel user = userService.login(request);
-    return buildLoginResponse(user);
+    AuthDto result = userService.login(request);
+    return buildLoginResponse(result);
   }
 
-  private ResponseEntity<LoginResponse> buildLoginResponse(UserModel user) {
-    String token = jwtService.generateToken(user);
-    String refreshToken = jwtService.generateRefreshToken(user);
-    ResponseCookie cookie = createRefreshTokenCookie(refreshToken);
+  private ResponseEntity<LoginResponse> buildLoginResponse(AuthDto result) {
+    ResponseCookie cookie = createRefreshTokenCookie(result.getRefreshToken());
     return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, cookie.toString())
-        .body(new LoginResponse(user, token));
+        .body(new LoginResponse( result.getEmail(), result.getAccessToken()));
   }
 
   private ResponseCookie createRefreshTokenCookie(String refreshToken) {
     return ResponseCookie.from("refreshToken", refreshToken)
         .httpOnly(true)
-        .secure(false)
+        .secure(false) // should be changed
         .path("/api/users/refresh")
         .maxAge(Duration.ofDays(7))
         .sameSite("Lax")

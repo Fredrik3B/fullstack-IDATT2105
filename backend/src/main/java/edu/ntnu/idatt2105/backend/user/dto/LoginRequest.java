@@ -1,5 +1,9 @@
 package edu.ntnu.idatt2105.backend.user.dto;
 
-public class LoginRequest {
+import lombok.Data;
 
+@Data
+public class LoginRequest {
+  public String email;
+  public String password;
 }
