@@ -12,256 +12,108 @@
         </div>
       </div>
 
-      <!-- ── Success state ── -->
-      <template v-if="submitted">
-        <div class="success-state">
-          <div class="success-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M7.5 12.5L10.5 15.5L16.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <h2 class="success-title">Forespørsel sendt!</h2>
-          <p class="success-body">
-            Din tilgangsforespørsel til <strong>{{ resolvedRestaurantName }}</strong> er mottatt.
-            En administrator vil godkjenne eller avslå forespørselen din. Du blir varslet av dem når forespørselen
-            er behandlet.
-            <strong>{{ form.email }}</strong> når den er behandlet.
-          </p>
-          <div class="success-badge">
-            <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/>
-              <path d="M8 5V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-              <circle cx="8" cy="10.5" r="0.6" fill="currentColor"/>
-            </svg>
-            Venter på godkjenning
-          </div>
-        </div>
-        <RouterLink to="/login" class="btn-primary btn-primary--link">
-          Tilbake til innlogging
-        </RouterLink>
-      </template>
+      <div class="card-header">
+        <h1 class="card-title">Opprett konto</h1>
+        <p class="card-subtitle">Fyll ut skjemaet for å opprette din brukerkonto</p>
+      </div>
 
-      <!-- ── Registration form ── -->
-      <template v-else>
-        <div class="card-header">
-          <h1 class="card-title">Opprett konto</h1>
-          <p class="card-subtitle">Fyll ut skjemaet for å be om tilgang</p>
+      <form class="auth-form" @submit.prevent="handleSubmit">
+
+        <div class="field-group" :class="{ 'has-error': errors.name }">
+          <label class="field-label" for="name">Fullt navn</label>
+          <div class="field-wrapper">
+            <svg class="field-icon" viewBox="0 0 20 20" fill="none">
+              <path d="M10 10C12.2091 10 14 8.20914 14 6C14 3.79086 12.2091 2 10 2C7.79086 2 6 3.79086 6 6C6 8.20914 7.79086 10 10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 18C3 15.2386 6.13401 13 10 13C13.866 13 17 15.2386 17 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <input id="name" v-model="form.name" type="text" class="field-input"
+              placeholder="Kari Nordmann" autocomplete="name" @input="clearError('name')" />
+          </div>
+          <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
         </div>
 
-        <!-- Step indicator -->
-        <div class="steps">
-          <div class="step" :class="{ active: step >= 1, done: step > 1 }">
-            <div class="step-dot">
-              <svg v-if="step > 1" viewBox="0 0 10 10" fill="none">
-                <path d="M2 5L4 7L8 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <div class="field-group" :class="{ 'has-error': errors.email }">
+          <label class="field-label" for="email">E-post</label>
+          <div class="field-wrapper">
+            <svg class="field-icon" viewBox="0 0 20 20" fill="none">
+              <rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M2 7L10 12L18 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <input id="email" v-model="form.email" type="email" class="field-input"
+              placeholder="navn@restaurant.no" autocomplete="email" @input="clearError('email')" />
+          </div>
+          <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
+        </div>
+
+        <div class="field-group" :class="{ 'has-error': errors.password }">
+          <label class="field-label" for="password">Passord</label>
+          <div class="field-wrapper">
+            <svg class="field-icon" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="9" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M6 9V6C6 3.79086 7.79086 2 10 2C12.2091 2 14 3.79086 14 6V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="10" cy="13.5" r="1" fill="currentColor"/>
+            </svg>
+            <input id="password" v-model="form.password"
+              :type="showPassword ? 'text' : 'password'" class="field-input"
+              placeholder="Minst 8 tegn" autocomplete="new-password" @input="clearError('password')" />
+            <button type="button" class="toggle-password" @click="showPassword = !showPassword" tabindex="-1">
+              <svg v-if="!showPassword" viewBox="0 0 20 20" fill="none">
+                <path d="M2 10C2 10 5 4 10 4C15 4 18 10 18 10C18 10 15 16 10 16C5 16 2 10 2 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
               </svg>
-              <span v-else>1</span>
-            </div>
-            <span class="step-label">Brukerinfo</span>
-          </div>
-          <div class="step-line" :class="{ active: step > 1 }"></div>
-          <div class="step" :class="{ active: step >= 2 }">
-            <div class="step-dot">
-              <span>2</span>
-            </div>
-            <span class="step-label">Restaurant</span>
-          </div>
-        </div>
-
-        <form class="auth-form" @submit.prevent="handleSubmit">
-
-          <!-- Step 1: User info -->
-          <template v-if="step === 1">
-            <div class="field-group" :class="{ 'has-error': errors.name }">
-              <label class="field-label" for="name">Fullt navn</label>
-              <div class="field-wrapper">
-                <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10 10C12.2091 10 14 8.20914 14 6C14 3.79086 12.2091 2 10 2C7.79086 2 6 3.79086 6 6C6 8.20914 7.79086 10 10 10Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M3 18C3 15.2386 6.13401 13 10 13C13.866 13 17 15.2386 17 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <input
-                  id="name"
-                  v-model="form.name"
-                  type="text"
-                  class="field-input"
-                  placeholder="Kari Nordmann"
-                  autocomplete="name"
-                  @input="clearError('name')"
-                />
-              </div>
-              <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
-            </div>
-
-            <div class="field-group" :class="{ 'has-error': errors.email }">
-              <label class="field-label" for="email">E-post</label>
-              <div class="field-wrapper">
-                <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M2 7L10 12L18 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-                <input
-                  id="email"
-                  v-model="form.email"
-                  type="email"
-                  class="field-input"
-                  placeholder="navn@restaurant.no"
-                  autocomplete="email"
-                  @input="clearError('email')"
-                />
-              </div>
-              <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
-            </div>
-
-            <div class="field-group" :class="{ 'has-error': errors.password }">
-              <label class="field-label" for="password">Passord</label>
-              <div class="field-wrapper">
-                <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="3" y="9" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M6 9V6C6 3.79086 7.79086 2 10 2C12.2091 2 14 3.79086 14 6V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  <circle cx="10" cy="13.5" r="1" fill="currentColor"/>
-                </svg>
-                <input
-                  id="password"
-                  v-model="form.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  class="field-input"
-                  placeholder="Minst 8 tegn"
-                  autocomplete="new-password"
-                  @input="clearError('password')"
-                />
-                <button type="button" class="toggle-password" @click="showPassword = !showPassword" tabindex="-1">
-                  <svg v-if="!showPassword" viewBox="0 0 20 20" fill="none">
-                    <path d="M2 10C2 10 5 4 10 4C15 4 18 10 18 10C18 10 15 16 10 16C5 16 2 10 2 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
-                  </svg>
-                  <svg v-else viewBox="0 0 20 20" fill="none">
-                    <path d="M3 3L17 17M8.5 8.68C8.18 9.01 8 9.48 8 10C8 11.1 8.9 12 10 12C10.52 12 10.99 11.82 11.32 11.5M6.5 5.17C7.59 4.44 8.76 4 10 4C15 4 18 10 18 10C17.47 10.94 16.8 11.78 16.04 12.48M2 10C2 10 2.78 8.4 4.28 7.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </button>
-              </div>
-              <div v-if="form.password" class="password-strength">
-                <div class="strength-bar">
-                  <div class="strength-fill" :class="passwordStrength.level" :style="{ width: passwordStrength.width }"></div>
-                </div>
-                <span class="strength-label" :class="passwordStrength.level">{{ passwordStrength.label }}</span>
-              </div>
-              <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
-            </div>
-
-            <div class="field-group" :class="{ 'has-error': errors.confirmPassword }">
-              <label class="field-label" for="confirmPassword">Bekreft passord</label>
-              <div class="field-wrapper">
-                <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="3" y="9" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                  <path d="M6 9V6C6 3.79086 7.79086 2 10 2C12.2091 2 14 3.79086 14 6V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  <circle cx="10" cy="13.5" r="1" fill="currentColor"/>
-                </svg>
-                <input
-                  id="confirmPassword"
-                  v-model="form.confirmPassword"
-                  :type="showConfirmPassword ? 'text' : 'password'"
-                  class="field-input"
-                  placeholder="Gjenta passordet"
-                  autocomplete="new-password"
-                  @input="clearError('confirmPassword')"
-                />
-                <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword" tabindex="-1">
-                  <svg v-if="!showConfirmPassword" viewBox="0 0 20 20" fill="none">
-                    <path d="M2 10C2 10 5 4 10 4C15 4 18 10 18 10C18 10 15 16 10 16C5 16 2 10 2 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
-                  </svg>
-                  <svg v-else viewBox="0 0 20 20" fill="none">
-                    <path d="M3 3L17 17M8.5 8.68C8.18 9.01 8 9.48 8 10C8 11.1 8.9 12 10 12C10.52 12 10.99 11.82 11.32 11.5M6.5 5.17C7.59 4.44 8.76 4 10 4C15 4 18 10 18 10C17.47 10.94 16.8 11.78 16.04 12.48M2 10C2 10 2.78 8.4 4.28 7.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </button>
-              </div>
-              <span v-if="errors.confirmPassword" class="field-error">{{ errors.confirmPassword }}</span>
-            </div>
-
-            <button type="button" class="btn-primary" @click="goToStep2">
-              Neste
-              <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg v-else viewBox="0 0 20 20" fill="none">
+                <path d="M3 3L17 17M8.5 8.68C8.18 9.01 8 9.48 8 10C8 11.1 8.9 12 10 12C10.52 12 10.99 11.82 11.32 11.5M6.5 5.17C7.59 4.44 8.76 4 10 4C15 4 18 10 18 10C17.47 10.94 16.8 11.78 16.04 12.48M2 10C2 10 2.78 8.4 4.28 7.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
             </button>
-          </template>
+          </div>
+          <div v-if="form.password" class="password-strength">
+            <div class="strength-bar">
+              <div class="strength-fill" :class="passwordStrength.level" :style="{ width: passwordStrength.width }"></div>
+            </div>
+            <span class="strength-label" :class="passwordStrength.level">{{ passwordStrength.label }}</span>
+          </div>
+          <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
+        </div>
 
-          <!-- Step 2: Restaurant code -->
-          <template v-if="step === 2">
-            <div class="info-box">
-              <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M10 9V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="10" cy="6.5" r="0.75" fill="currentColor"/>
+        <div class="field-group" :class="{ 'has-error': errors.confirmPassword }">
+          <label class="field-label" for="confirmPassword">Bekreft passord</label>
+          <div class="field-wrapper">
+            <svg class="field-icon" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="9" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M6 9V6C6 3.79086 7.79086 2 10 2C12.2091 2 14 3.79086 14 6V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="10" cy="13.5" r="1" fill="currentColor"/>
+            </svg>
+            <input id="confirmPassword" v-model="form.confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'" class="field-input"
+              placeholder="Gjenta passordet" autocomplete="new-password" @input="clearError('confirmPassword')" />
+            <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword" tabindex="-1">
+              <svg v-if="!showConfirmPassword" viewBox="0 0 20 20" fill="none">
+                <path d="M2 10C2 10 5 4 10 4C15 4 18 10 18 10C18 10 15 16 10 16C5 16 2 10 2 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
               </svg>
-              <p>
-                Restaurantkoden finner du hos din daglige leder.
-                Formatet er <strong>XXX-0000</strong>.
-              </p>
-            </div>
-
-            <div class="field-group" :class="{ 'has-error': errors.joinCode }">
-              <label class="field-label" for="joinCode">Restaurantkode</label>
-              <div class="field-wrapper">
-                <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 10C3 10 6 4 10 4H14C15.1 4 16 4.9 16 6V14C16 15.1 15.1 16 14 16H10C6 16 3 10 3 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                  <circle cx="13" cy="10" r="1.5" stroke="currentColor" stroke-width="1.2"/>
-                </svg>
-                <input
-                  id="joinCode"
-                  v-model="form.joinCode"
-                  type="text"
-                  class="field-input field-input--code"
-                  placeholder="EVR-2847"
-                  autocomplete="off"
-                  maxlength="8"
-                  @input="handleCodeInput"
-                />
-                <span v-if="codeStatus === 'valid'" class="code-status code-status--valid">
-                  <svg viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="6" fill="var(--color-success-bg)" stroke="var(--color-success-border)" stroke-width="1"/>
-                    <path d="M5 8L7 10L11 6" stroke="var(--color-success-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </span>
-                <span v-else-if="codeStatus === 'invalid'" class="code-status code-status--invalid">
-                  <svg viewBox="0 0 16 16" fill="none">
-                    <circle cx="8" cy="8" r="6" fill="var(--color-danger-bg)" stroke="var(--color-danger-border)" stroke-width="1"/>
-                    <path d="M5.5 5.5L10.5 10.5M10.5 5.5L5.5 10.5" stroke="var(--color-danger-text)" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
-                </span>
-              </div>
-              <span v-if="codeStatus === 'valid'" class="field-hint field-hint--valid">
-                {{ resolvedRestaurantName }}
-              </span>
-              <span v-if="errors.joinCode" class="field-error">{{ errors.joinCode }}</span>
-            </div>
-
-            <div v-if="submitError" class="alert alert--error">
-              <svg viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="10" cy="13.5" r="0.75" fill="currentColor"/>
+              <svg v-else viewBox="0 0 20 20" fill="none">
+                <path d="M3 3L17 17M8.5 8.68C8.18 9.01 8 9.48 8 10C8 11.1 8.9 12 10 12C10.52 12 10.99 11.82 11.32 11.5M6.5 5.17C7.59 4.44 8.76 4 10 4C15 4 18 10 18 10C17.47 10.94 16.8 11.78 16.04 12.48M2 10C2 10 2.78 8.4 4.28 7.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               </svg>
-              {{ submitError }}
-            </div>
+            </button>
+          </div>
+          <span v-if="errors.confirmPassword" class="field-error">{{ errors.confirmPassword }}</span>
+        </div>
 
-            <div class="step2-actions">
-              <button type="button" class="btn-secondary" @click="step = 1">
-                <svg viewBox="0 0 16 16" fill="none">
-                  <path d="M13 8H3M7 4L3 8L7 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                Tilbake
-              </button>
-              <button type="submit" class="btn-primary btn-primary--grow" :disabled="isLoading">
-                <span v-if="!isLoading">Send forespørsel</span>
-                <span v-else class="spinner"></span>
-              </button>
-            </div>
-          </template>
+        <div v-if="submitError" class="alert alert--error">
+          <svg viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="10" cy="13.5" r="0.75" fill="currentColor"/>
+          </svg>
+          {{ submitError }}
+        </div>
 
-        </form>
-      </template>
+        <button type="submit" class="btn-primary" :disabled="isLoading">
+          <span v-if="!isLoading">Opprett konto</span>
+          <span v-else class="spinner"></span>
+        </button>
+
+      </form>
 
       <div class="auth-footer">
         <span class="auth-footer-text">Har du allerede konto?</span>
@@ -278,33 +130,17 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
-const step = ref(1)
-const submitted = ref(false)
-const isLoading = ref(false)
-const submitError = ref('')
+const router = useRouter()
+
+const form = reactive({ name: '', email: '', password: '', confirmPassword: '' })
+const errors = reactive({ name: '', email: '', password: '', confirmPassword: '' })
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
-const codeStatus = ref('')  // '' | 'valid' | 'invalid'
-const resolvedRestaurantName = ref('')
+const isLoading = ref(false)
+const submitError = ref('')
 
-const form = reactive({
-  name: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  joinCode: ''
-})
-
-const errors = reactive({
-  name: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  joinCode: ''
-})
-
-// ── Password strength ──
 const passwordStrength = computed(() => {
   const p = form.password
   if (!p) return { level: '', width: '0%', label: '' }
@@ -320,11 +156,9 @@ const passwordStrength = computed(() => {
   return              { level: 'strong', width: '100%', label: 'Sterkt' }
 })
 
-function clearError(field) {
-  errors[field] = ''
-}
+function clearError(field) { errors[field] = '' }
 
-function validateStep1() {
+function validate() {
   let valid = true
   if (!form.name.trim()) { errors.name = 'Fullt navn er påkrevd'; valid = false }
   if (!form.email.trim()) { errors.email = 'E-post er påkrevd'; valid = false }
@@ -335,52 +169,14 @@ function validateStep1() {
   return valid
 }
 
-function goToStep2() {
-  if (validateStep1()) step.value = 2
-}
-
-// Simulated code lookup — replace with real API call
-const MOCK_CODES = {
-  'EVR-2847': 'Everest Sushi & Fusion AS',
-  'SOL-1234': 'Solsiden Restaurant',
-  'MAT-5678': 'Matkroken AS'
-}
-
-function handleCodeInput(e) {
-  const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
-  form.joinCode = raw
-  errors.joinCode = ''
-  codeStatus.value = ''
-  resolvedRestaurantName.value = ''
-
-  if (raw.length === 8) {
-    const match = MOCK_CODES[raw]
-    if (match) {
-      codeStatus.value = 'valid'
-      resolvedRestaurantName.value = match
-    } else {
-      codeStatus.value = 'invalid'
-    }
-  }
-}
-
 async function handleSubmit() {
-  if (!form.joinCode.trim()) {
-    errors.joinCode = 'Restaurantkode er påkrevd'
-    return
-  }
-  if (codeStatus.value !== 'valid') {
-    errors.joinCode = 'Ugyldig restaurantkode'
-    return
-  }
-
+  if (!validate()) return
   isLoading.value = true
   submitError.value = ''
-
   try {
-    // TODO: replace with real API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    submitted.value = true
+    // TODO: POST /api/auth/register — user is created and immediately active
+    await new Promise(resolve => setTimeout(resolve, 800))
+    router.push({ name: 'onboarding' })
   } catch {
     submitError.value = 'Noe gikk galt. Prøv igjen.'
   } finally {
@@ -390,7 +186,6 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
-/* ── Page shell ── */
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -402,7 +197,6 @@ async function handleSubmit() {
   gap: var(--space-6);
 }
 
-/* ── Card ── */
 .auth-card {
   width: 100%;
   max-width: 420px;
@@ -415,21 +209,13 @@ async function handleSubmit() {
   gap: var(--space-6);
 }
 
-/* ── Brand ── */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
+.brand { display: flex; align-items: center; gap: var(--space-3); }
 
 .brand-logo {
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   background: var(--color-dark-primary);
   border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 
@@ -440,11 +226,7 @@ async function handleSubmit() {
   letter-spacing: 0.5px;
 }
 
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
+.brand-text { display: flex; flex-direction: column; gap: 1px; }
 
 .brand-name {
   font-size: var(--font-size-lg);
@@ -460,12 +242,7 @@ async function handleSubmit() {
   letter-spacing: 0.3px;
 }
 
-/* ── Card header ── */
-.card-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
+.card-header { display: flex; flex-direction: column; gap: var(--space-1); }
 
 .card-title {
   font-size: var(--font-size-2xl);
@@ -475,96 +252,11 @@ async function handleSubmit() {
   margin: 0;
 }
 
-.card-subtitle {
-  font-size: var(--font-size-md);
-  color: var(--color-text-muted);
-  margin: 0;
-}
+.card-subtitle { font-size: var(--font-size-md); color: var(--color-text-muted); margin: 0; }
 
-/* ── Steps ── */
-.steps {
-  display: flex;
-  align-items: center;
-  gap: 0;
-}
+.auth-form { display: flex; flex-direction: column; gap: var(--space-4); }
 
-.step {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-}
-
-.step-dot {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-hint);
-  transition: all var(--transition-normal);
-  flex-shrink: 0;
-}
-
-.step-dot svg {
-  width: 12px;
-  height: 12px;
-}
-
-.step.active .step-dot {
-  border-color: var(--color-dark-primary);
-  background: var(--color-dark-primary);
-  color: var(--color-accent);
-}
-
-.step.done .step-dot {
-  border-color: var(--color-success-border);
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-
-.step-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-hint);
-  transition: color var(--transition-normal);
-}
-
-.step.active .step-label,
-.step.done .step-label {
-  color: var(--color-text-secondary);
-}
-
-.step-line {
-  flex: 1;
-  height: 2px;
-  background: var(--color-border);
-  margin: 0 var(--space-2);
-  border-radius: 1px;
-  transition: background var(--transition-normal);
-}
-
-.step-line.active {
-  background: var(--color-dark-secondary);
-}
-
-/* ── Form ── */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+.field-group { display: flex; flex-direction: column; gap: var(--space-2); }
 
 .field-label {
   font-size: var(--font-size-sm);
@@ -572,28 +264,19 @@ async function handleSubmit() {
   color: var(--color-text-secondary);
 }
 
-.field-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
+.field-wrapper { position: relative; display: flex; align-items: center; }
 
 .field-icon {
-  position: absolute;
-  left: var(--space-3);
-  width: 16px;
-  height: 16px;
+  position: absolute; left: var(--space-3);
+  width: 16px; height: 16px;
   color: var(--color-text-hint);
-  pointer-events: none;
-  flex-shrink: 0;
+  pointer-events: none; flex-shrink: 0;
 }
 
 .field-input {
-  width: 100%;
-  height: 44px;
+  width: 100%; height: 44px;
   padding: 0 var(--space-10) 0 40px;
-  font-size: var(--font-size-md);
-  font-family: var(--font-sans);
+  font-size: var(--font-size-md); font-family: var(--font-sans);
   color: var(--color-text-primary);
   background: var(--color-bg-secondary);
   border: 1.5px solid var(--color-border);
@@ -603,13 +286,8 @@ async function handleSubmit() {
   box-sizing: border-box;
 }
 
-.field-input--code {
-  letter-spacing: 2px;
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-}
+.field-input::placeholder { color: var(--color-text-hint); }
 
-.field-input::placeholder { color: var(--color-text-hint); letter-spacing: normal; }
 .field-input:focus {
   border-color: var(--color-dark-secondary);
   box-shadow: 0 0 0 3px rgba(45, 43, 85, 0.12);
@@ -620,53 +298,29 @@ async function handleSubmit() {
 .has-error .field-input:focus { box-shadow: 0 0 0 3px rgba(204, 51, 51, 0.12); }
 
 .toggle-password {
-  position: absolute;
-  right: var(--space-3);
-  width: 20px;
-  height: 20px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
+  position: absolute; right: var(--space-3);
+  width: 20px; height: 20px;
+  background: none; border: none; padding: 0; cursor: pointer;
   color: var(--color-text-hint);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   transition: color var(--transition-fast);
 }
 
 .toggle-password:hover { color: var(--color-text-secondary); }
 .toggle-password svg { width: 16px; height: 16px; }
 
-.field-error {
-  font-size: var(--font-size-xs);
-  color: var(--color-danger);
-}
+.field-error { font-size: var(--font-size-xs); color: var(--color-danger); }
 
-.field-hint--valid {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-success-text);
-}
-
-/* ── Password strength ── */
-.password-strength {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
+.password-strength { display: flex; align-items: center; gap: var(--space-2); }
 
 .strength-bar {
-  flex: 1;
-  height: 3px;
+  flex: 1; height: 3px;
   background: var(--color-border);
-  border-radius: 2px;
-  overflow: hidden;
+  border-radius: 2px; overflow: hidden;
 }
 
 .strength-fill {
-  height: 100%;
-  border-radius: 2px;
+  height: 100%; border-radius: 2px;
   transition: width var(--transition-normal), background var(--transition-normal);
 }
 
@@ -678,8 +332,7 @@ async function handleSubmit() {
 .strength-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  min-width: 40px;
-  text-align: right;
+  min-width: 40px; text-align: right;
 }
 
 .strength-label.weak   { color: var(--color-danger-text); }
@@ -687,44 +340,8 @@ async function handleSubmit() {
 .strength-label.good   { color: #557700; }
 .strength-label.strong { color: var(--color-success-text); }
 
-/* ── Code status icon ── */
-.code-status {
-  position: absolute;
-  right: var(--space-3);
-  display: flex;
-  align-items: center;
-}
-
-.code-status svg { width: 18px; height: 18px; }
-
-/* ── Info box ── */
-.info-box {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-subtle);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-normal);
-}
-
-.info-box svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--color-text-muted);
-}
-
-.info-box p { margin: 0; }
-
-/* ── Alerts ── */
 .alert {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  display: flex; align-items: center; gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -740,69 +357,26 @@ async function handleSubmit() {
 
 .alert--error svg { color: var(--color-danger); }
 
-/* ── Buttons ── */
 .btn-primary {
-  height: 48px;
+  height: 48px; width: 100%;
   background: var(--color-dark-primary);
   color: var(--color-accent);
-  border: none;
-  border-radius: var(--radius-md);
+  border: none; border-radius: var(--radius-md);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-sans);
   cursor: pointer;
   transition: background var(--transition-fast), transform var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-5);
-  text-decoration: none;
+  display: flex; align-items: center; justify-content: center;
   margin-top: var(--space-2);
 }
-
-.btn-primary--link { width: 100%; }
-.btn-primary--grow { flex: 1; }
-
-.btn-primary svg { width: 16px; height: 16px; }
 
 .btn-primary:hover:not(:disabled) { background: var(--color-dark-secondary); }
 .btn-primary:active:not(:disabled) { transform: scale(0.99); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.btn-secondary {
-  height: 48px;
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-  font-family: var(--font-sans);
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-5);
-  margin-top: var(--space-2);
-  flex-shrink: 0;
-}
-
-.btn-secondary svg { width: 16px; height: 16px; }
-.btn-secondary:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
-
-.step2-actions {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-/* ── Spinner ── */
 .spinner {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border: 2px solid rgba(212, 232, 53, 0.3);
   border-top-color: var(--color-accent);
   border-radius: 50%;
@@ -811,73 +385,14 @@ async function handleSubmit() {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Success state ── */
-.success-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  text-align: center;
-  padding: var(--space-4) 0;
-}
-
-.success-icon {
-  width: 56px;
-  height: 56px;
-  background: var(--color-success-bg);
-  border: 1.5px solid var(--color-success-border);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-success-text);
-}
-
-.success-icon svg { width: 28px; height: 28px; }
-
-.success-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0;
-}
-
-.success-body {
-  font-size: var(--font-size-md);
-  color: var(--color-text-muted);
-  line-height: var(--line-height-normal);
-  margin: 0;
-}
-
-.success-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: var(--color-warning-bg);
-  border: 1px solid var(--color-warning-border);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-warning-text);
-}
-
-.success-badge svg { width: 14px; height: 14px; color: var(--color-warning); }
-
-/* ── Footer link row ── */
 .auth-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   gap: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border-subtle);
 }
 
-.auth-footer-text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
+.auth-footer-text { font-size: var(--font-size-sm); color: var(--color-text-muted); }
 
 .auth-link {
   font-size: var(--font-size-sm);
@@ -889,15 +404,12 @@ async function handleSubmit() {
 
 .auth-link:hover { color: var(--color-text-primary); }
 
-/* ── Page footer ── */
 .page-footer {
   font-size: var(--font-size-xs);
   color: rgba(255, 255, 255, 0.3);
-  text-align: center;
-  margin: 0;
+  text-align: center; margin: 0;
 }
 
-/* ── Responsive ── */
 @media (max-width: 480px) {
   .auth-card { padding: var(--space-8) var(--space-6); }
   .card-title { font-size: var(--font-size-xl); }
