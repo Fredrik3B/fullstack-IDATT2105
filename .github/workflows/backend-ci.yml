@@ -19,10 +19,6 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: Backend
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -34,8 +30,14 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Debug paths
+        run: |
+          pwd
+          ls -la
+          ls -la Backend
+
       - name: Make Maven wrapper executable
-        run: chmod +x mvnw
+        run: chmod +x Backend/mvnw
 
       - name: Verify build
-        run: ./mvnw verify
+        run: Backend/mvnw -f Backend/pom.xml verify
