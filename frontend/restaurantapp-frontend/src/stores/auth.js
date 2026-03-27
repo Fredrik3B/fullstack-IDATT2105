@@ -1,6 +1,8 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import api from '@/api/axiosInstance'
 
 // Keys used for localStorage persistence
 const ACCESS_TOKEN_KEY  = 'iksystem_access_token'
@@ -103,13 +105,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!accessToken.value) return
 
     try {
-      // TODO: GET /api/auth/me → { user, restaurantStatus, restaurantId }
-      // Placeholder: simulate a valid session
-      const data = {
-        user:             { id: 1, name: 'Kari Nordmann', email: 'kari@restaurant.no' },
-        restaurantStatus: 'active',
-        restaurantId:     1
-      }
+      const { data } = await api.get('/api/auth/me')
       user.value             = data.user
       restaurantStatus.value = data.restaurantStatus
       restaurantId.value     = data.restaurantId
@@ -134,15 +130,7 @@ export const useAuthStore = defineStore('auth', () => {
    *   const { data } = await api.post('/api/auth/login', { email, password })
    */
   async function login(email, password) {
-    // TODO: POST /api/auth/login → { accessToken, refreshToken, user, restaurantStatus, restaurantId }
-    // Placeholder response:
-    const data = {
-      accessToken:      'mock-access-token',
-      refreshToken:     'mock-refresh-token',
-      user:             { id: 1, name: 'Kari Nordmann', email },
-      restaurantStatus: 'active',
-      restaurantId:     1
-    }
+    const { data } = await api.post('/api/auth/login', { email, password })
 
     _saveTokens(data.accessToken, data.refreshToken)
     user.value             = data.user
@@ -162,13 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
    *   const { data } = await api.post('/api/auth/register', { name, email, password })
    */
   async function register(name, email, password) {
-    // TODO: POST /api/auth/register → { accessToken, refreshToken, user }
-    // Placeholder response:
-    const data = {
-      accessToken:  'mock-access-token',
-      refreshToken: 'mock-refresh-token',
-      user:         { id: 2, name, email }
-    }
+    const { data } = await api.post('/api/auth/register', { name, email, password })
 
     _saveTokens(data.accessToken, data.refreshToken)
     user.value             = data.user
@@ -193,15 +175,17 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshAccessToken() {
     if (!refreshToken.value) throw new Error('No refresh token available')
 
-    // TODO: POST /api/auth/refresh → { accessToken, refreshToken? }
-    // Some backends rotate the refresh token on every use; others don't.
-    // Placeholder response:
-    const data = {
-      accessToken:  'mock-new-access-token',
-      refreshToken: refreshToken.value // keep existing if backend doesn't rotate
-    }
+    // Uses plain axios — NOT the intercepted api instance.
+    // If we used api here, a failed refresh would trigger the interceptor
+    // again, which would call refreshAccessToken() again → infinite loop.
+    const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+    const { data } = await axios.post(`${baseURL}/api/auth/refresh`, {
+      refreshToken: refreshToken.value
+    })
 
-    _saveTokens(data.accessToken, data.refreshToken)
+    // Some backends rotate the refresh token on every use; if yours doesn't,
+    // data.refreshToken will be undefined and we keep the existing one.
+    _saveTokens(data.accessToken, data.refreshToken ?? refreshToken.value)
     return data.accessToken
   }
 
@@ -214,9 +198,7 @@ export const useAuthStore = defineStore('auth', () => {
    *   const { data } = await api.post('/api/restaurants/join', { joinCode })
    */
   async function joinRestaurant(joinCode) {
-    // TODO: POST /api/restaurants/join → { restaurantId, restaurantName }
-    // Placeholder:
-    const data = { restaurantId: 99, restaurantName: 'Everest Sushi & Fusion AS' }
+    const { data } = await api.post('/api/restaurants/join', { joinCode })
 
     restaurantStatus.value = 'pending'
     restaurantId.value     = data.restaurantId
@@ -231,7 +213,8 @@ export const useAuthStore = defineStore('auth', () => {
    *   await api.delete('/api/restaurants/join-request')
    */
   async function withdrawJoinRequest() {
-    // TODO: DELETE /api/restaurants/join-request
+    await api.delete('/api/restaurants/join-request')
+
     restaurantStatus.value = null
     restaurantId.value     = null
   }
@@ -246,14 +229,12 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function createRestaurant(payload) {
     // payload: { name, orgNumber, address, postalCode, city }
-    // TODO: POST /api/restaurants → { restaurantId, joinCode }
-    // Placeholder:
-    const data = { restaurantId: 100, joinCode: 'NEW-1234' }
+    const { data } = await api.post('/api/restaurants', payload)
 
     restaurantStatus.value = 'active'
     restaurantId.value     = data.restaurantId
 
-    return data // let the view display the join code
+    return data // let the view display the joinCode returned by the backend
   }
 
   /**
@@ -265,7 +246,8 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function logout() {
     try {
-      // TODO: POST /api/auth/logout — fire and forget, don't block on failure
+      // Fire and forget — don't block logout on a network error
+      await api.post('/api/auth/logout')
     } catch {
       // Ignore errors — we're logging out regardless
     } finally {
