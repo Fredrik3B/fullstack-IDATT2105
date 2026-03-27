@@ -19,7 +19,7 @@ const cards = [
       {
         title: 'Hygiene',
         items: [
-          { label: 'Rengjoring av arbeidsflater', meta: '08:30', state: 'completed' },
+          { label: 'Rengjoring av arbeidsflater', meta: '08:30', state: 'pending'},
           { label: 'Kontroller varmholder-temperatur', meta: 'Gjenstar', state: 'pending', highlighted: true },
           { label: 'Sjekk merking og datoer pa varer', meta: '09:00', state: 'completed' }
         ]
