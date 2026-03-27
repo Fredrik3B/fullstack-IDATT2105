@@ -33,9 +33,9 @@
           <div class="join-code-display">
             <span class="join-code-label">Restaurantkode</span>
             <div class="join-code-value">
-              <span class="join-code-text">Genereres av serveren</span>
+              <span class="join-code-text">{{ joinCode }}</span>
             </div>
-            <span class="join-code-hint">Koden vises på dashbordet når du er logget inn</span>
+            <span class="join-code-hint">Del denne koden med ansatte så de kan be om tilgang</span>
           </div>
           <button class="btn-primary" @click="$router.push({ name: 'dashboard' })">
             Gå til dashbord
@@ -166,15 +166,13 @@
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
+const auth = useAuthStore()
 
-// TODO: pull from auth store
-const userName = ref('Kari Nordmann')
-const userInitials = computed(() => {
-  return userName.value.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
-})
+// ── User info from store ──
+const userName    = computed(() => auth.user?.name ?? '')
+const userInitials = computed(() => auth.userInitials)
 
 const form = reactive({
   name: '',
@@ -192,14 +190,14 @@ const errors = reactive({
   city: ''
 })
 
-const isLoading = ref(false)
+const isLoading  = ref(false)
 const submitError = ref('')
-const submitted = ref(false)
+const submitted  = ref(false)
+const joinCode   = ref('')   // populated from backend response on success
 
 function clearError(field) { errors[field] = '' }
 
 function handleOrgInput(e) {
-  // Keep only digits, format as "XXX XXX XXX"
   const digits = e.target.value.replace(/\D/g, '').slice(0, 9)
   form.orgNumber = digits.replace(/(\d{3})(\d{1,3})?(\d{1,3})?/, (_, a, b, c) =>
     [a, b, c].filter(Boolean).join(' ')
@@ -230,9 +228,8 @@ async function handleSubmit() {
   isLoading.value = true
   submitError.value = ''
   try {
-    // TODO: POST /api/restaurants — { name, orgNumber, address, postalCode, city }
-    // Response will include the generated restaurantId and joinCode
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const result = await auth.createRestaurant({ ...form, orgNumber: form.orgNumber.replace(/\s/g, '') })
+    joinCode.value = result.joinCode
     submitted.value = true
   } catch {
     submitError.value = 'Noe gikk galt. Prøv igjen.'
@@ -242,7 +239,7 @@ async function handleSubmit() {
 }
 
 function handleLogout() {
-  router.push({ name: 'login' })
+  auth.logout()
 }
 </script>
 

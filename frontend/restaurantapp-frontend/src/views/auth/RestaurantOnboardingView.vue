@@ -172,54 +172,57 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import api from '@/api/axiosInstance'
 
-const router = useRouter()
+const auth = useAuthStore()
 
-// TODO: pull from auth store once implemented
-const userName = ref('Kari Nordmann')
-const userEmail = ref('kari@restaurant.no')
-const userInitials = computed(() => {
-  return userName.value.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)
-})
+// ── User info from store ──
+const userName    = computed(() => auth.user?.name  ?? '')
+const userEmail   = computed(() => auth.user?.email ?? '')
+const userInitials = computed(() => auth.userInitials)
 
-// View state: 'choose' | 'join' | 'pending'
-const view = ref('choose')
+// ── View state: 'choose' | 'join' | 'pending' ──
+// Start in pending if the user already has a pending request
+const view = ref(auth.restaurantStatus === 'pending' ? 'pending' : 'choose')
 
-// Join flow
-const joinCode = ref('')
-const codeStatus = ref('')   // '' | 'valid' | 'invalid'
-const joinError = ref('')
+// ── Join flow ──
+const joinCode             = ref('')
+const codeStatus           = ref('')   // '' | 'loading' | 'valid' | 'invalid'
+const joinError            = ref('')
 const resolvedRestaurantName = ref('')
-const isLoading = ref(false)
+const isLoading            = ref(false)
 
-// Pending state
-const pendingRestaurantName = ref('')
-const pendingSentDate = ref('')
+// ── Pending state ──
+// If the user arrives already pending, we don't know the restaurant name yet —
+// the backend should return it via GET /api/auth/me. For now show a fallback.
+const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'restauranten' : '')
+const pendingSentDate       = ref('')
 
-// Simulated code lookup — replace with real API call
-const MOCK_CODES = {
-  'EVR-2847': 'Everest Sushi & Fusion AS',
-  'SOL-1234': 'Solsiden Restaurant',
-  'MAT-5678': 'Matkroken AS'
-}
+// ── Code lookup ──
+let lookupTimeout = null
 
-function handleCodeInput(e) {
+async function handleCodeInput(e) {
   const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
   joinCode.value = raw
   joinError.value = ''
   codeStatus.value = ''
   resolvedRestaurantName.value = ''
 
-  if (raw.length === 8) {
-    const match = MOCK_CODES[raw]
-    if (match) {
+  if (raw.length !== 8) return
+
+  // Debounce slightly so we don't fire on every keystroke
+  clearTimeout(lookupTimeout)
+  lookupTimeout = setTimeout(async () => {
+    codeStatus.value = 'loading'
+    try {
+      const { data } = await api.get(`/api/restaurants/lookup?code=${raw}`)
       codeStatus.value = 'valid'
-      resolvedRestaurantName.value = match
-    } else {
-      codeStatus.value = 'invalid'
+      resolvedRestaurantName.value = data.name
+    } catch (err) {
+      codeStatus.value = err.response?.status === 404 ? 'invalid' : 'invalid'
     }
-  }
+  }, 300)
 }
 
 async function sendJoinRequest() {
@@ -229,18 +232,19 @@ async function sendJoinRequest() {
   }
   isLoading.value = true
   try {
-    // TODO: POST /api/restaurants/join — { joinCode }
-    await new Promise(resolve => setTimeout(resolve, 800))
+    await auth.joinRestaurant(joinCode.value)
     pendingRestaurantName.value = resolvedRestaurantName.value
     pendingSentDate.value = new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
     view.value = 'pending'
+  } catch {
+    joinError.value = 'Noe gikk galt. Prøv igjen.'
   } finally {
     isLoading.value = false
   }
 }
 
 async function withdrawRequest() {
-  // TODO: DELETE /api/restaurants/join-request
+  await auth.withdrawJoinRequest()
   pendingRestaurantName.value = ''
   pendingSentDate.value = ''
   joinCode.value = ''
@@ -250,8 +254,7 @@ async function withdrawRequest() {
 }
 
 function handleLogout() {
-  // TODO: clear auth store / token
-  router.push({ name: 'login' })
+  auth.logout()
 }
 </script>
 
