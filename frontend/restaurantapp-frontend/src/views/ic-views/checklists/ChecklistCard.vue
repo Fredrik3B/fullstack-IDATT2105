@@ -5,14 +5,12 @@
         <div class="title-row">
           <h2>{{ title }}</h2>
           <span v-if="moduleChip" class="module-chip">{{ moduleChip }}</span>
-          <span>
-            <button type="button" class="edit-button" @click="handleEditChecklist">Edit Checklist</button>
-          </span>
         </div>
         <p>{{ subtitle }}</p>
       </div>
 
       <div class="header-status">
+        <button type="button" class="edit-button" @click="handleEditChecklist">Edit checklist</button>
         <span class="status-pill" :class="statusTone">{{ statusLabel }}</span>
         <div v-if="progress !== null" class="progress-track">
           <span class="progress-fill" :style="{ width: `${progress}%` }"></span>
@@ -30,9 +28,27 @@
           class="task-row"
           :class="[task.state, { highlighted: task.highlighted }]"
         >
-          <button type="button" class="task-marker" @click="handleToggle(sectionIndex, taskIndex)"></button>
+          <button
+            type="button"
+            class="task-marker"
+            :aria-pressed="task.state === 'completed'"
+            :aria-label="task.state === 'completed' ? 'Mark as incomplete' : 'Mark as complete'"
+            @click="handleToggle(sectionIndex, taskIndex)"
+          ></button>
           <span class="task-label">{{ task.label }}</span>
-          <span class="task-meta">{{ task.meta }}</span>
+          <div class="task-actions">
+            <span v-if="task.meta" class="task-meta">{{ task.meta }}</span>
+            <button
+              type="button"
+              class="flag-button"
+              :class="{ active: task.state === 'pending' }"
+              :aria-pressed="task.state === 'pending'"
+              :aria-label="task.state === 'pending' ? 'Remove pending flag' : 'Mark task as pending'"
+              @click="handleFlag(sectionIndex, taskIndex)"
+            >
+              Flag
+            </button>
+          </div>
         </li>
       </ul>
     </div>
@@ -75,10 +91,14 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['toggle-task', 'edit-checklist'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist'])
 
 function handleToggle(sectionIndex, taskIndex) {
   emit('toggle-task', { sectionIndex, taskIndex })
+}
+
+function handleFlag(sectionIndex, taskIndex) {
+  emit('toggle-pending', { sectionIndex, taskIndex })
 }
 
 function handleEditChecklist() {
@@ -150,6 +170,26 @@ p {
   gap: var(--space-3);
 }
 
+.edit-button {
+  border: 1px solid rgba(45, 43, 85, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--color-text-primary);
+  padding: 10px 14px;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.edit-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(45, 43, 85, 0.3);
+  box-shadow: var(--shadow-md);
+}
+
 .status-pill.success {
   background: var(--color-success-bg);
   color: var(--color-success-text);
@@ -219,10 +259,22 @@ p {
 }
 
 .task-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 18px;
   height: 18px;
   border-radius: 50%;
   border: 2px solid #d7d6e7;
+  background: #fff;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.task-marker:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 5px rgba(152, 197, 74, 0.14);
 }
 
 .task-row.completed .task-marker {
@@ -243,10 +295,41 @@ p {
   color: var(--color-text-primary);
 }
 
+.task-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .task-meta {
   color: var(--color-text-hint);
   font-size: var(--font-size-sm);
   white-space: nowrap;
+}
+
+.flag-button {
+  border: 1px solid rgba(225, 177, 64, 0.32);
+  border-radius: 999px;
+  background: #fff8e8;
+  color: #a96d00;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.flag-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(225, 177, 64, 0.18);
+}
+
+.flag-button.active {
+  border-color: rgba(225, 177, 64, 0.55);
+  background: linear-gradient(180deg, #ffd978 0%, #ffc94c 100%);
+  color: #684000;
 }
 
 .task-row.completed .task-label,
@@ -274,8 +357,9 @@ p {
     padding-bottom: 14px;
   }
 
-  .task-meta {
+  .task-actions {
     grid-column: 2;
+    flex-wrap: wrap;
   }
 }
 </style>
