@@ -21,6 +21,10 @@ public record CreateTaskRequest(
 	Boolean active,
 
 	@NotNull
+	@Min(1)
+	Integer organisationId,
+
+	@NotNull
 	Long checklistId
 ) {
 }

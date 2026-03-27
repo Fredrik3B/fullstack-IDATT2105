@@ -33,9 +33,11 @@ public class TaskServiceImpl implements TaskService {
 		TaskModel task = new TaskModel();
 		task.setTitle(request.title().trim());
 		task.setDescription(trimToNull(request.description()));
-		task.setOrderIndex(request.orderIndex() != null ? request.orderIndex() : 0);
+		Integer orderIndex = request.orderIndex();
+		task.setOrderIndex(orderIndex != null ? orderIndex : 0);
 		task.setRequiredTask(request.requiredTask() == null || request.requiredTask());
 		task.setActive(request.active() == null || request.active());
+		task.setOrganisationId(request.organisationId());
 		task.setChecklist(checklist);
 
 		return toResponse(taskRepository.save(task));
@@ -88,6 +90,12 @@ public class TaskServiceImpl implements TaskService {
 		}
 		if (request.orderIndex() != null && request.orderIndex() < 0) {
 			throw new IllegalArgumentException("Order index cannot be negative.");
+		}
+		if (request.organisationId() == null) {
+			throw new IllegalArgumentException("Organisation id is required.");
+		}
+		if (request.organisationId() < 1) {
+			throw new IllegalArgumentException("Organisation id must be greater than 0.");
 		}
 	}
 
