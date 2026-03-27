@@ -15,6 +15,16 @@ const router = createRouter({
       component: () => import('../views/auth/RegisterView.vue')
     },
     {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: () => import('../views/auth/RestaurantOnboardingView.vue')
+    },
+    {
+      path: '/onboarding/create',
+      name: 'create-restaurant',
+      component: () => import('../views/auth/CreateRestaurantView.vue')
+    },
+    {
       path: '/',
       component: AppLayout,
       children: [
