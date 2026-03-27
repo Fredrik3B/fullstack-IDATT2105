@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
+import edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException;
 import edu.ntnu.idatt2105.backend.security.JwtService;
 import edu.ntnu.idatt2105.backend.security.UserPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.AuthDto;

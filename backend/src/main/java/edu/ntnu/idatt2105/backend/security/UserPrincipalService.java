@@ -12,9 +12,9 @@ public class UserPrincipalService implements UserDetailsService {
 
 
   @Override
-  public UserPrincipal loadUserByUsername(String username) throws UsernameNotFoundException {
-    UserModel user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+  public UserPrincipal loadUserByUsername(String email) throws UsernameNotFoundException {
+    UserModel user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
     return new UserPrincipal(user);
   }
 

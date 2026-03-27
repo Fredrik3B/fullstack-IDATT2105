@@ -60,7 +60,8 @@ public class JwtService {
    * Generates an JWT containing user claims.
    *
    * <p>Roles are stored as authority strings (prefixed with "ROLE_") the user is granted,
-   * so the filter can create Spring Security authorities directly from the token
+   * so the filter can create Spring Security authorities directly from the token. If the org
+   * is not set (like on signup), the field is set to null.</p>
    *
    * @param principal the authenticated user
    * @return a JWT string
@@ -68,7 +69,9 @@ public class JwtService {
   public String generateToken(UserPrincipal principal) {
     Map<String, Object> claims = new HashMap<>();
     claims.put("userId", principal.getUser().getId().toString());
-    claims.put("organizationId", principal.getUser().getOrganizationId().toString());
+    claims.put("organizationId", principal.getOrganizationId() != null
+        ? principal.getOrganizationId().toString()
+        : null);
     claims.put("roles", principal.getAuthorities().stream()
         .map(GrantedAuthority::getAuthority)
         .collect(Collectors.toList()));
@@ -126,7 +129,8 @@ public class JwtService {
   }
 
   public UUID extractOrganizationId(String token) {
-    return UUID.fromString(getClaims(token).get("organizationId", String.class));
+    String orgId = getClaims(token).get("organizationId", String.class);
+    return orgId != null ? UUID.fromString(orgId) : null;
   }
 
   public boolean tokenExpired(String token) {
