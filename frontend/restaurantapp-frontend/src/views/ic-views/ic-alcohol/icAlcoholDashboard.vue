@@ -1,92 +1,107 @@
 <script setup>
-import { ref } from 'vue'
+import { computed } from 'vue'
 import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
-import { recalcCardProgress as recalcCardProgressForCard } from '../checklists/recalcCardProgress'
+import { useChecklistDashboard } from '../checklists/useChecklistDashboard'
 
-const cards = ref([
+// Backend TODO:
+// Replace `initialCards` with data from `fetchChecklists({ module: 'IC_ALCOHOL' })` (see `frontend/restaurantapp-frontend/src/api/checklists.js`).
+const initialCards = [
   {
-    title: 'Skjenkerutine',
-    subtitle: 'IK-Alkohol - daglig',
-    statusLabel: '2/5 fullfort',
+    id: 'ic-alcohol-serving-routine',
+    period: 'daily',
+    title: 'Serving routine',
+    subtitle: 'IC-Alcohol - daily',
+    statusLabel: '2/5 completed',
     statusTone: 'warning',
     progress: 40,
     featured: true,
-    moduleChip: 'IK-Alkohol',
+    moduleChip: 'IC-Alcohol',
     sections: [
       {
-        title: 'Opplaering og sertifisering',
+        title: 'Training and certification',
         items: [
-          { label: 'Bekreft intern opplaering for kveldsskift', meta: '08:00', state: 'completed' }
+          {
+            id: 'ic-alcohol-serving-routine-train-1',
+            label: 'Confirm internal training for evening shift',
+            meta: '08:00',
+            state: 'completed'
+          }
         ]
       },
       {
-        title: 'Daglig logging',
+        title: 'Daily logging',
         items: [
-          { label: 'Loggfor antall avviste gjester', meta: 'Avventer', state: 'pending', highlighted: true },
-          { label: 'Bekreft ansvarlig skjenking gjennomgaatt', meta: 'Manglar', state: 'todo' }
+          {
+            id: 'ic-alcohol-serving-routine-log-1',
+            label: 'Log the number of refused guests',
+            meta: 'Waiting',
+            state: 'pending',
+            highlighted: true
+          },
+          {
+            id: 'ic-alcohol-serving-routine-log-2',
+            label: 'Confirm responsible serving reviewed',
+            meta: 'Missing',
+            state: 'todo'
+          }
         ]
       },
       {
-        title: 'Dokumentasjon',
+        title: 'Documentation',
         items: [
-          { label: 'Sjekk gyldighet pa skjenkesertifikat', meta: '18:00', state: 'todo' },
-          { label: 'Registrer eventuelle avvik i vaktlogg', meta: 'Etter stengetid', state: 'todo' }
+          {
+            id: 'ic-alcohol-serving-routine-doc-1',
+            label: 'Check validity of serving certificate',
+            meta: '18:00',
+            state: 'todo'
+          },
+          {
+            id: 'ic-alcohol-serving-routine-doc-2',
+            label: 'Record any deviations in the shift log',
+            meta: 'After closing',
+            state: 'todo'
+          }
         ]
       }
     ]
   },
   {
-    title: 'Helgerapport',
-    subtitle: 'Ukentlig - fredag',
-    statusLabel: 'Planlagt',
+    id: 'ic-alcohol-weekend-report',
+    period: 'weekly',
+    title: 'Weekend report',
+    subtitle: 'Weekly - Friday',
+    statusLabel: 'Planned',
     statusTone: 'muted',
     progress: null,
     sections: [
       {
-        title: 'Kontrollpunkt',
+        title: 'Control points',
         items: [
-          { label: 'Bekreft bemanningsplan for helg', meta: 'Fredag', state: 'todo' },
-          { label: 'Gjennomga lager for alkoholfrie alternativ', meta: 'Fredag', state: 'todo' }
+          { id: 'ic-alcohol-weekend-report-1', label: 'Confirm staffing plan for the weekend', meta: 'Fri', state: 'todo' },
+          {
+            id: 'ic-alcohol-weekend-report-2',
+            label: 'Review stock of non-alcoholic alternatives',
+            meta: 'Fri',
+            state: 'todo'
+          }
         ]
       }
     ]
   }
-])
+]
 
-function recalcCardProgress(cardIndex) {
-  recalcCardProgressForCard(cards.value[cardIndex])
-}
+const { activePeriod, displayCards, togglePending, toggleTask, now } = useChecklistDashboard({
+  initialCards,
+  defaultActivePeriod: 'Daily'
+})
 
-function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
-  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
-  if (task.state === 'completed') {
-    task.state = 'todo'
-  } else {
-    task.state = 'completed'
-    task.highlighted = false
-  }
-
-  recalcCardProgress(cardIndex)
-}
-
-function togglePending({ cardIndex, sectionIndex, taskIndex }) {
-  const task = cards.value[cardIndex].sections[sectionIndex].items[taskIndex]
-  const isPending = task.state === 'pending'
-
-  if (isPending) {
-    task.state = 'todo'
-    task.highlighted = false
-  } else {
-    task.state = 'pending'
-    task.highlighted = true
-  }
-
-  recalcCardProgress(cardIndex)
-}
-
-cards.value.forEach((card, idx) => {
-  const hasCountLabel = /\d+\s*\/\s*\d+/.test(String(card.statusLabel ?? ''))
-  if (card.progress !== null || hasCountLabel) recalcCardProgress(idx)
+const dateLabel = computed(() => {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  }).format(now.value)
 })
 
 function editChecklist({ cardIndex }) {
@@ -96,11 +111,11 @@ function editChecklist({ cardIndex }) {
 
 <template>
   <ChecklistDashboard
-    module-label="IK-Alkohol"
-    title="Sjekklister"
-    date-label="Torsdag 26. mars 2026"
-    active-period="Daglig"
-    :cards="cards"
+    module-label="IC-Alcohol"
+    title="Checklists"
+    :date-label="dateLabel"
+    v-model:activePeriod="activePeriod"
+    :cards="displayCards"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
     @edit-checklist="editChecklist"
