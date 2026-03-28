@@ -14,12 +14,13 @@
           type="button"
           class="period-button"
           :class="{ active: option === activePeriod }"
+          @click="handlePeriodClick(option)"
         >
           {{ option }}
         </button>
       </div>
 
-      <button type="button" class="create-button">{{ createLabel }}</button>
+      <button type="button" class="create-button" @click="emit('create')">{{ createLabel }}</button>
     </div>
   </section>
 </template>
@@ -40,17 +41,24 @@ defineProps({
   },
   periods: {
     type: Array,
-    default: () => ['Daglig', 'Ukentlig', 'Månedlig']
+    default: () => ['Daily', 'Weekly', 'Monthly']
   },
   activePeriod: {
     type: String,
-    default: 'Daglig'
+    default: 'Daily'
   },
   createLabel: {
     type: String,
-    default: '+ Ny sjekkliste'
+    default: '+ New checklist'
   }
 })
+
+const emit = defineEmits(['update:activePeriod', 'create'])
+
+
+function handlePeriodClick(option) {
+  emit('update:activePeriod', option)
+}
 </script>
 
 <style scoped>
@@ -150,3 +158,4 @@ p {
   }
 }
 </style>
+
