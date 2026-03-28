@@ -30,6 +30,9 @@ import api from './axiosInstance'
  * Endpoints (suggested):
  * - GET /api/checklists?module=IC_FOOD
  *     -> returns ChecklistCard[]
+ * - POST /api/checklists
+ *     body: { module, period, title, subtitle?, sections: [{ title, items: [{ label, meta? }] }] }
+ *     -> returns the created ChecklistCard with ids for checklist/sections/tasks
  * - PUT /api/checklists/{checklistId}/tasks/{taskId}/completion
  *     body: { state: 'completed'|'todo', periodKey: string, completedAt?: string }
  * - PUT /api/checklists/{checklistId}/tasks/{taskId}/flag
@@ -59,3 +62,13 @@ export async function setTaskFlag({ checklistId, taskId, state, periodKey, flagg
   return data
 }
 
+export async function createChecklist({ module, period, title, subtitle, sections }) {
+  const { data } = await api.post('/api/checklists', {
+    module,
+    period,
+    title,
+    subtitle,
+    sections
+  })
+  return data
+}
