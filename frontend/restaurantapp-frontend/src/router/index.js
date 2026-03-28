@@ -80,7 +80,7 @@ const router = createRouter({
 //   onboarding  — /onboarding, /onboarding/create  (require auth, no restaurant yet)
 //   app         — everything else  (require auth + active restaurant)
 
-router.beforeEach((to) => {
+/* router.beforeEach((to) => {
   const auth = useAuthStore()
 
   const isPublic     = ['login', 'register'].includes(to.name)
@@ -111,5 +111,5 @@ router.beforeEach((to) => {
   // ── All clear ──
   return true
 })
-
+*/
 export default router
