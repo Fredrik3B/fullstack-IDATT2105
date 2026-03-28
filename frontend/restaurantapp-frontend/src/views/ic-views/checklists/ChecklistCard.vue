@@ -24,7 +24,7 @@
       <ul class="task-list">
         <li
           v-for="(task, taskIndex) in section.items"
-          :key="task.label"
+          :key="task.id ?? task.label"
           class="task-row"
           :class="[task.state, { highlighted: task.highlighted }]"
         >
