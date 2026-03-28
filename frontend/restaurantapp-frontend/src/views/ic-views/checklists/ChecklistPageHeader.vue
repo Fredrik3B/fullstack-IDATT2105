@@ -55,6 +55,7 @@ defineProps({
 
 const emit = defineEmits(['update:activePeriod', 'create'])
 
+
 function handlePeriodClick(option) {
   emit('update:activePeriod', option)
 }
