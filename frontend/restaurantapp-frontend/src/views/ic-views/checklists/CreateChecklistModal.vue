@@ -211,13 +211,18 @@ function handleSubmit() {
   inset: 0;
   z-index: 60;
   background: rgba(12, 12, 24, 0.55);
-  display: grid;
-  place-items: center;
-  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 64px 16px 32px;
+  overflow: auto;
 }
 
 .modal {
   width: min(820px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(210, 213, 230, 0.95);
@@ -269,7 +274,9 @@ h2 {
 }
 
 .modal-body {
+  flex: 1 1 auto;
   padding: 18px 20px 20px;
+  overflow: auto;
 }
 
 .grid {
@@ -400,9 +407,13 @@ h3 {
 }
 
 @media (max-width: 700px) {
+  .overlay {
+    padding-top: 24px;
+    padding-bottom: 16px;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
 }
 </style>
-
