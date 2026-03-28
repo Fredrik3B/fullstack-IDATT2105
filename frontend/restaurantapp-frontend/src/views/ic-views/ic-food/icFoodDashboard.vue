@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
+import CreateChecklistModal from '../checklists/CreateChecklistModal.vue'
 import { useChecklistDashboard } from '../checklists/useChecklistDashboard'
 
 // Backend TODO:
@@ -20,13 +21,13 @@ const initialCards = [
         items: [
           {
             id: 'ic-food-before-opening-temp-1',
-            label: 'Check cold room 1 (target: 2–4 °C)',
+            label: 'Check cold room 1 (target: 2-4 C)',
             meta: '2.1 C',
             state: 'completed'
           },
           {
             id: 'ic-food-before-opening-temp-2',
-            label: 'Check freezer (target: below -18 °C)',
+            label: 'Check freezer (target: below -18 C)',
             meta: '-19 C',
             state: 'completed'
           }
@@ -154,10 +155,22 @@ const initialCards = [
   }
 ]
 
-const { activePeriod, displayCards, togglePending, toggleTask, now } = useChecklistDashboard({
+const { activePeriod, cards, displayCards, togglePending, toggleTask, now } = useChecklistDashboard({
   initialCards,
   defaultActivePeriod: 'Daily'
 })
+
+const isCreateOpen = ref(false)
+function handleCreate() {
+  isCreateOpen.value = true
+}
+function handleCreatedChecklist(newCard) {
+  // Backend TODO:
+  // Replace with: await createChecklist({ module: 'IC_FOOD', ...payload })
+  // and push the returned checklist card (with backend ids).
+  // See: `frontend/restaurantapp-frontend/src/api/checklists.js`
+  cards.value.push(newCard)
+}
 
 const dateLabel = computed(() => {
   // Frontend-only label. Backend should provide authoritative "business date" if needed.
@@ -181,8 +194,16 @@ function editChecklist({ cardIndex }) {
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
     :cards="displayCards"
+    @create="handleCreate"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
     @edit-checklist="editChecklist"
+  />
+
+  <CreateChecklistModal
+    v-model:open="isCreateOpen"
+    module-label="IC-Food"
+    module-chip="IC-Food"
+    @created="handleCreatedChecklist"
   />
 </template>
