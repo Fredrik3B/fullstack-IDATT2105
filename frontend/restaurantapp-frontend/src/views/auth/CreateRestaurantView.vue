@@ -20,10 +20,7 @@
       <template v-if="submitted">
         <div class="result-card">
           <div class="result-icon result-icon--success">
-            <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M7.5 12.5L10.5 15.5L16.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <CheckCircle />
           </div>
           <h1 class="result-title">Restaurant opprettet!</h1>
           <p class="result-body">
@@ -39,9 +36,7 @@
           </div>
           <button class="btn-primary" @click="$router.push({ name: 'dashboard' })">
             Gå til dashbord
-            <svg viewBox="0 0 16 16" fill="none">
-              <path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ArrowRight />
           </button>
         </div>
       </template>
@@ -51,9 +46,7 @@
         <div class="form-card">
           <div class="form-card-header">
             <RouterLink to="/onboarding" class="back-btn">
-              <svg viewBox="0 0 16 16" fill="none">
-                <path d="M10 4L6 8L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronLeft />
               Tilbake
             </RouterLink>
             <div>
@@ -70,9 +63,7 @@
               <div class="field-group" :class="{ 'has-error': errors.name }">
                 <label class="field-label" for="restName">Restaurantnavn</label>
                 <div class="field-wrapper">
-                  <svg class="field-icon" viewBox="0 0 20 20" fill="none">
-                    <path d="M3 6H17M3 6C3 6 4 4 10 4C16 4 17 6 17 6M3 6V16C3 16.55 3.45 17 4 17H16C16.55 17 17 16.55 17 16V6M7 10H13M7 13H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <Store class="field-icon" />
                   <input id="restName" v-model="form.name" type="text" class="field-input"
                     placeholder="Everest Sushi & Fusion AS" autocomplete="organization"
                     @input="clearError('name')" />
@@ -86,10 +77,7 @@
                   <span class="label-hint">9 siffer</span>
                 </label>
                 <div class="field-wrapper">
-                  <svg class="field-icon" viewBox="0 0 20 20" fill="none">
-                    <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.3"/>
-                    <path d="M7 8H13M7 11H11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-                  </svg>
+                  <FileText class="field-icon" />
                   <input id="orgNumber" v-model="form.orgNumber" type="text" class="field-input"
                     placeholder="123 456 789" maxlength="11" inputmode="numeric"
                     @input="handleOrgInput" />
@@ -104,10 +92,7 @@
               <div class="field-group" :class="{ 'has-error': errors.address }">
                 <label class="field-label" for="address">Gateadresse</label>
                 <div class="field-wrapper">
-                  <svg class="field-icon" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 2C7.24 2 5 4.24 5 7C5 10.5 10 18 10 18C10 18 15 10.5 15 7C15 4.24 12.76 2 10 2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
-                    <circle cx="10" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/>
-                  </svg>
+                  <MapPin class="field-icon" />
                   <input id="address" v-model="form.address" type="text" class="field-input"
                     placeholder="Storgata 1" autocomplete="street-address"
                     @input="clearError('address')" />
@@ -139,11 +124,7 @@
             </div>
 
             <div v-if="submitError" class="alert alert--error">
-              <svg viewBox="0 0 20 20" fill="none">
-                <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="10" cy="13.5" r="0.75" fill="currentColor"/>
-              </svg>
+              <AlertCircle />
               {{ submitError }}
             </div>
 
@@ -167,6 +148,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { CheckCircle, ArrowRight, ChevronLeft, Store, FileText, MapPin, AlertCircle } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 
