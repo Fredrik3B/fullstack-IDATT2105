@@ -20,10 +20,7 @@
       <template v-if="view === 'pending'">
         <div class="onboarding-card">
           <div class="pending-icon">
-            <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M12 7V12L15 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <Clock />
           </div>
           <h1 class="onboarding-title">Venter på godkjenning</h1>
           <p class="onboarding-subtitle">
@@ -33,18 +30,11 @@
           </p>
           <div class="pending-meta">
             <div class="meta-row">
-              <svg viewBox="0 0 16 16" fill="none">
-                <path d="M3 10C3 10 5 5 8 5H11C11.55 5 12 5.45 12 6V10C12 10.55 11.55 11 11 11H8C5 11 3 10 3 10Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
-                <circle cx="10.5" cy="8" r="1" stroke="currentColor" stroke-width="1"/>
-              </svg>
+              <Store />
               {{ pendingRestaurantName }}
             </div>
             <div class="meta-row">
-              <svg viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/>
-                <path d="M8 5V8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-                <circle cx="8" cy="10.5" r="0.6" fill="currentColor"/>
-              </svg>
+              <Info />
               Sendt {{ pendingSentDate }}
             </div>
           </div>
@@ -75,33 +65,24 @@
         <div class="option-grid">
           <button class="option-card" @click="view = 'join'">
             <div class="option-icon option-icon--join">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M17 12H7M7 12L11 8M7 12L11 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M3 6C3 4.89543 3.89543 4 5 4H19C20.1046 4 21 4.89543 21 6V18C21 19.1046 20.1046 20 19 20H5C3.89543 20 3 19.1046 3 18V6Z" stroke="currentColor" stroke-width="1.5"/>
-              </svg>
+              <LogIn />
             </div>
             <div class="option-text">
               <span class="option-title">Bli med i restaurant</span>
               <span class="option-desc">Skriv inn restaurantkoden du har fått fra din leder</span>
             </div>
-            <svg class="option-arrow" viewBox="0 0 16 16" fill="none">
-              <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="option-arrow" />
           </button>
 
           <button class="option-card" @click="$router.push({ name: 'create-restaurant' })">
             <div class="option-icon option-icon--create">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
+              <Plus />
             </div>
             <div class="option-text">
               <span class="option-title">Opprett ny restaurant</span>
               <span class="option-desc">Registrer en ny restaurant og bli administrator</span>
             </div>
-            <svg class="option-arrow" viewBox="0 0 16 16" fill="none">
-              <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronRight class="option-arrow" />
           </button>
         </div>
       </template>
@@ -110,9 +91,7 @@
       <template v-else-if="view === 'join'">
         <div class="onboarding-card">
           <button class="back-btn" @click="view = 'choose'">
-            <svg viewBox="0 0 16 16" fill="none">
-              <path d="M10 4L6 8L10 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <ChevronLeft />
             Tilbake
           </button>
 
@@ -125,10 +104,7 @@
             <div class="field-group" :class="{ 'has-error': joinError }">
               <label class="field-label" for="joinCode">Restaurantkode</label>
               <div class="field-wrapper">
-                <svg class="field-icon" viewBox="0 0 20 20" fill="none">
-                  <path d="M3 10C3 10 6 4 10 4H14C15.1 4 16 4.9 16 6V14C16 15.1 15.1 16 14 16H10C6 16 3 10 3 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                  <circle cx="13" cy="10" r="1.5" stroke="currentColor" stroke-width="1.2"/>
-                </svg>
+                <KeyRound class="field-icon" />
                 <input
                   id="joinCode"
                   v-model="joinCode"
@@ -140,14 +116,10 @@
                   @input="handleCodeInput"
                 />
                 <span v-if="codeStatus === 'valid'" class="code-badge code-badge--valid">
-                  <svg viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <Check />
                 </span>
                 <span v-else-if="codeStatus === 'invalid'" class="code-badge code-badge--invalid">
-                  <svg viewBox="0 0 12 12" fill="none">
-                    <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                  </svg>
+                  <X />
                 </span>
               </div>
               <span v-if="codeStatus === 'valid'" class="field-hint--valid">{{ resolvedRestaurantName }}</span>
@@ -174,6 +146,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/api/axiosInstance'
+import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound, Check, X } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 
