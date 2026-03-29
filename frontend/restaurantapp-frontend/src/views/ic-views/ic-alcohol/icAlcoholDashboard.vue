@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
+import CreateChecklistModal from '../checklists/CreateChecklistModal.vue'
 import { useChecklistDashboard } from '../checklists/useChecklistDashboard'
 
 // Backend TODO:
@@ -90,10 +91,22 @@ const initialCards = [
   }
 ]
 
-const { activePeriod, displayCards, togglePending, toggleTask, now } = useChecklistDashboard({
+const { activePeriod, cards, displayCards, togglePending, toggleTask, now } = useChecklistDashboard({
   initialCards,
   defaultActivePeriod: 'Daily'
 })
+
+const isCreateOpen = ref(false)
+function handleCreate() {
+  isCreateOpen.value = true
+}
+function handleCreatedChecklist(newCard) {
+  // Backend TODO:
+  // Replace with: await createChecklist({ module: 'IC_ALCOHOL', ...payload })
+  // and push the returned checklist card (with backend ids).
+  // See: `frontend/restaurantapp-frontend/src/api/checklists.js`
+  cards.value.push(newCard)
+}
 
 const dateLabel = computed(() => {
   return new Intl.DateTimeFormat('en-US', {
@@ -116,8 +129,16 @@ function editChecklist({ cardIndex }) {
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
     :cards="displayCards"
+    @create="handleCreate"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
     @edit-checklist="editChecklist"
+  />
+
+  <CreateChecklistModal
+    v-model:open="isCreateOpen"
+    module-label="IC-Alcohol"
+    module-chip="IC-Alcohol"
+    @created="handleCreatedChecklist"
   />
 </template>
