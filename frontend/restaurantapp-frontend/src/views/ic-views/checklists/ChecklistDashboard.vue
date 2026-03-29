@@ -4,15 +4,21 @@
       :module-label="moduleLabel"
       :title="title"
       :date-label="dateLabel"
+      :periods="periods"
       :active-period="activePeriod"
       :create-label="createLabel"
+      @update:activePeriod="emit('update:activePeriod', $event)"
+      @create="emit('create')"
     />
 
     <div class="cards-grid">
       <ChecklistCard
-        v-for="card in cards"
-        :key="card.title"
+        v-for="(card, cardIndex) in cards"
+        :key="card.id ?? card.title"
         v-bind="card"
+        @toggle-task="emit('toggle-task', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
+        @toggle-pending="emit('toggle-pending', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
+        @edit-checklist="emit('edit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex })"
       />
     </div>
   </section>
@@ -35,19 +41,26 @@ defineProps({
     type: String,
     required: true
   },
+  periods: {
+    type: Array,
+    default: () => ['Daily', 'Weekly', 'Monthly']
+  },
   activePeriod: {
     type: String,
-    default: 'Daglig'
+    default: 'Daily'
   },
   createLabel: {
     type: String,
-    default: '+ Ny sjekkliste'
+    default: '+ New checklist'
   },
   cards: {
     type: Array,
     required: true
   }
 })
+
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'update:activePeriod', 'create'])
+
 </script>
 
 <style scoped>
