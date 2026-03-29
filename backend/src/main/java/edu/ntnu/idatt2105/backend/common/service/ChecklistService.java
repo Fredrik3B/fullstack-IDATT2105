@@ -1,8 +1,9 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
-import edu.ntnu.idatt2105.backend.common.dto.ChecklistResponse;
-import edu.ntnu.idatt2105.backend.common.dto.CreateChecklistRequest;
 import java.util.List;
+
+import edu.ntnu.idatt2105.backend.common.dto.checklist.ChecklistResponse;
+import edu.ntnu.idatt2105.backend.common.dto.checklist.CreateChecklistRequest;
 
 
 public interface ChecklistService {
