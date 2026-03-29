@@ -9,7 +9,7 @@
       </div>
       <div class="topbar-user">
         <div class="user-avatar">{{ userInitials }}</div>
-        <span class="user-name">{{ userName }}</span>
+        <span class="user-name">{{ userEmail }}</span>
         <button class="btn-logout" @click="handleLogout">Logg ut</button>
       </div>
     </div>
@@ -153,7 +153,7 @@ import { CheckCircle, ArrowRight, ChevronLeft, Store, FileText, MapPin, AlertCir
 const auth = useAuthStore()
 
 // ── User info from store ──
-const userName    = computed(() => auth.user?.name ?? '')
+const userEmail    = computed(() => auth.user?.email ?? '')
 const userInitials = computed(() => auth.userInitials)
 
 const form = reactive({

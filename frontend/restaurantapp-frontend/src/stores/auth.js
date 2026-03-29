@@ -46,15 +46,10 @@ export const useAuthStore = defineStore('auth', () => {
   /** True when the user is logged in AND connected to an active restaurant. */
   const hasActiveRestaurant = computed(() => restaurantStatus.value === 'active')
 
-  /** Initials derived from the user's name, used in avatars. */
+  /** Initials derived from the user's email, used in avatars. */
   const userInitials = computed(() => {
-    if (!user.value?.name) return '?'
-    return user.value.name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+    if (!user.value?.email) return '?'
+    return user.value.email.slice(0, 2).toUpperCase()
   })
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -183,6 +178,11 @@ export const useAuthStore = defineStore('auth', () => {
    *   import api from '@/api/axiosInstance'
    *   const { data } = await api.post('/api/restaurants/join', { joinCode })
    */
+  async function lookupRestaurant(code) {
+    const { data } = await api.get(`/api/restaurants/lookup?code=${code}`)
+    return data // { name: String }
+  }
+
   async function joinRestaurant(joinCode) {
     const { data } = await api.post('/api/restaurants/join', { joinCode })
 
@@ -272,6 +272,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     refreshAccessToken,
+    lookupRestaurant,
     joinRestaurant,
     withdrawJoinRequest,
     createRestaurant,
