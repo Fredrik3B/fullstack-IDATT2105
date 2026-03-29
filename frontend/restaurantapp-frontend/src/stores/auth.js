@@ -5,8 +5,7 @@ import axios from 'axios'
 import api from '@/api/axiosInstance'
 
 // Keys used for localStorage persistence
-const ACCESS_TOKEN_KEY  = 'iksystem_access_token'
-const REFRESH_TOKEN_KEY = 'iksystem_refresh_token'
+const ACCESS_TOKEN_KEY = 'iksystem_access_token'
 
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter()
@@ -24,12 +23,6 @@ export const useAuthStore = defineStore('auth', () => {
    * Populated from localStorage on app boot via initAuth().
    */
   const accessToken = ref(localStorage.getItem(ACCESS_TOKEN_KEY) ?? null)
-
-  /**
-   * Long-lived JWT used to silently obtain a new accessToken when it expires.
-   * Never sent to any endpoint other than POST /api/auth/refresh.
-   */
-  const refreshToken = ref(localStorage.getItem(REFRESH_TOKEN_KEY) ?? null)
 
   /**
    * The user's relationship to a restaurant.
@@ -53,33 +46,18 @@ export const useAuthStore = defineStore('auth', () => {
   /** True when the user is logged in AND connected to an active restaurant. */
   const hasActiveRestaurant = computed(() => restaurantStatus.value === 'active')
 
-  /** Initials derived from the user's name, used in avatars. */
+  /** Initials derived from the user's email, used in avatars. */
   const userInitials = computed(() => {
-    if (!user.value?.name) return '?'
-    return user.value.name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+    if (!user.value?.email) return '?'
+    return user.value.email.slice(0, 2).toUpperCase()
   })
 
   // ── Internal helpers ───────────────────────────────────────────────────────
 
-  /** Persist both tokens to localStorage and update state. */
-  function _saveTokens(access, refresh) {
-    accessToken.value  = access
-    refreshToken.value = refresh
-    localStorage.setItem(ACCESS_TOKEN_KEY,  access)
-    localStorage.setItem(REFRESH_TOKEN_KEY, refresh)
-  }
-
-  /** Remove all tokens from state and localStorage. */
+  /** Remove access token from state and localStorage. */
   function _clearTokens() {
-    accessToken.value  = null
-    refreshToken.value = null
+    accessToken.value = null
     localStorage.removeItem(ACCESS_TOKEN_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
   }
 
   /** Reset all state to initial/logged-out values. */
@@ -132,10 +110,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email, password) {
     const { data } = await api.post('/api/auth/login', { email, password })
 
-    _saveTokens(data.accessToken, data.refreshToken)
-    user.value             = data.user
-    restaurantStatus.value = data.restaurantStatus
-    restaurantId.value     = data.restaurantId
+    accessToken.value = data.accessToken
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
+
+    user.value             = { email: data.email }
+    restaurantStatus.value = null
+    restaurantId.value     = null
 
     _redirectAfterAuth()
   }
@@ -150,10 +130,15 @@ export const useAuthStore = defineStore('auth', () => {
    *   const { data } = await api.post('/api/auth/register', { name, email, password })
    */
   async function register(name, email, password) {
-    const { data } = await api.post('/api/auth/register', { name, email, password })
+    const [firstName, ...rest] = name.trim().split(/\s+/)
+    const lastName = rest.join(' ')
 
-    _saveTokens(data.accessToken, data.refreshToken)
-    user.value             = data.user
+    const { data } = await api.post('/api/auth/register', { firstName, lastName, email, password })
+
+    accessToken.value = data.accessToken
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
+
+    user.value             = { email: data.email }
     restaurantStatus.value = null
     restaurantId.value     = null
 
@@ -169,23 +154,19 @@ export const useAuthStore = defineStore('auth', () => {
    * The Axios interceptor should queue concurrent requests while a refresh is
    * in progress. That logic lives in axiosInstance.js.
    *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   const response = await axios.post('/api/auth/refresh', { refreshToken: refreshToken.value })
    */
   async function refreshAccessToken() {
-    if (!refreshToken.value) throw new Error('No refresh token available')
-
     // Uses plain axios — NOT the intercepted api instance.
     // If we used api here, a failed refresh would trigger the interceptor
     // again, which would call refreshAccessToken() again → infinite loop.
+    // The HTTPOnly refresh token cookie is sent automatically by the browser.
     const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
-    const { data } = await axios.post(`${baseURL}/api/auth/refresh`, {
-      refreshToken: refreshToken.value
+    const { data } = await axios.post(`${baseURL}/api/auth/refresh`, null, {
+      withCredentials: true,
     })
 
-    // Some backends rotate the refresh token on every use; if yours doesn't,
-    // data.refreshToken will be undefined and we keep the existing one.
-    _saveTokens(data.accessToken, data.refreshToken ?? refreshToken.value)
+    accessToken.value = data.accessToken
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
     return data.accessToken
   }
 
@@ -197,6 +178,11 @@ export const useAuthStore = defineStore('auth', () => {
    *   import api from '@/api/axiosInstance'
    *   const { data } = await api.post('/api/restaurants/join', { joinCode })
    */
+  async function lookupRestaurant(code) {
+    const { data } = await api.get(`/api/restaurants/lookup?code=${code}`)
+    return data // { name: String }
+  }
+
   async function joinRestaurant(joinCode) {
     const { data } = await api.post('/api/restaurants/join', { joinCode })
 
@@ -273,7 +259,6 @@ export const useAuthStore = defineStore('auth', () => {
     // State
     user,
     accessToken,
-    refreshToken,
     restaurantStatus,
     restaurantId,
 
@@ -287,6 +272,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     refreshAccessToken,
+    lookupRestaurant,
     joinRestaurant,
     withdrawJoinRequest,
     createRestaurant,

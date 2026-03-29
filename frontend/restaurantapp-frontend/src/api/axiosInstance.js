@@ -7,6 +7,7 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000, // 10 seconds — fail loudly instead of hanging forever
+  withCredentials: true, // required for HTTPOnly refresh token cookie
 })
 
 // ── Request interceptor — attach JWT ──────────────────────────────────────
@@ -55,8 +56,10 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // Only attempt a refresh on 401, and only once per request
-    if (error.response?.status !== 401 || originalRequest._isRetry) {
+    // Only attempt a refresh on 401, and only once per request.
+    // Skip refresh for auth endpoints — a 401 there means bad credentials, not an expired token.
+    const isAuthEndpoint = originalRequest.url?.includes('/api/auth/')
+    if (error.response?.status !== 401 || originalRequest._isRetry || isAuthEndpoint) {
       return Promise.reject(error)
     }
 
