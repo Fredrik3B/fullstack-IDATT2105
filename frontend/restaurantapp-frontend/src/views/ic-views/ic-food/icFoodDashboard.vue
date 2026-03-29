@@ -172,6 +172,17 @@ function handleCreatedChecklist(newCard) {
   cards.value.push(newCard)
 }
 
+const isEditOpen = ref(false)
+const editingCardIndex = ref(null)
+const editingCard = computed(() =>
+  Number.isInteger(editingCardIndex.value) ? cards.value[editingCardIndex.value] : null
+)
+
+function handleUpdatedChecklist(updatedCard) {
+  if (!Number.isInteger(editingCardIndex.value)) return
+  cards.value.splice(editingCardIndex.value, 1, updatedCard)
+}
+
 const dateLabel = computed(() => {
   // Frontend-only label. Backend should provide authoritative "business date" if needed.
   return new Intl.DateTimeFormat('en-US', {
@@ -183,7 +194,8 @@ const dateLabel = computed(() => {
 })
 
 function editChecklist({ cardIndex }) {
-  console.log("Placeholder: open UI for checklist editing| cardIndex: ", cardIndex)
+  editingCardIndex.value = cardIndex
+  isEditOpen.value = true
 }
 </script>
 
@@ -205,5 +217,15 @@ function editChecklist({ cardIndex }) {
     module-label="IC-Food"
     module-chip="IC-Food"
     @created="handleCreatedChecklist"
+  />
+
+  <CreateChecklistModal
+    v-model:open="isEditOpen"
+    mode="edit"
+    :initial-card="editingCard"
+    module-label="IC-Food"
+    module-chip="IC-Food"
+    @close="editingCardIndex = null"
+    @updated="handleUpdatedChecklist"
   />
 </template>

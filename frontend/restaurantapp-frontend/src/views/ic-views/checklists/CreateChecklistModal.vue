@@ -1,11 +1,11 @@
 <template>
-  <div v-if="open" class="overlay" role="dialog" aria-modal="true" aria-label="Create checklist">
+  <div v-if="open" class="overlay" role="dialog" aria-modal="true" :aria-label="dialogAriaLabel">
     <div class="modal">
       <header class="modal-header">
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
-          <h2>Create checklist</h2>
-          <p class="subtitle">Build a new recurring checklist card.</p>
+          <h2>{{ modalTitle }}</h2>
+          <p class="subtitle">{{ modalSubtitle }}</p>
         </div>
 
         <button type="button" class="icon-button" aria-label="Close" @click="handleClose">×</button>
@@ -72,7 +72,7 @@
 
         <footer class="modal-footer">
           <button type="button" class="secondary" @click="handleClose">Cancel</button>
-          <button type="submit" class="primary">Create</button>
+          <button type="submit" class="primary">{{ submitLabel }}</button>
         </footer>
       </form>
     </div>
@@ -80,12 +80,21 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   open: {
     type: Boolean,
     default: false
+  },
+  mode: {
+    type: String,
+    default: 'create',
+    validator: (value) => ['create', 'edit'].includes(value)
+  },
+  initialCard: {
+    type: Object,
+    default: null
   },
   moduleLabel: {
     type: String,
@@ -97,7 +106,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:open', 'close', 'created'])
+const emit = defineEmits(['update:open', 'close', 'created', 'updated'])
 
 function randomId(prefix = 'id') {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return `${prefix}-${crypto.randomUUID()}`
@@ -109,11 +118,20 @@ const subtitle = ref('')
 const period = ref('daily')
 const error = ref('')
 
+const isEditMode = computed(() => props.mode === 'edit')
+const modalTitle = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
+const modalSubtitle = computed(() =>
+  isEditMode.value ? 'Update the recurring checklist card.' : 'Build a new recurring checklist card.'
+)
+const submitLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Create'))
+const dialogAriaLabel = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
+
 const sections = ref([
   {
     id: randomId('section'),
     title: 'Tasks',
-    tasksText: ''
+    tasksText: '',
+    taskIds: []
   }
 ])
 
@@ -122,18 +140,62 @@ function resetForm() {
   subtitle.value = ''
   period.value = 'daily'
   error.value = ''
-  sections.value = [{ id: randomId('section'), title: 'Tasks', tasksText: '' }]
+  sections.value = [{ id: randomId('section'), title: 'Tasks', tasksText: '', taskIds: [] }]
+}
+
+function initFromCard(card) {
+  if (!card) {
+    resetForm()
+    return
+  }
+
+  title.value = String(card.title ?? '').trim()
+  subtitle.value = String(card.subtitle ?? '').trim()
+  period.value = String(card.period ?? 'daily')
+  error.value = ''
+
+  const sourceSections = Array.isArray(card.sections) ? card.sections : []
+  if (sourceSections.length === 0) {
+    sections.value = [{ id: randomId('section'), title: 'Tasks', tasksText: '', taskIds: [] }]
+    return
+  }
+
+  sections.value = sourceSections.map((section) => {
+    const items = Array.isArray(section.items) ? section.items : []
+    return {
+      id: randomId('section'),
+      title: String(section.title ?? 'Tasks').trim() || 'Tasks',
+      tasksText: items.map((task) => String(task.label ?? '').trim()).filter(Boolean).join('\n'),
+      taskIds: items.map((task) => task?.id).filter(Boolean)
+    }
+  })
 }
 
 watch(
   () => props.open,
   (isOpen) => {
-    if (isOpen) resetForm()
+    if (!isOpen) return
+    if (isEditMode.value) initFromCard(props.initialCard)
+    else resetForm()
+  }
+)
+
+watch(
+  () => props.initialCard,
+  (nextCard) => {
+    if (!props.open) return
+    if (!isEditMode.value) return
+    initFromCard(nextCard)
   }
 )
 
 function addSection() {
-  sections.value.push({ id: randomId('section'), title: `Section ${sections.value.length + 1}`, tasksText: '' })
+  sections.value.push({
+    id: randomId('section'),
+    title: `Section ${sections.value.length + 1}`,
+    tasksText: '',
+    taskIds: []
+  })
 }
 
 function removeSection(index) {
@@ -154,20 +216,40 @@ function handleClose() {
 function handleSubmit() {
   error.value = ''
 
+  const previousCard = isEditMode.value ? props.initialCard : null
+  const previousSections = previousCard && Array.isArray(previousCard.sections) ? previousCard.sections : []
+  const previousTasksById = new Map()
+  previousSections.forEach((section) => {
+    const items = Array.isArray(section.items) ? section.items : []
+    items.forEach((task) => {
+      if (task?.id) previousTasksById.set(task.id, task)
+    })
+  })
+
   const sectionPayload = sections.value
     .map((section) => {
       const lines = String(section.tasksText ?? '')
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter(Boolean)
-      return {
-        title: String(section.title || 'Tasks').trim(),
-        items: lines.map((label) => ({
+
+      const ids = Array.isArray(section.taskIds) ? section.taskIds : []
+      const items = lines.map((label, idx) => {
+        const existingId = ids[idx]
+        const previousTask = existingId ? previousTasksById.get(existingId) : null
+
+        if (previousTask) return { ...previousTask, label }
+        return {
           id: randomId('task'),
           label,
           meta: '',
           state: 'todo'
-        }))
+        }
+      })
+
+      return {
+        title: String(section.title || 'Tasks').trim(),
+        items
       }
     })
     .filter((section) => section.items.length > 0)
@@ -184,23 +266,36 @@ function handleSubmit() {
 
   const defaultSubtitle = `${periodLabel(period.value)} checklist`
 
-  const newCard = {
-    id: randomId('checklist'),
-    period: period.value,
-    title: title.value.trim(),
-    subtitle: subtitle.value.trim() || defaultSubtitle,
-    statusLabel: '',
-    statusTone: 'muted',
-    progress: null,
-    featured: false,
-    moduleChip: props.moduleChip || props.moduleLabel,
-    sections: sectionPayload
-  }
+  const resolvedModuleChip = props.moduleChip || props.moduleLabel
+
+  const nextCard = isEditMode.value
+    ? {
+        ...(previousCard ?? {}),
+        id: previousCard?.id ?? randomId('checklist'),
+        period: period.value,
+        title: title.value.trim(),
+        subtitle: subtitle.value.trim(),
+        moduleChip: previousCard?.moduleChip ?? resolvedModuleChip,
+        sections: sectionPayload
+      }
+    : {
+        id: randomId('checklist'),
+        period: period.value,
+        title: title.value.trim(),
+        subtitle: subtitle.value.trim() || defaultSubtitle,
+        statusLabel: '',
+        statusTone: 'muted',
+        progress: null,
+        featured: false,
+        moduleChip: resolvedModuleChip,
+        sections: sectionPayload
+      }
 
   // Backend TODO:
   // Call POST /api/checklists here (or from the parent) and use the returned ids.
   // See: `frontend/restaurantapp-frontend/src/api/checklists.js`
-  emit('created', newCard)
+  if (isEditMode.value) emit('updated', nextCard)
+  else emit('created', nextCard)
   handleClose()
 }
 </script>
