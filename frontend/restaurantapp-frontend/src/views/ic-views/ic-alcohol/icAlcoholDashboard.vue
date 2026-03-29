@@ -108,6 +108,17 @@ function handleCreatedChecklist(newCard) {
   cards.value.push(newCard)
 }
 
+const isEditOpen = ref(false)
+const editingCardIndex = ref(null)
+const editingCard = computed(() =>
+  Number.isInteger(editingCardIndex.value) ? cards.value[editingCardIndex.value] : null
+)
+
+function handleUpdatedChecklist(updatedCard) {
+  if (!Number.isInteger(editingCardIndex.value)) return
+  cards.value.splice(editingCardIndex.value, 1, updatedCard)
+}
+
 const dateLabel = computed(() => {
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
@@ -118,7 +129,8 @@ const dateLabel = computed(() => {
 })
 
 function editChecklist({ cardIndex }) {
-  console.log("Placeholder: open UI for checklist editing| cardIndex: ", cardIndex)
+  editingCardIndex.value = cardIndex
+  isEditOpen.value = true
 }
 </script>
 
@@ -140,5 +152,15 @@ function editChecklist({ cardIndex }) {
     module-label="IC-Alcohol"
     module-chip="IC-Alcohol"
     @created="handleCreatedChecklist"
+  />
+
+  <CreateChecklistModal
+    v-model:open="isEditOpen"
+    mode="edit"
+    :initial-card="editingCard"
+    module-label="IC-Alcohol"
+    module-chip="IC-Alcohol"
+    @close="editingCardIndex = null"
+    @updated="handleUpdatedChecklist"
   />
 </template>

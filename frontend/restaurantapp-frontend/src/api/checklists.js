@@ -72,3 +72,13 @@ export async function createChecklist({ module, period, title, subtitle, section
   })
   return data
 }
+
+export async function updateChecklist({ checklistId, period, title, subtitle, sections }) {
+  const { data } = await api.put(`/api/checklists/${checklistId}`, {
+    period,
+    title,
+    subtitle,
+    sections
+  })
+  return data
+}
