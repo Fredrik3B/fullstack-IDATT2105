@@ -7,6 +7,7 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000, // 10 seconds — fail loudly instead of hanging forever
+  withCredentials: true, // required for HTTPOnly refresh token cookie
 })
 
 // ── Request interceptor — attach JWT ──────────────────────────────────────

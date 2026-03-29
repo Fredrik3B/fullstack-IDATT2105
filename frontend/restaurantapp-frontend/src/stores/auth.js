@@ -132,10 +132,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email, password) {
     const { data } = await api.post('/api/auth/login', { email, password })
 
-    _saveTokens(data.accessToken, data.refreshToken)
-    user.value             = data.user
-    restaurantStatus.value = data.restaurantStatus
-    restaurantId.value     = data.restaurantId
+    accessToken.value = data.accessToken
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
+
+    user.value             = { email: data.email }
+    restaurantStatus.value = null
+    restaurantId.value     = null
 
     _redirectAfterAuth()
   }
