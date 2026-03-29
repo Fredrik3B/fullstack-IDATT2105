@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.common.service.impl;
 
-import edu.ntnu.idatt2105.backend.common.dto.ChecklistResponse;
-import edu.ntnu.idatt2105.backend.common.dto.CreateChecklistRequest;
+import edu.ntnu.idatt2105.backend.common.dto.checklist.ChecklistResponse;
+import edu.ntnu.idatt2105.backend.common.dto.checklist.CreateChecklistRequest;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
