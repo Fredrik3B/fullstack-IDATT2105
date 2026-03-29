@@ -26,11 +26,8 @@ public class UserModel {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(nullable = false)
+  @Column
   private UUID organizationId;
-
-  @Column(nullable = false, unique = true)
-  private String username;
 
   @Column(nullable = false)
   private String email;
