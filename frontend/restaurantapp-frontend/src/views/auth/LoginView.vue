@@ -21,10 +21,7 @@
         <div class="field-group" :class="{ 'has-error': errors.email }">
           <label class="field-label" for="email">E-post</label>
           <div class="field-wrapper">
-            <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="5" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M2 7L10 12L18 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
+            <Mail class="field-icon" />
             <input
               id="email"
               v-model="form.email"
@@ -43,11 +40,7 @@
             <label class="field-label" for="password">Passord</label>
           </div>
           <div class="field-wrapper">
-            <svg class="field-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="9" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M6 9V6C6 3.79086 7.79086 2 10 2C12.2091 2 14 3.79086 14 6V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <circle cx="10" cy="13.5" r="1" fill="currentColor"/>
-            </svg>
+            <Lock class="field-icon" />
             <input
               id="password"
               v-model="form.password"
@@ -58,24 +51,15 @@
               @input="clearError('password')"
             />
             <button type="button" class="toggle-password" @click="showPassword = !showPassword" tabindex="-1">
-              <svg v-if="!showPassword" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 10C2 10 5 4 10 4C15 4 18 10 18 10C18 10 15 16 10 16C5 16 2 10 2 10Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-                <circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
-              </svg>
-              <svg v-else viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 3L17 17M8.5 8.68C8.18 9.01 8 9.48 8 10C8 11.1 8.9 12 10 12C10.52 12 10.99 11.82 11.32 11.5M6.5 5.17C7.59 4.44 8.76 4 10 4C15 4 18 10 18 10C17.47 10.94 16.8 11.78 16.04 12.48M2 10C2 10 2.78 8.4 4.28 7.05" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
+              <Eye v-if="!showPassword" />
+              <EyeOff v-else />
             </button>
           </div>
           <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
         </div>
 
         <div v-if="loginError" class="alert alert--error">
-          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M10 6V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="10" cy="13.5" r="0.75" fill="currentColor"/>
-          </svg>
+          <AlertCircle />
           {{ loginError }}
         </div>
 
@@ -101,6 +85,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 
