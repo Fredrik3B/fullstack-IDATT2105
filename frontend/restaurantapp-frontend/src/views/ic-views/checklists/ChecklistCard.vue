@@ -171,23 +171,25 @@ p {
 }
 
 .edit-button {
-  border: 1px solid rgba(45, 43, 85, 0.14);
+  border: 1px solid rgba(45, 43, 85, 0.35);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-dark-secondary);
   padding: 10px 14px;
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
 }
 
 .edit-button:hover {
   transform: translateY(-1px);
-  border-color: rgba(45, 43, 85, 0.3);
+  border-color: rgba(45, 43, 85, 0.55);
   box-shadow: var(--shadow-md);
+  background: var(--color-dark-secondary);
+  color: var(--color-accent);
 }
 
 .status-pill.success {
@@ -248,6 +250,18 @@ p {
   min-height: 64px;
   padding: 0 22px;
   border-top: 1px solid var(--color-border-subtle);
+  position: relative;
+}
+
+.task-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  border-radius: 0 6px 6px 0;
 }
 
 .task-row:first-child {
@@ -255,7 +269,7 @@ p {
 }
 
 .task-row.highlighted {
-  background: linear-gradient(90deg, #fffceb 0%, #fffef8 100%);
+  background: rgba(255, 244, 208, 0.72);
 }
 
 .task-marker {
@@ -268,6 +282,7 @@ p {
   border: 2px solid #d7d6e7;
   background: #fff;
   padding: 0;
+  position: relative;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
 }
@@ -278,16 +293,53 @@ p {
 }
 
 .task-row.completed .task-marker {
-  border-color: var(--color-success);
-  background: radial-gradient(circle at center, var(--color-success) 0 4px, transparent 4px);
+  border-color: var(--color-success-border);
+  background: var(--color-success);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.92);
 }
 
 .task-row.pending .task-marker {
   border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+  box-shadow: 0 0 0 5px rgba(232, 192, 48, 0.12);
 }
 
 .task-row.todo .task-marker {
   border-color: #d7d6e7;
+}
+
+.task-row.completed {
+  background: rgba(240, 247, 204, 0.55);
+}
+
+.task-row.completed .task-label {
+  color: rgba(26, 26, 46, 0.78);
+}
+
+.task-row.completed .task-meta {
+  color: rgba(76, 74, 114, 0.58);
+}
+
+.task-row.pending {
+  background: rgba(255, 244, 208, 0.82);
+}
+
+.task-row.pending .task-label {
+  color: rgba(26, 26, 46, 0.92);
+  font-weight: var(--font-weight-medium);
+}
+
+.task-row.todo::before {
+  background: transparent;
+}
+
+.task-row.pending::before,
+.task-row.highlighted::before {
+  background: var(--color-warning);
+}
+
+.task-row.completed::before {
+  background: var(--color-success-border);
 }
 
 .task-label {
@@ -308,10 +360,10 @@ p {
 }
 
 .flag-button {
-  border: 1px solid rgba(225, 177, 64, 0.32);
+  border: 1px solid rgba(45, 43, 85, 0.14);
   border-radius: 999px;
-  background: #fff8e8;
-  color: #a96d00;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--color-text-primary);
   padding: 8px 12px;
   font: inherit;
   font-size: 12px;
@@ -323,23 +375,22 @@ p {
 
 .flag-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(225, 177, 64, 0.18);
+  box-shadow: 0 10px 18px rgba(45, 43, 85, 0.14);
 }
 
 .flag-button.active {
-  border-color: rgba(225, 177, 64, 0.55);
-  background: linear-gradient(180deg, #ffd978 0%, #ffc94c 100%);
-  color: #684000;
-}
-
-.task-row.completed .task-label,
-.task-row.completed .task-meta {
-  color: #c2bfd9;
+  border-color: rgba(232, 192, 48, 0.6);
+  background: linear-gradient(180deg, rgba(255, 244, 208, 0.98) 0%, rgba(232, 192, 48, 0.95) 100%);
+  color: rgba(36, 28, 0, 0.92);
 }
 
 .task-row.pending .task-meta {
   color: var(--color-warning-text);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-bold);
+}
+
+.task-row.completed .task-actions .flag-button {
+  opacity: 0.65;
 }
 
 @media (max-width: 720px) {
