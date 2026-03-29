@@ -21,12 +21,15 @@
         @edit-checklist="emit('edit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex })"
       />
     </div>
+
+    <ChecklistSummaryCard :cards="cards" />
   </section>
 </template>
 
 <script setup>
 import ChecklistCard from './ChecklistCard.vue'
 import ChecklistPageHeader from './ChecklistPageHeader.vue'
+import ChecklistSummaryCard from './ChecklistSummaryCard.vue'
 
 defineProps({
   moduleLabel: {
