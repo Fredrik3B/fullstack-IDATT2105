@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -70,25 +71,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
    * @param jwt the token string without the "Bearer " prefix
    */
   private void authenticateUser(String jwt) {
-    String username = jwtService.extractUsername(jwt);
-    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      if (!jwtService.validateToken(jwt, username)) {
-        UUID userId = jwtService.extractUserId(jwt);
-        UUID organizationId = jwtService.extractOrganizationId(jwt);
-        List<String> roles = jwtService.extractRoles(jwt);
+    try {
+      String username = jwtService.extractUsername(jwt);
+      if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (jwtService.validateToken(jwt, username)) {
+          UUID userId = jwtService.extractUserId(jwt);
+          UUID organizationId = jwtService.extractOrganizationId(jwt);
+          List<String> roles = jwtService.extractRoles(jwt);
 
-        List<SimpleGrantedAuthority> authorities = roles.stream()
-            .map(SimpleGrantedAuthority::new)
-            .toList();
+          List<SimpleGrantedAuthority> authorities = roles.stream()
+              .map(SimpleGrantedAuthority::new)
+              .toList();
 
-        JwtAuthenticatedPrincipal principal = new JwtAuthenticatedPrincipal(
-            userId, organizationId, username, authorities
-        );
+          JwtAuthenticatedPrincipal principal = new JwtAuthenticatedPrincipal(
+              userId, organizationId, username, authorities
+          );
 
-        JwtAuthenticationToken authToken = new JwtAuthenticationToken(principal, authorities);
+          JwtAuthenticationToken authToken = new JwtAuthenticationToken(principal, authorities);
 
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+          SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
       }
+    } catch (JwtException ignored) {
+      // Expired or malformed token — skip authentication and let Spring Security
+      // handle access control. permitAll endpoints will still be reachable.
     }
   }
 }
