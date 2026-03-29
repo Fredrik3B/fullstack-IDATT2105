@@ -9,7 +9,7 @@
       </div>
       <div class="topbar-user">
         <div class="user-avatar">{{ userInitials }}</div>
-        <span class="user-name">{{ userName }}</span>
+        <span class="user-name">{{ userEmail }}</span>
         <button class="btn-logout" @click="handleLogout">Logg ut</button>
       </div>
     </div>
@@ -145,14 +145,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import api from '@/api/axiosInstance'
 import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound, Check, X } from 'lucide-vue-next'
 
 const auth = useAuthStore()
 
 // ── User info from store ──
-const userName    = computed(() => auth.user?.name  ?? '')
-const userEmail   = computed(() => auth.user?.email ?? '')
+const userEmail    = computed(() => auth.user?.email ?? '')
 const userInitials = computed(() => auth.userInitials)
 
 // ── View state: 'choose' | 'join' | 'pending' ──
@@ -189,11 +187,11 @@ async function handleCodeInput(e) {
   lookupTimeout = setTimeout(async () => {
     codeStatus.value = 'loading'
     try {
-      const { data } = await api.get(`/api/restaurants/lookup?code=${raw}`)
+      const data = await auth.lookupRestaurant(raw)
       codeStatus.value = 'valid'
       resolvedRestaurantName.value = data.name
-    } catch (err) {
-      codeStatus.value = err.response?.status === 404 ? 'invalid' : 'invalid'
+    } catch {
+      codeStatus.value = 'invalid'
     }
   }, 300)
 }
