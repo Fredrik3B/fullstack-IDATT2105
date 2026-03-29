@@ -1,8 +1,9 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
-import edu.ntnu.idatt2105.backend.common.dto.CreateTaskRequest;
-import edu.ntnu.idatt2105.backend.common.dto.TaskResponse;
 import java.util.List;
+
+import edu.ntnu.idatt2105.backend.common.dto.task.CreateTaskRequest;
+import edu.ntnu.idatt2105.backend.common.dto.task.TaskResponse;
 
 
 public interface TaskService {

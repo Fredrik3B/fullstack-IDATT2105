@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.common.dto;
+package edu.ntnu.idatt2105.backend.common.dto.task;
 
 public record TaskResponse(
 	Long id,
