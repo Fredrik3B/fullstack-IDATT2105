@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.common.service.impl;
 
-import edu.ntnu.idatt2105.backend.common.dto.CreateTaskRequest;
-import edu.ntnu.idatt2105.backend.common.dto.TaskResponse;
+import edu.ntnu.idatt2105.backend.common.dto.task.CreateTaskRequest;
+import edu.ntnu.idatt2105.backend.common.dto.task.TaskResponse;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskModel;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;

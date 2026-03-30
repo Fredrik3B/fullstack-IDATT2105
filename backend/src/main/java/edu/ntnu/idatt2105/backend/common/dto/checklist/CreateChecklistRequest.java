@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.common.dto;
+package edu.ntnu.idatt2105.backend.common.dto.checklist;
 
 import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;

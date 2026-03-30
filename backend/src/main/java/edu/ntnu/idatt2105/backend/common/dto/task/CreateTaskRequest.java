@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.common.dto;
+package edu.ntnu.idatt2105.backend.common.dto.task;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
