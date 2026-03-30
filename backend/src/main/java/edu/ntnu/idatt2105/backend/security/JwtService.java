@@ -112,10 +112,10 @@ public class JwtService {
    * @return true if token is valid
    */
   public boolean validateToken(String token, String username) {
-    return extractUsername(token).equals(username) && !tokenExpired(token);
+    return extractEmail(token).equals(username) && !tokenExpired(token);
   }
 
-  public String extractUsername(String token) {
+  public String extractEmail(String token) {
     return getClaims(token).getSubject();  // reads the "sub" field
   }
   
