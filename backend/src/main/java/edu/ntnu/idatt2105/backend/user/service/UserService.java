@@ -3,13 +3,17 @@ package edu.ntnu.idatt2105.backend.user.service;
 import edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException;
 import edu.ntnu.idatt2105.backend.security.JwtService;
 import edu.ntnu.idatt2105.backend.security.UserPrincipal;
+import edu.ntnu.idatt2105.backend.user.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
+import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
+import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,6 +24,7 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class UserService {
   private final UserRepository userRepository;
+  private final RoleRepository roleRepository;
   private final PasswordEncoder passwordEncoder;
   private final UserMapper userMapper;
   private final JwtService jwtService;
@@ -30,12 +35,16 @@ public class UserService {
       throw new UserAlreadyExistsException(request.getEmail());
     }
 
+    RoleModel staffRole = roleRepository.findByName(RoleEnum.STAFF)
+        .orElseThrow(() -> new RuntimeException("STAFF role not found in database"));
+
     // Refactor
     UserModel user = new UserModel();
     user.setEmail(request.getEmail());
     user.setPassword(passwordEncoder.encode(request.getPassword()));
     user.setFirstName(request.getFirstName());
     user.setLastName(request.getLastName());
+    user.setRoles(Set.of(staffRole));
 
 
     UserModel savedUser = userRepository.save(user);
