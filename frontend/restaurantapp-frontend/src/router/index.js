@@ -80,36 +80,38 @@ const router = createRouter({
 //   onboarding  — /onboarding, /onboarding/create  (require auth, no restaurant yet)
 //   app         — everything else  (require auth + active restaurant)
 
-/* router.beforeEach((to) => {
-  const auth = useAuthStore()
+// router.beforeEach(async (to) => {
+//   const auth = useAuthStore()
+//   await auth.initAuth()
 
-  const isPublic     = ['login', 'register'].includes(to.name)
-  const isOnboarding = ['onboarding', 'create-restaurant'].includes(to.name)
+//   const isPublic     = ['login', 'register'].includes(to.name)
+//   const isOnboarding = ['onboarding', 'create-restaurant'].includes(to.name)
 
-  // ── Unauthenticated user ──
-  if (!auth.isAuthenticated) {
-    if (isPublic) return true
-    return { name: 'login' }
-  }
+//   // ── Unauthenticated user ──
+//   if (!auth.isAuthenticated) {
+//     if (isPublic) return true
+//     return { name: 'login' }
+//   }
 
-  // ── Authenticated, visiting login/register — send them into the app ──
-  if (isPublic) {
-    return auth.hasActiveRestaurant
-      ? { name: 'dashboard' }
-      : { name: 'onboarding' }
-  }
+//   // ── Authenticated, visiting login/register — send them into the app ──
+//   if (isPublic) {
+//     return auth.hasActiveRestaurant
+//       ? { name: 'dashboard' }
+//       : { name: 'onboarding' }
+//   }
 
-  // ── Authenticated, no active restaurant ──
-  if (!auth.hasActiveRestaurant) {
-    if (isOnboarding) return true
-    return { name: 'onboarding' }
-  }
+//   // ── Authenticated, no active restaurant ──
+//   if (!auth.hasActiveRestaurant) {
+//     if (isOnboarding) return true
+//     return { name: 'onboarding' }
+//   }
 
-  // ── Authenticated with active restaurant, trying to visit onboarding ──
-  if (isOnboarding) return { name: 'dashboard' }
+//   // ── Authenticated with active restaurant, trying to visit onboarding ──
+//   if (isOnboarding) return { name: 'dashboard' }
 
-  // ── All clear ──
-  return true
-})
-*/
+//   // ── All clear ──
+//   return true
+// })
+
+
 export default router
