@@ -14,15 +14,15 @@ import lombok.Setter;
 @Getter
 @Setter
 @Table(name = "organizations")
-public class Organization {
+public class OrganizationModel {
 
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column
+  @Column(nullable = false)
   private String name;
 
-  @Column
+  @Column(nullable = false)
   private String joinCode;
 }

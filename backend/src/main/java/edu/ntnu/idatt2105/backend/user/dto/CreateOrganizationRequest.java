@@ -1,5 +1,8 @@
 package edu.ntnu.idatt2105.backend.user.dto;
 
-public class CreateOrganizationRequest {
+import lombok.Data;
 
+@Data
+public class CreateOrganizationRequest {
+  private String name;
 }
