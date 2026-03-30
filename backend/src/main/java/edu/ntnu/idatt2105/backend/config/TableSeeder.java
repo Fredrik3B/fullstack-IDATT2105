@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.config;
 
-import edu.ntnu.idatt2105.backend.user.RoleEnum;
+import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import lombok.AllArgsConstructor;
