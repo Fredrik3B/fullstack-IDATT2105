@@ -88,20 +88,24 @@ export const useAuthStore = defineStore('auth', () => {
    backend to validate the token and repopulate state.
    if he token is invalid/expired, or the refresh also fails, state is reset
    */
+  let _initPromise = null
+
   async function initAuth() {
+    if (_initPromise) return _initPromise
     if (!accessToken.value) return
 
-    try {
-      const { data } = await api.get('/api/auth/me')
+    _initPromise = api.get('/api/auth/me').then(({ data }) => {
       user.value             = data.user
       restaurantStatus.value = data.restaurantStatus
       restaurantId.value     = data.restaurantId
       restaurantName.value   = data.restaurantName ?? null
-    } catch {
-      // Token is invalid or expired and refresh also failed — force logout
+    }).catch(() => {
       _resetState()
-    }
+      _initPromise = null  // allow retry after reset
+    })
+    return _initPromise
   }
+
 
   /**
    * Log in with email and password.
