@@ -85,11 +85,9 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useToast } from '@/composables/useToast'
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-vue-next'
 
 const auth = useAuthStore()
-const toast = useToast()
 
 const form = reactive({ email: '', password: '' })
 const errors = reactive({ email: '', password: '' })
@@ -115,10 +113,8 @@ async function handleLogin() {
   loginError.value = ''
   try {
     await auth.login(form.email, form.password)
-    toast.success('Innlogging vellykket')
   } catch {
     loginError.value = 'Feil e-post eller passord. Prøv igjen.'
-    toast.error('Innlogging feilet', 'Sjekk e-post og passord og prøv igjen.')
 
   } finally {
     isLoading.value = false

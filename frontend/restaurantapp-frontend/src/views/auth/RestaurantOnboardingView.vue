@@ -138,8 +138,10 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
+const toast = useToast()
 
 // ── User info from store ──
 const userEmail    = computed(() => auth.user?.email ?? '')
@@ -177,7 +179,13 @@ async function sendJoinRequest() {
 }
 
 async function withdrawRequest() {
-  await auth.withdrawJoinRequest()
+  try {
+    await auth.withdrawJoinRequest()
+    toast.info('Forespørsel trukket tilbake')
+  } catch {
+    toast.error('Kunne ikke trekke tilbake forespørselen. Prøv igjen.')
+    return
+  }
   pendingRestaurantName.value = ''
   pendingSentDate.value = ''
   joinCode.value = ''

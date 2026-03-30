@@ -20,7 +20,7 @@
       </nav>
 
       <div class="header-actions">
-        <div class="user-chip" @click="auth.logout()">
+        <div class="user-chip" @click="handleLogout">
           <div class="user-avatar">{{ auth.userInitials }}</div>
           <div class="user-info">
             <span class="user-name">{{ auth.user?.name ?? auth.user?.email ?? 'Ukjent bruker' }}</span>
@@ -37,8 +37,15 @@
 <script setup>
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
+const toast = useToast()
+
+function handleLogout() {
+  toast.info('Du er nå logget ut')
+  auth.logout()
+}
 </script>
 
 <style scoped>
