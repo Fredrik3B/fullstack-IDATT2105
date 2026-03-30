@@ -2,11 +2,20 @@ import { computed, ref, watchEffect } from 'vue'
 import { deriveDisplayCards, getCardPeriodEnum, getPeriodKey, seedCompletionMetaForCurrentPeriod } from './recurrence'
 import { recalcCardProgress } from './recalcCardProgress'
 import { useNowTick } from './useNowTick'
+import { useTemperatureLog } from './useTemperatureLog'
 
-export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Daily' }) {
+export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Daily', module = null } = {}) {
   const cards = ref(Array.isArray(initialCards) ? initialCards : [])
   const activePeriod = ref(defaultActivePeriod)
   const now = useNowTick(60_000)
+
+  // Temperature logging is a separate stream of data from checklist task state.
+  // - Task state: completed/todo/pending (pending is "critical/should do", not a deviation log).
+  // - Temperature measurements: time series stored per module/checklist/task.
+  // Backend TODO:
+  // - Replace localStorage implementation in `useTemperatureLog` with API integration.
+  const { measurements: temperatureMeasurements, latestByTaskId: temperatureLatestByTaskId, logTemperature } =
+    useTemperatureLog({ module })
 
   const seeded = ref(false)
   watchEffect(() => {
@@ -113,12 +122,28 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     recalcCardProgress(card)
   }
 
+  async function logTemperatureMeasurement({ checklistId, taskId, valueC }) {
+    if (!checklistId || !taskId) return null
+
+    const card = cards.value.find((c) => c?.id === checklistId)
+    const periodKey = card ? getCardPeriodKey(card, new Date()) : null
+
+    // Frontend behavior:
+    // - Log immediately so it can be "reported" in the UI for IC-Food/IC-Alcohol.
+    // Backend behavior (later):
+    // - Persist and return created measurement id/timestamp.
+    return await logTemperature({ checklistId, taskId, valueC, periodKey })
+  }
+
   return {
     activePeriod,
     cards,
     displayCards,
     togglePending,
     toggleTask,
+    logTemperatureMeasurement,
+    temperatureMeasurements,
+    temperatureLatestByTaskId,
     now
   }
 }
