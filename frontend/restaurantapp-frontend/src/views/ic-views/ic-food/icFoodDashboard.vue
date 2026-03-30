@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
-import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
-import CreateChecklistModal from '../checklists/CreateChecklistModal.vue'
-import { useChecklistDashboard } from '../checklists/useChecklistDashboard'
+import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
+import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
+import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
 
 // Backend TODO:
 // Replace `initialCards` with data from `fetchChecklists({ module: 'IC_FOOD' })` (see `frontend/restaurantapp-frontend/src/api/checklists.js`).

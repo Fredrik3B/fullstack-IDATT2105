@@ -5,7 +5,7 @@ import { computed, ref } from 'vue'
 // - When backend is ready, set to `true` and replace the localStorage writes with API reads/writes.
 const USE_BACKEND = false
 
-// import { createTemperatureMeasurement, fetchTemperatureMeasurements } from '../../../api/temperatureMeasurements'
+// import { createTemperatureMeasurement, fetchTemperatureMeasurements } from '../../api/temperatureMeasurements'
 
 function storageKey(module) {
   return `ic.temperatureMeasurements.v1.${String(module ?? 'UNKNOWN')}`
