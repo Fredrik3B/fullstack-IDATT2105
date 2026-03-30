@@ -77,6 +77,24 @@ public class OrganizationService {
     return organizationMapper.toResponse(org);
   }
 
-  public void acceptRequest(UUID id, UUID userId) {
+  public void acceptRequest(UUID requestId, UUID userId, UUID organizationId) {
+    JoinRequestModel request = joinRequestRepository.findById(requestId)
+        .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+    if (!request.getOrganizationId().equals(organizationId)) {
+      throw new RuntimeException("Request does not belong to your organization");
+    }
+    if (request.getStatus() != JoinOrgStatus.PENDING) {
+      throw new RuntimeException("Request already resolved");
+    }
+    UserModel user = userRepository.findById(request.getUserId())
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+    user.setOrganizationId(request.getOrganizationId());
+    userRepository.save(user);
+
+    request.setStatus(JoinOrgStatus.ACCEPTED);
+    request.setResolvedAt(LocalDateTime.now());
+    request.setResolvedBy(userId);
+    joinRequestRepository.save(request);
   }
 }

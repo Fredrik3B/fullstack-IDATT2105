@@ -46,8 +46,10 @@ public class OrganizationController {
       @PathVariable UUID id, Authentication auth
   ) {
     JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-    organizationService.acceptRequest(id, principal.getUserId());
+    organizationService.acceptRequest(id, principal.getUserId(), principal.getOrganizationId());
 
     return ResponseEntity.ok().build();
   }
+
+  // TODO: reject
 }
