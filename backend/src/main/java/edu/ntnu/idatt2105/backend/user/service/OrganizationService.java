@@ -12,6 +12,7 @@ import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
+import edu.ntnu.idatt2105.backend.user.repository.JoinRequestRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ public class OrganizationService {
   private final UserRepository userRepository;
   private final RoleRepository roleRepository;
   private final OrganizationMapper organizationMapper;
+  private final JoinRequestRepository joinRequestRepository;
 
   public OrganizationResponse create(CreateOrganizationRequest request, UUID userId) {
     OrganizationModel org = new OrganizationModel();
@@ -67,7 +69,7 @@ public class OrganizationService {
 
     joinRequest.setCreatedAt(LocalDateTime.now());
 
-    joinRequestRepository.save(request);
+    joinRequestRepository.save(joinRequest);
 
     return organizationMapper.toResponse(org);
   }
