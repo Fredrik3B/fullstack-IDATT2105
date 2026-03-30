@@ -72,9 +72,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
    */
   private void authenticateUser(String jwt) {
     try {
-      String username = jwtService.extractUsername(jwt);
-      if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        if (jwtService.validateToken(jwt, username)) {
+      String email = jwtService.extractEmail(jwt);
+      if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (jwtService.validateToken(jwt, email)) {
           UUID userId = jwtService.extractUserId(jwt);
           UUID organizationId = jwtService.extractOrganizationId(jwt);
           List<String> roles = jwtService.extractRoles(jwt);
@@ -84,7 +84,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
               .toList();
 
           JwtAuthenticatedPrincipal principal = new JwtAuthenticatedPrincipal(
-              userId, organizationId, username, authorities
+              userId, organizationId, email, authorities
           );
 
           JwtAuthenticationToken authToken = new JwtAuthenticationToken(principal, authorities);

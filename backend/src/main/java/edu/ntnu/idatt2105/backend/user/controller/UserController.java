@@ -11,8 +11,10 @@ import jakarta.validation.Valid;
 import java.time.Duration;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +37,32 @@ public class UserController {
   public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
     AuthDto result = userService.login(request);
     return buildLoginResponse(result);
+  }
+
+  @PostMapping("/refresh")
+  public ResponseEntity<LoginResponse> refresh(
+      @CookieValue(name = "refreshToken", required = false) String refreshToken
+  ) {
+    if (refreshToken != null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    AuthDto result = userService.refreshToken(refreshToken);
+    return buildLoginResponse(result);
+  }
+
+  @PostMapping("/logout")
+  public ResponseEntity<Void> logout() {
+    ResponseCookie cookie = ResponseCookie.from("refreshToken", null)
+        .httpOnly(true)
+        .secure(false)
+        .path("/api/auth/refresh")
+        .maxAge(0)
+        .sameSite("Lax")
+        .build();
+
+    return ResponseEntity.ok()
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .build();
   }
 
   private ResponseEntity<LoginResponse> buildLoginResponse(AuthDto result) {
