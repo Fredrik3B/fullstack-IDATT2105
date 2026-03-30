@@ -11,9 +11,11 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.Data;
 
 
 @Entity
+@Data
 @Table(name = "join_requests")
 public class JoinRequestModel {
 
