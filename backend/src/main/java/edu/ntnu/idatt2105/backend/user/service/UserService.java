@@ -68,4 +68,21 @@ public class UserService {
         user.getEmail()
     );
   }
+
+  public AuthDto refreshToken(String refreshToken) {
+    if (jwtService.tokenExpired(refreshToken)) {
+      throw new BadCredentialsException("Refresh token expired");
+    }
+    String email = jwtService.extractEmail(refreshToken);
+    UserModel user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
+
+    UserPrincipal principal = new UserPrincipal(user);
+
+    return new AuthDto(
+        jwtService.generateToken(principal),
+        jwtService.generateRefreshToken(principal),
+        user.getEmail()
+    );
+  }
 }
