@@ -6,7 +6,7 @@
       <div class="header-brand">
         <div class="brand-text">
           <span class="brand-name">IKSystem</span>
-          <span class="brand-tenant">Everest Sushi &amp; Fusion AS</span>
+          <span class="brand-tenant">{{ auth.restaurantName ?? '—' }}</span>
         </div>
       </div>
 
@@ -20,11 +20,11 @@
       </nav>
 
       <div class="header-actions">
-        <div class="user-chip">
-          <div class="user-avatar">KN</div>
+        <div class="user-chip" @click="handleLogout">
+          <div class="user-avatar">{{ auth.userInitials }}</div>
           <div class="user-info">
-            <span class="user-name">Kari Nordmann</span>
-            <span class="user-role">Daglig leder</span>
+            <span class="user-name">{{ auth.user?.name ?? auth.user?.email ?? 'Ukjent bruker' }}</span>
+            <span class="user-role">{{ auth.user?.role ?? 'Logg ut' }}</span>
           </div>
         </div>
       </div>
@@ -36,6 +36,16 @@
 
 <script setup>
 import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
+
+const auth = useAuthStore()
+const toast = useToast()
+
+function handleLogout() {
+  toast.info('Du er nå logget ut')
+  auth.logout()
+}
 </script>
 
 <style scoped>

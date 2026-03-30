@@ -115,6 +115,7 @@ async function handleLogin() {
     await auth.login(form.email, form.password)
   } catch {
     loginError.value = 'Feil e-post eller passord. Prøv igjen.'
+
   } finally {
     isLoading.value = false
   }

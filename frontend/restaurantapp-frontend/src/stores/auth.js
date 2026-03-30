@@ -38,6 +38,12 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const restaurantId = ref(null)
 
+  /**
+   * Display name of the restaurant the user is connected to.
+   * Populated on createRestaurant, joinRestaurant, and initAuth.
+   */
+  const restaurantName = ref(null)
+
   // ── Computed ───────────────────────────────────────────────────────────────
 
   /** True when a valid access token exists in state. */
@@ -46,10 +52,15 @@ export const useAuthStore = defineStore('auth', () => {
   /** True when the user is logged in AND connected to an active restaurant. */
   const hasActiveRestaurant = computed(() => restaurantStatus.value === 'active')
 
-  /** Initials derived from the user's email, used in avatars. */
+  /** Initials derived from the user's name (FL), falling back to email. */
   const userInitials = computed(() => {
-    if (!user.value?.email) return '?'
-    return user.value.email.slice(0, 2).toUpperCase()
+    if (user.value?.name) {
+      const parts = user.value.name.trim().split(/\s+/)
+      if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      return parts[0].slice(0, 2).toUpperCase()
+    }
+    if (user.value?.email) return user.value.email.slice(0, 2).toUpperCase()
+    return '?'
   })
 
   // ── Internal helpers ───────────────────────────────────────────────────────
@@ -65,33 +76,36 @@ export const useAuthStore = defineStore('auth', () => {
     user.value             = null
     restaurantStatus.value = null
     restaurantId.value     = null
+    restaurantName.value   = null
     _clearTokens()
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
   /**
-   * Called once on app boot (main.js or App.vue).
-   * If a token is already in localStorage, fetches the current user from the
-   * backend to validate the token and repopulate state.
-   *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   import api from '@/api/axiosInstance'
-   *   const { data } = await api.get('/api/auth/me')
+   Called once on app boot (main.js or App.vue).
+   If a token is already in localStorage, fetches the current user from the
+   backend to validate the token and repopulate state.
+   if he token is invalid/expired, or the refresh also fails, state is reset
    */
+  let _initPromise = null
+
   async function initAuth() {
+    if (_initPromise) return _initPromise
     if (!accessToken.value) return
 
-    try {
-      const { data } = await api.get('/api/auth/me')
+    _initPromise = api.get('/api/auth/me').then(({ data }) => {
       user.value             = data.user
       restaurantStatus.value = data.restaurantStatus
       restaurantId.value     = data.restaurantId
-    } catch {
-      // Token is invalid or expired and refresh also failed — force logout
+      restaurantName.value   = data.restaurantName ?? null
+    }).catch(() => {
       _resetState()
-    }
+      _initPromise = null  // allow retry after reset
+    })
+    return _initPromise
   }
+
 
   /**
    * Log in with email and password.
@@ -113,7 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = data.accessToken
     localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
 
-    user.value             = { email: data.email }
+    user.value             = { email: data.email, name: data.name ?? null, role: data.role ?? null }
     restaurantStatus.value = null
     restaurantId.value     = null
 
@@ -138,7 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = data.accessToken
     localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
 
-    user.value             = { email: data.email }
+    user.value             = { email: data.email, name: `${firstName} ${lastName}`.trim(), role: null }
     restaurantStatus.value = null
     restaurantId.value     = null
 
@@ -183,11 +197,12 @@ export const useAuthStore = defineStore('auth', () => {
     return data // { name: String }
   }
 
-  async function joinRestaurant(joinCode) {
+  async function joinRestaurant(joinCode, name) {
     const { data } = await api.post('/api/restaurants/join', { joinCode })
 
     restaurantStatus.value = 'pending'
     restaurantId.value     = data.restaurantId
+    restaurantName.value   = name ?? null
   }
 
   /**
@@ -219,6 +234,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     restaurantStatus.value = 'active'
     restaurantId.value     = data.restaurantId
+    restaurantName.value   = payload.name
 
     return data // let the view display the joinCode returned by the backend
   }
@@ -261,6 +277,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken,
     restaurantStatus,
     restaurantId,
+    restaurantName,
 
     // Computed
     isAuthenticated,

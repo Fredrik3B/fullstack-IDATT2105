@@ -113,20 +113,12 @@
                   placeholder="EVR-2847"
                   maxlength="8"
                   autocomplete="off"
-                  @input="handleCodeInput"
                 />
-                <span v-if="codeStatus === 'valid'" class="code-badge code-badge--valid">
-                  <Check />
-                </span>
-                <span v-else-if="codeStatus === 'invalid'" class="code-badge code-badge--invalid">
-                  <X />
-                </span>
               </div>
-              <span v-if="codeStatus === 'valid'" class="field-hint--valid">{{ resolvedRestaurantName }}</span>
               <span v-if="joinError" class="field-error">{{ joinError }}</span>
             </div>
 
-            <button class="btn-primary" :disabled="isLoading || codeStatus !== 'valid'" @click="sendJoinRequest">
+            <button class="btn-primary" :disabled="isLoading || joinCode.length < 8" @click="sendJoinRequest">
               <span v-if="!isLoading">Send tilgangsforespørsel</span>
               <span v-else class="spinner"></span>
             </button>
@@ -145,9 +137,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound, Check, X } from 'lucide-vue-next'
+import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound } from 'lucide-vue-next'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
+const toast = useToast()
 
 // ── User info from store ──
 const userEmail    = computed(() => auth.user?.email ?? '')
@@ -158,11 +152,9 @@ const userInitials = computed(() => auth.userInitials)
 const view = ref(auth.restaurantStatus === 'pending' ? 'pending' : 'choose')
 
 // ── Join flow ──
-const joinCode             = ref('')
-const codeStatus           = ref('')   // '' | 'loading' | 'valid' | 'invalid'
-const joinError            = ref('')
-const resolvedRestaurantName = ref('')
-const isLoading            = ref(false)
+const joinCode   = ref('')
+const joinError  = ref('')
+const isLoading  = ref(false)
 
 // ── Pending state ──
 // If the user arrives already pending, we don't know the restaurant name yet —
@@ -170,57 +162,33 @@ const isLoading            = ref(false)
 const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'restauranten' : '')
 const pendingSentDate       = ref('')
 
-// ── Code lookup ──
-let lookupTimeout = null
-
-async function handleCodeInput(e) {
-  const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
-  joinCode.value = raw
-  joinError.value = ''
-  codeStatus.value = ''
-  resolvedRestaurantName.value = ''
-
-  if (raw.length !== 8) return
-
-  // Debounce slightly so we don't fire on every keystroke
-  clearTimeout(lookupTimeout)
-  lookupTimeout = setTimeout(async () => {
-    codeStatus.value = 'loading'
-    try {
-      const data = await auth.lookupRestaurant(raw)
-      codeStatus.value = 'valid'
-      resolvedRestaurantName.value = data.name
-    } catch {
-      codeStatus.value = 'invalid'
-    }
-  }, 300)
-}
-
 async function sendJoinRequest() {
-  if (codeStatus.value !== 'valid') {
-    joinError.value = 'Ugyldig restaurantkode'
-    return
-  }
   isLoading.value = true
+  joinError.value = ''
   try {
-    await auth.joinRestaurant(joinCode.value)
-    pendingRestaurantName.value = resolvedRestaurantName.value
+    const { name } = await auth.lookupRestaurant(joinCode.value)
+    await auth.joinRestaurant(joinCode.value, name)
+    pendingRestaurantName.value = name
     pendingSentDate.value = new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
     view.value = 'pending'
   } catch {
-    joinError.value = 'Noe gikk galt. Prøv igjen.'
+    joinError.value = 'Ugyldig restaurantkode. Prøv igjen.'
   } finally {
     isLoading.value = false
   }
 }
 
 async function withdrawRequest() {
-  await auth.withdrawJoinRequest()
+  try {
+    await auth.withdrawJoinRequest()
+    toast.info('Forespørsel trukket tilbake')
+  } catch {
+    toast.error('Kunne ikke trekke tilbake forespørselen. Prøv igjen.')
+    return
+  }
   pendingRestaurantName.value = ''
   pendingSentDate.value = ''
   joinCode.value = ''
-  codeStatus.value = ''
-  resolvedRestaurantName.value = ''
   view.value = 'choose'
 }
 
