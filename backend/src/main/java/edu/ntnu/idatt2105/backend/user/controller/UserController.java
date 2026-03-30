@@ -39,7 +39,7 @@ public class UserController {
     return buildLoginResponse(result);
   }
 
-  @PostMapping
+  @PostMapping("/refresh")
   public ResponseEntity<LoginResponse> refresh(
       @CookieValue(name = "refreshToken", required = false) String refreshToken
   ) {
