@@ -35,9 +35,38 @@
             :aria-label="task.state === 'completed' ? 'Mark as incomplete' : 'Mark as complete'"
             @click="handleToggle(sectionIndex, taskIndex)"
           ></button>
-          <span class="task-label">{{ task.label }}</span>
+          <div class="task-label">
+            <div class="task-label__main">{{ task.label }}</div>
+            <div v-if="isTemperatureTask(task) && formatTemperatureTarget(task)" class="task-label__sub">
+              Target: {{ formatTemperatureTarget(task) }}
+            </div>
+          </div>
           <div class="task-actions">
-            <span v-if="task.meta" class="task-meta">{{ task.meta }}</span>
+            <template v-if="isTemperatureTask(task)">
+              <span v-if="getLatestMeasurement(task)" class="task-meta">
+                Last: {{ getLatestMeasurement(task)?.valueC }} C
+              </span>
+              <div class="temp-input">
+                <input
+                  v-model.trim="temperatureDraftByTaskId[task.id]"
+                  class="temp-field"
+                  inputmode="decimal"
+                  type="number"
+                  step="0.1"
+                  placeholder="C"
+                  :aria-label="`Log temperature for ${task.label}`"
+                />
+                <button
+                  type="button"
+                  class="temp-save"
+                  :disabled="!canSaveTemperature(task)"
+                  @click="handleSaveTemperature(task)"
+                >
+                  Save
+                </button>
+              </div>
+            </template>
+            <span v-else-if="task.meta" class="task-meta">{{ task.meta }}</span>
             <button
               type="button"
               class="flag-button"
@@ -56,7 +85,16 @@
 </template>
 
 <script setup>
-defineProps({
+import { reactive } from 'vue'
+import { formatTemperatureTarget, isTemperatureTask } from './temperature'
+
+const temperatureDraftByTaskId = reactive({})
+
+const props = defineProps({
+  id: {
+    type: String,
+    default: ''
+  },
   title: {
     type: String,
     required: true
@@ -88,10 +126,14 @@ defineProps({
   moduleChip: {
     type: String,
     default: 'IC-Food'
+  },
+  temperatureLatestByTaskId: {
+    type: Object,
+    default: null
   }
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'log-temperature'])
 
 function handleToggle(sectionIndex, taskIndex) {
   emit('toggle-task', { sectionIndex, taskIndex })
@@ -103,6 +145,34 @@ function handleFlag(sectionIndex, taskIndex) {
 
 function handleEditChecklist() {
   emit('edit-checklist')
+}
+
+function getLatestMeasurement(task) {
+  const id = task?.id
+  if (!id) return null
+
+  const container = props.temperatureLatestByTaskId
+  if (!container) return null
+  if (typeof container.get === 'function') return container.get(id) ?? null
+  return container[id] ?? null
+}
+
+function canSaveTemperature(task) {
+  const id = task?.id
+  if (!id) return false
+  const value = Number(temperatureDraftByTaskId[id])
+  return Number.isFinite(value)
+}
+
+function handleSaveTemperature(task) {
+  if (!isTemperatureTask(task)) return
+  const id = task?.id
+  if (!id) return
+  const checklistId = props.id
+  const valueC = Number(temperatureDraftByTaskId[id])
+  if (!Number.isFinite(valueC)) return
+
+  emit('log-temperature', { checklistId, taskId: id, valueC })
 }
 </script>
 
@@ -251,6 +321,18 @@ p {
   padding: 0 22px;
   border-top: 1px solid var(--color-border-subtle);
   position: relative;
+}
+
+.task-label__main {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.task-label__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
 }
 
 .task-row::before {
@@ -410,5 +492,39 @@ p {
     grid-column: 2;
     flex-wrap: wrap;
   }
+}
+
+.temp-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.temp-field {
+  width: 74px;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 43, 85, 0.18);
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.temp-save {
+  border: 1px solid rgba(45, 43, 85, 0.18);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: var(--color-dark-secondary);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.temp-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

@@ -16,12 +16,15 @@
         v-for="(card, cardIndex) in cards"
         :key="card.id ?? card.title"
         v-bind="card"
+        :temperature-latest-by-task-id="temperatureLatestByTaskId"
         @toggle-task="emit('toggle-task', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @toggle-pending="emit('toggle-pending', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @edit-checklist="emit('edit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex })"
+        @log-temperature="emit('log-temperature', $event)"
       />
     </div>
 
+    <TemperatureReportCard :cards="cards" :temperature-latest-by-task-id="temperatureLatestByTaskId" />
     <ChecklistSummaryCard :cards="cards" />
   </section>
 </template>
@@ -30,6 +33,7 @@
 import ChecklistCard from './ChecklistCard.vue'
 import ChecklistPageHeader from './ChecklistPageHeader.vue'
 import ChecklistSummaryCard from './ChecklistSummaryCard.vue'
+import TemperatureReportCard from './TemperatureReportCard.vue'
 
 defineProps({
   moduleLabel: {
@@ -59,10 +63,14 @@ defineProps({
   cards: {
     type: Array,
     required: true
+  },
+  temperatureLatestByTaskId: {
+    type: Object,
+    default: null
   }
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'update:activePeriod', 'create'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'log-temperature', 'update:activePeriod', 'create'])
 
 </script>
 
