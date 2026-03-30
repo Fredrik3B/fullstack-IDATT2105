@@ -3,10 +3,10 @@ package edu.ntnu.idatt2105.backend.common.service.impl;
 import edu.ntnu.idatt2105.backend.common.dto.checklist.ChecklistResponse;
 import edu.ntnu.idatt2105.backend.common.dto.checklist.CreateChecklistRequest;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.common.service.ChecklistService;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
+import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import java.util.List;
 
 import org.springframework.stereotype.Service;

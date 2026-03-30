@@ -1,6 +1,5 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
-import edu.ntnu.idatt2105.backend.common.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
@@ -13,6 +12,7 @@ import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.repository.JoinRequestRepository;
+import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -75,5 +75,8 @@ public class OrganizationService {
     joinRequestRepository.save(joinRequest);
 
     return organizationMapper.toResponse(org);
+  }
+
+  public void acceptRequest(UUID id, UUID userId) {
   }
 }
