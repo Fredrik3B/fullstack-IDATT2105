@@ -8,10 +8,12 @@ import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
+import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
+import java.util.UUID;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -92,6 +94,22 @@ public class UserService {
         jwtService.generateToken(principal),
         jwtService.generateRefreshToken(principal),
         user.getEmail()
+    );
+  }
+
+  public MeResponse getMe(UUID userId) {
+    UserModel user = userRepository.findById(userId)
+        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+    String name = (user.getFirstName() + " " + user.getLastName()).trim();
+    UUID orgId = user.getOrganizationId();
+    String restaurantStatus = orgId != null ? "active" : null;
+
+    return new MeResponse(
+        new MeResponse.UserInfo(user.getEmail(), name),
+        restaurantStatus,
+        orgId,
+        null
     );
   }
 }
