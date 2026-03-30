@@ -83,13 +83,10 @@ export const useAuthStore = defineStore('auth', () => {
   // ── Actions ────────────────────────────────────────────────────────────────
 
   /**
-   * Called once on app boot (main.js or App.vue).
-   * If a token is already in localStorage, fetches the current user from the
-   * backend to validate the token and repopulate state.
-   *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   import api from '@/api/axiosInstance'
-   *   const { data } = await api.get('/api/auth/me')
+   Called once on app boot (main.js or App.vue).
+   If a token is already in localStorage, fetches the current user from the
+   backend to validate the token and repopulate state.
+   if he token is invalid/expired, or the refresh also fails, state is reset
    */
   async function initAuth() {
     if (!accessToken.value) return
