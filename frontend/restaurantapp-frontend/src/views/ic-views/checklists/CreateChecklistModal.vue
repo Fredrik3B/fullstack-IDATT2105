@@ -56,15 +56,74 @@
               </button>
             </div>
 
-            <label class="field full">
-              <span class="label">Tasks (one per line)</span>
-              <textarea
-                v-model="section.tasksText"
-                class="textarea"
-                rows="5"
-                placeholder="e.g.&#10;Wash hands&#10;Check fridge temperature"
-              ></textarea>
-            </label>
+            <div class="tasks">
+              <div class="tasks-header">
+                <div class="tasks-title">Tasks</div>
+                <div class="tasks-actions">
+                  <button type="button" class="ghost-button ghost-button--compact" @click="toggleAddTaskMenu(idx)">
+                    + Add task
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="section.isAddTaskMenuOpen" class="add-task-menu" role="group" aria-label="Choose task type">
+                <button type="button" class="ghost-button ghost-button--compact" @click="addTask(idx, 'standard')">
+                  Standard task
+                </button>
+                <button type="button" class="ghost-button ghost-button--compact" @click="addTask(idx, 'temperature')">
+                  Temperature point
+                </button>
+              </div>
+
+              <div v-if="section.tasks.length === 0" class="tasks-empty">No tasks yet.</div>
+
+              <div v-for="(task, taskIdx) in section.tasks" :key="task.id" class="task-editor">
+                <div class="task-editor-top">
+                  <label class="field field--inline">
+                    <span class="label">Type</span>
+                    <select v-model="task.kind" class="input input--compact">
+                      <option value="standard">Standard</option>
+                      <option value="temperature">Temperature</option>
+                    </select>
+                  </label>
+
+                  <button type="button" class="danger-ghost danger-ghost--compact" @click="removeTask(idx, taskIdx)">
+                    Remove
+                  </button>
+                </div>
+
+                <div class="task-grid">
+                  <label class="field full">
+                    <span class="label">Label</span>
+                    <input
+                      v-model.trim="task.label"
+                      class="input"
+                      type="text"
+                      :placeholder="task.kind === 'temperature' ? 'e.g. Cold room 1' : 'e.g. Wash hands'"
+                      required
+                    />
+                  </label>
+
+                  <template v-if="task.kind === 'standard'">
+                    <label class="field full">
+                      <span class="label">Meta (optional)</span>
+                      <input v-model.trim="task.meta" class="input" type="text" placeholder="e.g. 08:30" />
+                    </label>
+                  </template>
+
+                  <template v-else>
+                    <label class="field">
+                      <span class="label">Min (C)</span>
+                      <input v-model.number="task.targetMin" class="input" type="number" step="0.1" placeholder="e.g. 2" />
+                    </label>
+                    <label class="field">
+                      <span class="label">Max (C)</span>
+                      <input v-model.number="task.targetMax" class="input" type="number" step="0.1" placeholder="e.g. 4" />
+                    </label>
+                  </template>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -130,8 +189,8 @@ const sections = ref([
   {
     id: randomId('section'),
     title: 'Tasks',
-    tasksText: '',
-    taskIds: []
+    isAddTaskMenuOpen: false,
+    tasks: []
   }
 ])
 
@@ -140,7 +199,30 @@ function resetForm() {
   subtitle.value = ''
   period.value = 'daily'
   error.value = ''
-  sections.value = [{ id: randomId('section'), title: 'Tasks', tasksText: '', taskIds: [] }]
+  sections.value = [{ id: randomId('section'), title: 'Tasks', isAddTaskMenuOpen: false, tasks: [] }]
+}
+
+function normalizeTaskForForm(task) {
+  const kind = task?.type === 'temperature' ? 'temperature' : 'standard'
+
+  if (kind === 'temperature') {
+    return {
+      id: task?.id ?? randomId('task'),
+      kind: 'temperature',
+      label: String(task?.label ?? '').trim(),
+      meta: String(task?.meta ?? ''),
+      unit: String(task?.unit ?? 'C'),
+      targetMin: Number.isFinite(task?.targetMin) ? task.targetMin : null,
+      targetMax: Number.isFinite(task?.targetMax) ? task.targetMax : null
+    }
+  }
+
+  return {
+    id: task?.id ?? randomId('task'),
+    kind: 'standard',
+    label: String(task?.label ?? '').trim(),
+    meta: String(task?.meta ?? '')
+  }
 }
 
 function initFromCard(card) {
@@ -156,7 +238,7 @@ function initFromCard(card) {
 
   const sourceSections = Array.isArray(card.sections) ? card.sections : []
   if (sourceSections.length === 0) {
-    sections.value = [{ id: randomId('section'), title: 'Tasks', tasksText: '', taskIds: [] }]
+    sections.value = [{ id: randomId('section'), title: 'Tasks', isAddTaskMenuOpen: false, tasks: [] }]
     return
   }
 
@@ -165,8 +247,8 @@ function initFromCard(card) {
     return {
       id: randomId('section'),
       title: String(section.title ?? 'Tasks').trim() || 'Tasks',
-      tasksText: items.map((task) => String(task.label ?? '').trim()).filter(Boolean).join('\n'),
-      taskIds: items.map((task) => task?.id).filter(Boolean)
+      isAddTaskMenuOpen: false,
+      tasks: items.map(normalizeTaskForForm)
     }
   })
 }
@@ -193,13 +275,52 @@ function addSection() {
   sections.value.push({
     id: randomId('section'),
     title: `Section ${sections.value.length + 1}`,
-    tasksText: '',
-    taskIds: []
+    isAddTaskMenuOpen: false,
+    tasks: []
   })
 }
 
 function removeSection(index) {
   sections.value.splice(index, 1)
+}
+
+function toggleAddTaskMenu(sectionIndex) {
+  const section = sections.value[sectionIndex]
+  if (!section) return
+  section.isAddTaskMenuOpen = !section.isAddTaskMenuOpen
+}
+
+function addTask(sectionIndex, kind) {
+  const section = sections.value[sectionIndex]
+  if (!section) return
+
+  if (kind === 'temperature') {
+    section.tasks.push({
+      id: randomId('task'),
+      kind: 'temperature',
+      label: '',
+      meta: '',
+      unit: 'C',
+      targetMin: null,
+      targetMax: null
+    })
+    section.isAddTaskMenuOpen = false
+    return
+  }
+
+  section.tasks.push({
+    id: randomId('task'),
+    kind: 'standard',
+    label: '',
+    meta: ''
+  })
+  section.isAddTaskMenuOpen = false
+}
+
+function removeTask(sectionIndex, taskIndex) {
+  const section = sections.value[sectionIndex]
+  if (!section) return
+  section.tasks.splice(taskIndex, 1)
 }
 
 function periodLabel(value) {
@@ -228,31 +349,64 @@ function handleSubmit() {
 
   const sectionPayload = sections.value
     .map((section) => {
-      const lines = String(section.tasksText ?? '')
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean)
+      const safeTasks = Array.isArray(section.tasks) ? section.tasks : []
+      const missingLabels = safeTasks.some((task) => !String(task?.label ?? '').trim())
+      if (missingLabels) return { __error: 'Fill in all task labels or remove empty tasks.' }
 
-      const ids = Array.isArray(section.taskIds) ? section.taskIds : []
-      const items = lines.map((label, idx) => {
-        const existingId = ids[idx]
-        const previousTask = existingId ? previousTasksById.get(existingId) : null
+      const items = safeTasks
+        .map((formTask) => {
+          const taskId = formTask?.id ?? randomId('task')
+          const previousTask = previousTasksById.get(taskId) ?? null
+          const label = String(formTask?.label ?? '').trim()
 
-        if (previousTask) return { ...previousTask, label }
-        return {
-          id: randomId('task'),
-          label,
-          meta: '',
-          state: 'todo'
-        }
-      })
+          if (formTask?.kind === 'temperature') {
+            const base = previousTask ? { ...previousTask } : { id: taskId, meta: '', state: 'todo' }
+            return {
+              ...base,
+              id: taskId,
+              label,
+              type: 'temperature',
+              unit: 'C',
+              targetMin: Number.isFinite(Number(formTask?.targetMin)) ? Number(formTask.targetMin) : null,
+              targetMax: Number.isFinite(Number(formTask?.targetMax)) ? Number(formTask.targetMax) : null
+            }
+          }
+
+          const base = previousTask ? { ...previousTask } : { id: taskId, meta: '', state: 'todo' }
+          const candidate = {
+            ...base,
+            id: taskId,
+            label,
+            meta: String(formTask?.meta ?? base.meta ?? '')
+          }
+          // Remove temperature-only fields if the user changed type back to standard.
+          // This ensures the checklist stays declarative and measurements remain linked to `taskId`.
+          // Backend should treat `taskId` as stable, and measurements should always reference that id.
+          // eslint-disable-next-line no-unused-vars
+          const { type, unit, targetMin, targetMax, ...clean } = candidate
+          return clean
+        })
+        .filter((task) => Boolean(task?.label))
 
       return {
         title: String(section.title || 'Tasks').trim(),
         items
       }
     })
-    .filter((section) => section.items.length > 0)
+    .filter((section) => section && !section.__error && section.items.length > 0)
+
+  const firstSectionError = sections.value
+    .map((section) => {
+      const safeTasks = Array.isArray(section.tasks) ? section.tasks : []
+      const missingLabels = safeTasks.some((task) => !String(task?.label ?? '').trim())
+      return missingLabels ? 'Fill in all task labels or remove empty tasks.' : null
+    })
+    .find(Boolean)
+
+  if (firstSectionError) {
+    error.value = firstSectionError
+    return
+  }
 
   if (!title.value.trim()) {
     error.value = 'Title is required.'
@@ -292,7 +446,12 @@ function handleSubmit() {
       }
 
   // Backend TODO:
-  // Call POST /api/checklists here (or from the parent) and use the returned ids.
+  // Call POST/PUT /api/checklists here (or from the parent) and use the returned ids.
+  //
+  // IMPORTANT for temperature measurements:
+  // - The backend must treat `task.id` as a stable identifier.
+  // - Temperature measurements should reference { module, checklistId, taskId }.
+  // - Renaming/reordering tasks must NOT create new task ids unless the task is actually deleted.
   // See: `frontend/restaurantapp-frontend/src/api/checklists.js`
   if (isEditMode.value) emit('updated', nextCard)
   else emit('created', nextCard)
@@ -406,6 +565,10 @@ h2 {
   font: inherit;
 }
 
+.input--compact {
+  padding: 10px 12px;
+}
+
 .textarea {
   resize: vertical;
 }
@@ -444,6 +607,85 @@ h3 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+}
+
+.tasks {
+  display: grid;
+  gap: 10px;
+}
+
+.tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tasks-title {
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tasks-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-task-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tasks-empty {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px dashed var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-bold);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.task-editor {
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border-subtle);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.task-editor-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.task-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.field--inline {
+  margin: 0;
+}
+
+.ghost-button--compact,
+.danger-ghost--compact {
+  padding: 10px 12px;
+}
+
+.danger-ghost--compact {
+  border-color: rgba(190, 40, 40, 0.22);
+}
+
+.task-grid .full {
+  grid-column: 1 / -1;
 }
 
 .ghost-button,
@@ -508,6 +750,10 @@ h3 {
   }
 
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-grid {
     grid-template-columns: 1fr;
   }
 }
