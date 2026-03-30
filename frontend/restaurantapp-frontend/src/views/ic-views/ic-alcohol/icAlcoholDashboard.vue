@@ -1,12 +1,47 @@
 <script setup>
 import { computed, ref } from 'vue'
-import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
-import CreateChecklistModal from '../checklists/CreateChecklistModal.vue'
-import { useChecklistDashboard } from '../checklists/useChecklistDashboard'
+import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
+import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
+import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
 
 // Backend TODO:
 // Replace `initialCards` with data from `fetchChecklists({ module: 'IC_ALCOHOL' })` (see `frontend/restaurantapp-frontend/src/api/checklists.js`).
 const initialCards = [
+  {
+    id: 'ic-alcohol-storage-temperatures',
+    period: 'daily',
+    title: 'Storage temperatures',
+    subtitle: 'IC-Alcohol - daily',
+    statusLabel: '0/2 completed',
+    statusTone: 'muted',
+    progress: null,
+    sections: [
+      {
+        title: 'Temperature control',
+        items: [
+          {
+            id: 'ic-alcohol-storage-temp-1',
+            type: 'temperature',
+            unit: 'C',
+            targetMin: 2,
+            targetMax: 4,
+            label: 'Cold room',
+            meta: '',
+            state: 'todo'
+          },
+          {
+            id: 'ic-alcohol-storage-temp-2',
+            type: 'temperature',
+            unit: 'C',
+            targetMax: -18,
+            label: 'Freezer',
+            meta: '',
+            state: 'todo'
+          }
+        ]
+      }
+    ]
+  },
   {
     id: 'ic-alcohol-serving-routine',
     period: 'daily',
@@ -91,9 +126,19 @@ const initialCards = [
   }
 ]
 
-const { activePeriod, cards, displayCards, togglePending, toggleTask, now } = useChecklistDashboard({
+const {
+  activePeriod,
+  cards,
+  displayCards,
+  togglePending,
+  toggleTask,
+  logTemperatureMeasurement,
+  temperatureLatestByTaskId,
+  now
+} = useChecklistDashboard({
   initialCards,
-  defaultActivePeriod: 'Daily'
+  defaultActivePeriod: 'Daily',
+  module: 'IC_ALCOHOL'
 })
 
 const isCreateOpen = ref(false)
@@ -141,9 +186,11 @@ function editChecklist({ cardIndex }) {
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
     :cards="displayCards"
+    :temperature-latest-by-task-id="temperatureLatestByTaskId"
     @create="handleCreate"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
+    @log-temperature="logTemperatureMeasurement"
     @edit-checklist="editChecklist"
   />
 

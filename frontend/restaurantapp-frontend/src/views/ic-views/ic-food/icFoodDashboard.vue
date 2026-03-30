@@ -1,8 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
-import ChecklistDashboard from '../checklists/ChecklistDashboard.vue'
-import CreateChecklistModal from '../checklists/CreateChecklistModal.vue'
-import { useChecklistDashboard } from '../checklists/useChecklistDashboard'
+import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
+import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
+import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
 
 // Backend TODO:
 // Replace `initialCards` with data from `fetchChecklists({ module: 'IC_FOOD' })` (see `frontend/restaurantapp-frontend/src/api/checklists.js`).
@@ -21,15 +21,22 @@ const initialCards = [
         items: [
           {
             id: 'ic-food-before-opening-temp-1',
-            label: 'Check cold room 1 (target: 2-4 C)',
-            meta: '2.1 C',
-            state: 'completed'
+            type: 'temperature',
+            unit: 'C',
+            targetMin: 2,
+            targetMax: 4,
+            label: 'Cold room 1',
+            meta: '',
+            state: 'todo'
           },
           {
             id: 'ic-food-before-opening-temp-2',
-            label: 'Check freezer (target: below -18 C)',
-            meta: '-19 C',
-            state: 'completed'
+            type: 'temperature',
+            unit: 'C',
+            targetMax: -18,
+            label: 'Freezer',
+            meta: '',
+            state: 'todo'
           }
         ]
       },
@@ -155,9 +162,19 @@ const initialCards = [
   }
 ]
 
-const { activePeriod, cards, displayCards, togglePending, toggleTask, now } = useChecklistDashboard({
+const {
+  activePeriod,
+  cards,
+  displayCards,
+  togglePending,
+  toggleTask,
+  logTemperatureMeasurement,
+  temperatureLatestByTaskId,
+  now
+} = useChecklistDashboard({
   initialCards,
-  defaultActivePeriod: 'Daily'
+  defaultActivePeriod: 'Daily',
+  module: 'IC_FOOD'
 })
 
 const isCreateOpen = ref(false)
@@ -206,9 +223,11 @@ function editChecklist({ cardIndex }) {
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
     :cards="displayCards"
+    :temperature-latest-by-task-id="temperatureLatestByTaskId"
     @create="handleCreate"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
+    @log-temperature="logTemperatureMeasurement"
     @edit-checklist="editChecklist"
   />
 
