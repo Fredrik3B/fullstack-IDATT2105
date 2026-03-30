@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface JoinRequestRepository extends JpaRepository<JoinRequestModel, UUID> {
 
-  boolean existsByUserIdAndOrganizationIdAndStatus(
+  boolean existsRequestWithPendingStatus(
       UUID userId, UUID organizationId, JoinOrgStatus status);
 
   List<JoinRequestModel> findAllByOrganizationIdAndStatus(

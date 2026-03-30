@@ -60,7 +60,10 @@ public class OrganizationService {
       throw new RuntimeException("User already belongs to an organization");
     }
 
-    // Check if already requested
+    if (joinRequestRepository.existsRequestWithPendingStatus(
+        userId, org.getId(), JoinOrgStatus.PENDING)) {
+      throw new RuntimeException("You already have a pending request for this organization");
+    }
 
     JoinRequestModel joinRequest = new JoinRequestModel();
     joinRequest.setUserId(userId);
