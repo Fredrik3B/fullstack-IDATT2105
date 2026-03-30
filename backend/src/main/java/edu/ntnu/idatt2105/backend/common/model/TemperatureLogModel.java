@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.common.model;
 
 import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

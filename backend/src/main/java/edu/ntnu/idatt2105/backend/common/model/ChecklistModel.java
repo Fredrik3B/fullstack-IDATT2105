@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.common.model;
 
 import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

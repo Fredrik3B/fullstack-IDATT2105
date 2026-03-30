@@ -5,6 +5,7 @@ import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 
 
 public record CreateChecklistRequest(
@@ -24,6 +25,6 @@ public record CreateChecklistRequest(
 	Boolean active,
 
 	@NotNull
-	Long organizationId
+	UUID organizationId
 ) {
 }

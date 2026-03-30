@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.user.model;
 
-import edu.ntnu.idatt2105.backend.user.RoleEnum;
+import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
