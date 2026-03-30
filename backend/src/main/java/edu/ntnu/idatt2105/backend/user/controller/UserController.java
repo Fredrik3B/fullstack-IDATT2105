@@ -50,6 +50,21 @@ public class UserController {
     return buildLoginResponse(result);
   }
 
+  @PostMapping("/logout")
+  public ResponseEntity<Void> logout() {
+    ResponseCookie cookie = ResponseCookie.from("refreshToken", null)
+        .httpOnly(true)
+        .secure(false)
+        .path("/api/auth/refresh")
+        .maxAge(0)
+        .sameSite("Lax")
+        .build();
+
+    return ResponseEntity.ok()
+        .header(HttpHeaders.SET_COOKIE, cookie.toString())
+        .build();
+  }
+
   private ResponseEntity<LoginResponse> buildLoginResponse(AuthDto result) {
     ResponseCookie cookie = createRefreshTokenCookie(result.getRefreshToken());
     return ResponseEntity.ok()
