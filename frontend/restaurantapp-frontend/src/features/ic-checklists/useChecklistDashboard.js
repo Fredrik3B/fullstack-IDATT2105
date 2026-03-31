@@ -3,6 +3,7 @@ import { deriveDisplayCards, getCardPeriodEnum, getPeriodKey, seedCompletionMeta
 import { recalcCardProgress } from './recalcCardProgress'
 import { useNowTick } from './useNowTick'
 import { useTemperatureLog } from './useTemperatureLog'
+import { setTaskCompletion, setTaskFlag } from '../../api/checklists'
 
 export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Daily', module = null } = {}) {
   const cards = ref(Array.isArray(initialCards) ? initialCards : [])
@@ -12,16 +13,11 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
   // Temperature logging is a separate stream of data from checklist task state.
   // - Task state: completed/todo/pending (pending is "critical/should do", not a deviation log).
   // - Temperature measurements: time series stored per module/checklist/task.
-  // Backend TODO:
-  // - Replace localStorage implementation in `useTemperatureLog` with API integration.
   const { measurements: temperatureMeasurements, latestByTaskId: temperatureLatestByTaskId, logTemperature } =
     useTemperatureLog({ module })
 
-  const seeded = ref(false)
   watchEffect(() => {
-    if (seeded.value) return
     seedCompletionMetaForCurrentPeriod(cards.value, now.value)
-    seeded.value = true
   })
 
   const displayCards = computed(() => {
@@ -35,7 +31,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     return getPeriodKey(periodEnum, date)
   }
 
-  function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
+  async function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
     const card = cards.value[cardIndex]
     if (!card) return
 
@@ -57,20 +53,11 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
       task.completedForPeriodKey = null
     }
 
-    // Backend TODO:
-    // Persist per-user completion *per period* (no cron needed; client/server can compute reset by comparing periodKey).
-    // Suggested endpoint:
-    //   PUT /api/checklists/{checklistId}/tasks/{taskId}/completion
-    // Body:
-    //   { state: 'completed'|'todo', periodKey: string, completedAt?: string (ISO) }
-    // Notes:
-    // - Use `checklistId = card.id` and `taskId = task.id` (frontend currently seeds these ids locally).
-    // - When `checklistId`/`taskId` are missing, backend integration should be blocked until ids exist.
-    void checklistId
-    void taskId
+    const previous = { ...task }
     if (task.state === 'completed') {
       task.state = 'todo'
       task.completedForPeriodKey = null
+      task.completedAt = null
     } else {
       task.state = 'completed'
       task.highlighted = false
@@ -80,9 +67,32 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     }
 
     recalcCardProgress(card)
+
+    if (!checklistId || !taskId) return
+    try {
+      const resp = await setTaskCompletion({
+        checklistId,
+        taskId,
+        state: task.state === 'completed' ? 'completed' : 'todo',
+        periodKey: currentPeriodKey,
+        completedAt: task.state === 'completed' ? task.completedAt : null
+      })
+      if (resp && typeof resp === 'object') {
+        task.state = resp.state ?? task.state
+        task.highlighted = Boolean(resp.highlighted)
+        task.completedForPeriodKey = resp.completedForPeriodKey ?? null
+        task.completedAt = resp.completedAt ?? null
+        task.pendingForPeriodKey = resp.pendingForPeriodKey ?? null
+      }
+    } catch (err) {
+      Object.assign(task, previous)
+      recalcCardProgress(card)
+      // eslint-disable-next-line no-console
+      console.error('Failed to persist task completion', err)
+    }
   }
 
-  function togglePending({ cardIndex, sectionIndex, taskIndex }) {
+  async function togglePending({ cardIndex, sectionIndex, taskIndex }) {
     const card = cards.value[cardIndex]
     if (!card) return
 
@@ -101,13 +111,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
       task.highlighted = false
     }
 
-    // Backend TODO:
-    // Optional to persist; but if you want flags to sync across devices:
-    //   PUT /api/checklists/{checklistId}/tasks/{taskId}/flag
-    // Body:
-    //   { state: 'pending'|'todo', periodKey: string, flaggedAt?: string (ISO) }
-    void checklistId
-    void taskId
+    const previous = { ...task }
     const isPending = task.state === 'pending'
     if (isPending) {
       task.state = 'todo'
@@ -120,6 +124,29 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     }
 
     recalcCardProgress(card)
+
+    if (!checklistId || !taskId) return
+    try {
+      const resp = await setTaskFlag({
+        checklistId,
+        taskId,
+        state: task.state === 'pending' ? 'pending' : 'todo',
+        periodKey: currentPeriodKey,
+        flaggedAt: task.state === 'pending' ? new Date().toISOString() : null
+      })
+      if (resp && typeof resp === 'object') {
+        task.state = resp.state ?? task.state
+        task.highlighted = Boolean(resp.highlighted)
+        task.completedForPeriodKey = resp.completedForPeriodKey ?? null
+        task.completedAt = resp.completedAt ?? null
+        task.pendingForPeriodKey = resp.pendingForPeriodKey ?? null
+      }
+    } catch (err) {
+      Object.assign(task, previous)
+      recalcCardProgress(card)
+      // eslint-disable-next-line no-console
+      console.error('Failed to persist task flag', err)
+    }
   }
 
   async function logTemperatureMeasurement({ checklistId, taskId, valueC }) {

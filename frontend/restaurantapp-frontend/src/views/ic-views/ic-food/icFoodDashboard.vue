@@ -1,11 +1,11 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
 import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
 import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
+import { createChecklist, fetchChecklists, updateChecklist } from '../../../api/checklists'
 
-// Backend TODO:
-// Replace `initialCards` with data from `fetchChecklists({ module: 'IC_FOOD' })` (see `frontend/restaurantapp-frontend/src/api/checklists.js`).
+// Fallback cards used if backend fetch fails.
 const initialCards = [
   {
     id: 'ic-food-before-opening',
@@ -177,16 +177,41 @@ const {
   module: 'IC_FOOD'
 })
 
+onMounted(async () => {
+  try {
+    const data = await fetchChecklists({ module: 'IC_FOOD' })
+    if (Array.isArray(data) && data.length > 0) cards.value = data
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to fetch IC-Food checklists; using fallback initialCards', err)
+  }
+})
+
 const isCreateOpen = ref(false)
 function handleCreate() {
   isCreateOpen.value = true
 }
-function handleCreatedChecklist(newCard) {
-  // Backend TODO:
-  // Replace with: await createChecklist({ module: 'IC_FOOD', ...payload })
-  // and push the returned checklist card (with backend ids).
-  // See: `frontend/restaurantapp-frontend/src/api/checklists.js`
+async function handleCreatedChecklist(newCard) {
+  const optimisticIndex = cards.value.length
   cards.value.push(newCard)
+
+  try {
+    const created = await createChecklist({
+      module: 'IC_FOOD',
+      period: newCard?.period,
+      title: newCard?.title,
+      subtitle: newCard?.subtitle,
+      sections: newCard?.sections
+    })
+    if (created) {
+      created.moduleChip = created.moduleChip ?? newCard?.moduleChip
+      created.featured = created.featured ?? newCard?.featured
+      cards.value.splice(optimisticIndex, 1, created)
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to create checklist; keeping optimistic card', err)
+  }
 }
 
 const isEditOpen = ref(false)
@@ -195,9 +220,29 @@ const editingCard = computed(() =>
   Number.isInteger(editingCardIndex.value) ? cards.value[editingCardIndex.value] : null
 )
 
-function handleUpdatedChecklist(updatedCard) {
+async function handleUpdatedChecklist(updatedCard) {
   if (!Number.isInteger(editingCardIndex.value)) return
+  const previous = cards.value[editingCardIndex.value]
   cards.value.splice(editingCardIndex.value, 1, updatedCard)
+
+  try {
+    const saved = await updateChecklist({
+      checklistId: updatedCard?.id,
+      period: updatedCard?.period,
+      title: updatedCard?.title,
+      subtitle: updatedCard?.subtitle,
+      sections: updatedCard?.sections
+    })
+    if (saved) {
+      saved.moduleChip = saved.moduleChip ?? updatedCard?.moduleChip
+      saved.featured = saved.featured ?? updatedCard?.featured
+      cards.value.splice(editingCardIndex.value, 1, saved)
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('Failed to update checklist; reverting optimistic update', err)
+    cards.value.splice(editingCardIndex.value, 1, previous)
+  }
 }
 
 const dateLabel = computed(() => {
