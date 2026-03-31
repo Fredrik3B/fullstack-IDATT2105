@@ -16,6 +16,7 @@ import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,7 @@ public class OrganizationService {
   public OrganizationResponse create(CreateOrganizationRequest request, UUID userId) {
     OrganizationModel org = new OrganizationModel();
     org.setName(request.getName());
-    org.setJoinCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+    org.setJoinCode(generateJoinCode(request.getName()));
     OrganizationModel saved = organizationRepository.save(org);
 
     UserModel user = userRepository.findById(userId)
@@ -76,6 +77,21 @@ public class OrganizationService {
     joinRequestRepository.save(joinRequest);
 
     return organizationMapper.toResponse(org);
+  }
+
+  private String generateJoinCode(String name) {
+    String[] words = name.trim().split("\\s+");
+    StringBuilder prefix = new StringBuilder();
+    for (String word : words) {
+      if (!word.isEmpty()) prefix.append(Character.toUpperCase(word.charAt(0)));
+      if (prefix.length() >= 3) break;
+    }
+    if (prefix.length() < 3) {
+      String letters = name.replaceAll("\\s+", "").toUpperCase();
+      prefix = new StringBuilder(letters.substring(0, Math.min(3, letters.length())));
+    }
+    int number = 1000 + new Random().nextInt(9000);
+    return prefix + "-" + number;
   }
 
   public void acceptRequest(UUID requestId, UUID userId, UUID organizationId) {
