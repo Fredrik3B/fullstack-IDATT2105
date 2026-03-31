@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.user.service;
 
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
+import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.ResolveJoinRequest;
@@ -17,8 +18,10 @@ import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -119,5 +122,21 @@ public class OrganizationService {
     request.setResolvedAt(LocalDateTime.now());
     request.setResolvedBy(userId);
     joinRequestRepository.save(request);
+  }
+
+  public List<JoinOrganizationDto> getRequests(UUID organizationId, JoinOrgStatus status) {
+    List<JoinRequestModel> requests;
+    if (status != null) {
+      requests = joinRequestRepository.findAllByOrganizationIdAndStatus(organizationId, status);
+    } else {
+      requests = joinRequestRepository.findAllByOrganizationId((organizationId);
+    }
+    return requests.stream()
+        .map(request -> {
+          UserModel user = userRepository.findById(request.getUserId())
+              .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+          return organizationMapper.toJoinRequestDto(request, user);
+        })
+        .toList();
   }
 }

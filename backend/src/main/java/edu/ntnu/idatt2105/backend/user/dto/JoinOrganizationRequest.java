@@ -4,5 +4,8 @@ import lombok.Data;
 
 @Data
 public class JoinOrganizationRequest {
+  private String email;
+  private String firstName;
+  private String lastName;
   private String joinCode;
 }
