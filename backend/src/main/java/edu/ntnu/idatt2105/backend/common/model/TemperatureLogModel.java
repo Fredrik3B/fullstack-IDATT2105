@@ -24,7 +24,7 @@ public class TemperatureLogModel extends AuditableEntity {
 	@Column(nullable = false, length = 120)
 	private String location;
 
-	@Column(nullable = false, precision = 5, scale = 2)
+	@Column(name = "temperature_value", nullable = false, precision = 5, scale = 2)
 	private BigDecimal value;
 
 	@Enumerated(EnumType.STRING)
