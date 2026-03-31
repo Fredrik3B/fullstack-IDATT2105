@@ -2,17 +2,41 @@ package edu.ntnu.idatt2105.backend.common.service;
 
 import java.util.List;
 
-import edu.ntnu.idatt2105.backend.common.dto.checklist.ChecklistResponse;
-import edu.ntnu.idatt2105.backend.common.dto.checklist.CreateChecklistRequest;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskFlagRequest;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.UpdateChecklistCardRequest;
+import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 
 
 public interface ChecklistService {
 
-	ChecklistResponse createChecklist(CreateChecklistRequest request);
+	List<ChecklistCardResponse> fetchChecklists(IcModule module, JwtAuthenticatedPrincipal principal);
 
-	List<ChecklistResponse> getAllChecklists();
+	ChecklistCardResponse createChecklist(CreateChecklistCardRequest request, JwtAuthenticatedPrincipal principal);
 
-	ChecklistResponse getChecklistById(Long checklistId);
+	ChecklistCardResponse updateChecklist(
+		Long checklistId,
+		UpdateChecklistCardRequest request,
+		JwtAuthenticatedPrincipal principal
+	);
 
-	void deleteChecklist(Long checklistId);
+	ChecklistTaskItemResponse setTaskCompletion(
+		Long checklistId,
+		Long taskId,
+		TaskCompletionRequest request,
+		JwtAuthenticatedPrincipal principal
+	);
+
+	ChecklistTaskItemResponse setTaskFlag(
+		Long checklistId,
+		Long taskId,
+		TaskFlagRequest request,
+		JwtAuthenticatedPrincipal principal
+	);
+
+	void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal);
 }
