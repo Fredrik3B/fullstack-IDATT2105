@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.user.controller;
 
+import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
@@ -25,7 +26,7 @@ public class OrganizationController {
   public ResponseEntity<OrganizationResponse> createOrganization(
       @RequestBody @Valid CreateOrganizationRequest request, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
 
     OrganizationResponse resp =  organizationService.create(request, principal.getUserId());
     return ResponseEntity.ok(resp);
@@ -35,7 +36,7 @@ public class OrganizationController {
   public ResponseEntity<OrganizationResponse> joinOrganization(
       @RequestBody @Valid JoinOrganizationRequest request,
       Authentication auth) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
     return ResponseEntity.ok(organizationService.requestToJoin(request, principal.getUserId()));
   }
 
@@ -45,7 +46,7 @@ public class OrganizationController {
   public ResponseEntity<Void> acceptRequest(
       @PathVariable UUID id, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
     organizationService.acceptRequest(id, principal.getUserId(), principal.getOrganizationId());
 
     return ResponseEntity.ok().build();

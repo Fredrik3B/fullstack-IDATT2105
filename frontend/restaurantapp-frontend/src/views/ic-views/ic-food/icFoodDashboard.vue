@@ -24,8 +24,12 @@ const {
 })
 
 onMounted(async () => {
-  const data = await fetchChecklists({ module: 'IC_FOOD' })
-  if (cards.value.length === 0) cards.value = Array.isArray(data) ? data : []
+  try {
+    const data = await fetchChecklists({ module: 'IC_FOOD' })
+    if (cards.value.length === 0) cards.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Failed to fetch IC-Food checklists', err)
+  }
 })
 
 const isCreateOpen = ref(false)
