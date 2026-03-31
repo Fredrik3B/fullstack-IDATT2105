@@ -33,6 +33,7 @@ public class OrganizationService {
   public OrganizationResponse create(CreateOrganizationRequest request, UUID userId) {
     OrganizationModel org = new OrganizationModel();
     org.setName(request.getName());
+    org.setJoinCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
     OrganizationModel saved = organizationRepository.save(org);
 
     UserModel user = userRepository.findById(userId)
@@ -60,7 +61,7 @@ public class OrganizationService {
       throw new RuntimeException("User already belongs to an organization");
     }
 
-    if (joinRequestRepository.existsRequestWithPendingStatus(
+    if (joinRequestRepository.existsByUserIdAndOrganizationIdAndStatus(
         userId, org.getId(), JoinOrgStatus.PENDING)) {
       throw new RuntimeException("You already have a pending request for this organization");
     }

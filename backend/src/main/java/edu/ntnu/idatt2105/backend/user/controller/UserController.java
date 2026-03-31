@@ -51,7 +51,7 @@ public class UserController {
   public ResponseEntity<LoginResponse> refresh(
       @CookieValue(name = "refreshToken", required = false) String refreshToken
   ) {
-    if (refreshToken != null) {
+    if (refreshToken == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
     AuthDto result = userService.refreshToken(refreshToken);
