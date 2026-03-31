@@ -1,7 +1,11 @@
 package edu.ntnu.idatt2105.backend.common.model;
 
+import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistTaskType;
+import java.math.BigDecimal;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -14,11 +18,30 @@ public class TaskModel extends AuditableEntity {
 	@Column(nullable = false, length = 120)
 	private String title;
 
-	@Column(length = 100)
+	@Column(length = 255)
 	private String description;
 
 	@Column(name = "order_index", nullable = false)
 	private int orderIndex;
+
+	@Column(name = "section_title", length = 120)
+	private String sectionTitle;
+
+	@Column(name = "section_order_index")
+	private Integer sectionOrderIndex;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "task_type", length = 30)
+	private ChecklistTaskType taskType;
+
+	@Column(length = 10)
+	private String unit;
+
+	@Column(name = "target_min", precision = 5, scale = 2)
+	private BigDecimal targetMin;
+
+	@Column(name = "target_max", precision = 5, scale = 2)
+	private BigDecimal targetMax;
 
 	@Column(nullable = false)
 	private boolean requiredTask = true;
@@ -55,6 +78,54 @@ public class TaskModel extends AuditableEntity {
 
 	public void setOrderIndex(int orderIndex) {
 		this.orderIndex = orderIndex;
+	}
+
+	public String getSectionTitle() {
+		return sectionTitle;
+	}
+
+	public void setSectionTitle(String sectionTitle) {
+		this.sectionTitle = sectionTitle;
+	}
+
+	public Integer getSectionOrderIndex() {
+		return sectionOrderIndex;
+	}
+
+	public void setSectionOrderIndex(Integer sectionOrderIndex) {
+		this.sectionOrderIndex = sectionOrderIndex;
+	}
+
+	public ChecklistTaskType getTaskType() {
+		return taskType;
+	}
+
+	public void setTaskType(ChecklistTaskType taskType) {
+		this.taskType = taskType;
+	}
+
+	public String getUnit() {
+		return unit;
+	}
+
+	public void setUnit(String unit) {
+		this.unit = unit;
+	}
+
+	public BigDecimal getTargetMin() {
+		return targetMin;
+	}
+
+	public void setTargetMin(BigDecimal targetMin) {
+		this.targetMin = targetMin;
+	}
+
+	public BigDecimal getTargetMax() {
+		return targetMax;
+	}
+
+	public void setTargetMax(BigDecimal targetMax) {
+		this.targetMax = targetMax;
 	}
 
 	public boolean isRequiredTask() {
