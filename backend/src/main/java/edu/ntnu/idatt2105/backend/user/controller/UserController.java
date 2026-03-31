@@ -51,7 +51,7 @@ public class UserController {
   public ResponseEntity<LoginResponse> refresh(
       @CookieValue(name = "refreshToken", required = false) String refreshToken
   ) {
-    if (refreshToken != null) {
+    if (refreshToken == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
     AuthDto result = userService.refreshToken(refreshToken);
@@ -84,7 +84,7 @@ public class UserController {
     return ResponseCookie.from("refreshToken", refreshToken)
         .httpOnly(true)
         .secure(false) // should be changed
-        .path("/api/users/refresh")
+        .path("/api/auth/refresh")
         .maxAge(Duration.ofDays(7))
         .sameSite("Lax")
         .build();

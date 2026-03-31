@@ -7,7 +7,6 @@ import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
-import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
 import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
@@ -18,6 +17,7 @@ import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 

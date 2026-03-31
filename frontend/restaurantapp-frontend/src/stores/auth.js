@@ -230,11 +230,13 @@ export const useAuthStore = defineStore('auth', () => {
    */
   async function createRestaurant(payload) {
     // payload: { name, orgNumber, address, postalCode, city }
-    const { data } = await api.post('/api/restaurants', payload)
+    const { data } = await api.post('/api/organizations', payload)
 
     restaurantStatus.value = 'active'
-    restaurantId.value     = data.restaurantId
+    restaurantId.value     = data.id
     restaurantName.value   = payload.name
+
+    await refreshAccessToken()
 
     return data // let the view display the joinCode returned by the backend
   }
