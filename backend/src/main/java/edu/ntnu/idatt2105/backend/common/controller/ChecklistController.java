@@ -31,7 +31,7 @@ import jakarta.validation.Valid;
 
 
 @RestController
-@RequestMapping("/api/checklists")
+@RequestMapping("/checklists")
 public class ChecklistController {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChecklistController.class);

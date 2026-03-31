@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/temperature-measurements")
+@RequestMapping("/temperature-measurements")
 public class TemperatureMeasurementController {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TemperatureMeasurementController.class);
