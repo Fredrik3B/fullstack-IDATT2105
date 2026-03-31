@@ -18,6 +18,7 @@ import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
