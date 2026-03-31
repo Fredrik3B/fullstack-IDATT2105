@@ -25,7 +25,7 @@ const {
 
 onMounted(async () => {
   const data = await fetchChecklists({ module: 'IC_ALCOHOL' })
-  cards.value = Array.isArray(data) ? data : []
+  if (cards.value.length === 0) cards.value = Array.isArray(data) ? data : []
 })
 
 const isCreateOpen = ref(false)
@@ -50,8 +50,7 @@ async function handleCreatedChecklist(newCard) {
       cards.value.splice(optimisticIndex, 1, created)
     }
   } catch (err) {
-    console.error('Failed to create checklist', err)
-    cards.value.splice(optimisticIndex, 1)
+    console.error('Failed to create checklist; keeping optimistic card', err)
   }
 }
 
