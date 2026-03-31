@@ -4,6 +4,7 @@ import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
+import edu.ntnu.idatt2105.backend.user.dto.ResolveJoinRequest;
 import edu.ntnu.idatt2105.backend.user.service.OrganizationService;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -41,15 +42,15 @@ public class OrganizationController {
 
   // TODO: Dobbelsjekk sikkerhet her
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-  @PostMapping("/organizations/requests/{id}/accept")
+  @PostMapping("/organizations/requests/{id}")
   public ResponseEntity<Void> acceptRequest(
-      @PathVariable UUID id, Authentication auth
+      @PathVariable UUID id, @RequestBody @Valid ResolveJoinRequest request, Authentication auth
   ) {
     JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-    organizationService.acceptRequest(id, principal.getUserId(), principal.getOrganizationId());
+    organizationService.resolveRequest(
+        id, principal.getUserId(), principal.getOrganizationId(), request.getAction()
+    );
 
     return ResponseEntity.ok().build();
   }
-
-  // TODO: reject
 }

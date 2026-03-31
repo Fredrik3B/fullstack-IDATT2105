@@ -4,6 +4,7 @@ import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
+import edu.ntnu.idatt2105.backend.user.dto.ResolveJoinRequest;
 import edu.ntnu.idatt2105.backend.user.mapper.OrganizationMapper;
 import edu.ntnu.idatt2105.backend.user.model.JoinRequestModel;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
@@ -94,7 +95,8 @@ public class OrganizationService {
     return prefix + "-" + number;
   }
 
-  public void acceptRequest(UUID requestId, UUID userId, UUID organizationId) {
+  // TODO: fix exceptions
+  public void resolveRequest(UUID requestId, UUID userId, UUID organizationId, JoinOrgStatus action) {
     JoinRequestModel request = joinRequestRepository.findById(requestId)
         .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
     if (!request.getOrganizationId().equals(organizationId)) {
@@ -103,13 +105,17 @@ public class OrganizationService {
     if (request.getStatus() != JoinOrgStatus.PENDING) {
       throw new RuntimeException("Request already resolved");
     }
-    UserModel user = userRepository.findById(request.getUserId())
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    user.setOrganizationId(request.getOrganizationId());
-    userRepository.save(user);
 
-    request.setStatus(JoinOrgStatus.ACCEPTED);
+    if (action == JoinOrgStatus.ACCEPTED) {
+      UserModel user = userRepository.findById(request.getUserId())
+          .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+      user.setOrganizationId(request.getOrganizationId());
+      userRepository.save(user);
+    }
+
+    request.setStatus(action == JoinOrgStatus.ACCEPTED
+        ? JoinOrgStatus.ACCEPTED : JoinOrgStatus.DECLINED);
     request.setResolvedAt(LocalDateTime.now());
     request.setResolvedBy(userId);
     joinRequestRepository.save(request);
