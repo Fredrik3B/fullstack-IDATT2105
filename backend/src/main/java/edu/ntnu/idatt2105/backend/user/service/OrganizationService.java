@@ -129,7 +129,7 @@ public class OrganizationService {
     if (status != null) {
       requests = joinRequestRepository.findAllByOrganizationIdAndStatus(organizationId, status);
     } else {
-      requests = joinRequestRepository.findAllByOrganizationId((organizationId);
+      requests = joinRequestRepository.findAllByOrganizationId(organizationId);
     }
     return requests.stream()
         .map(request -> {

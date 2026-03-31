@@ -14,5 +14,5 @@ public interface JoinRequestRepository extends JpaRepository<JoinRequestModel, U
   List<JoinRequestModel> findAllByOrganizationIdAndStatus(
       UUID organizationId, JoinOrgStatus status);
 
-  List<JoinRequestModel> findAllByOrganizationId(void attr0);
+  List<JoinRequestModel> findAllByOrganizationId(UUID organizationId);
 }
