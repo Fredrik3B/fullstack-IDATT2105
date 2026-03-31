@@ -42,7 +42,6 @@ function normalizeMeasurement(raw) {
 export function useTemperatureLog({ module }) {
   const measurements = ref([])
 
-  // Bootstrapping from backend (fallback to localStorage if backend fails).
   if (USE_BACKEND) {
     const to = new Date()
     const from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
@@ -52,11 +51,9 @@ export function useTemperatureLog({ module }) {
         measurements.value = parsed
       })
       .catch((err) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch temperature measurements; falling back to localStorage', err)
-        const raw = hasLocalStorage() ? safeParse(localStorage.getItem(storageKey(module)) ?? '[]') : []
-        const parsed = Array.isArray(raw) ? raw.map(normalizeMeasurement).filter(Boolean) : []
-        measurements.value = parsed
+    
+        console.error('Failed to fetch temperature measurements', err)
+        measurements.value = []
       })
   } else {
     const raw = hasLocalStorage() ? safeParse(localStorage.getItem(storageKey(module)) ?? '[]') : []
@@ -90,10 +87,6 @@ export function useTemperatureLog({ module }) {
     })
     if (!entry) return null
 
-    // Frontend behavior:
-    // - Optimistically show the entry immediately.
-    // Backend behavior (when enabled):
-    // - Persist the measurement and return the created record with a server-generated id.
     measurements.value = [entry, ...measurements.value].slice(0, 250)
 
     if (USE_BACKEND) {
@@ -107,6 +100,8 @@ export function useTemperatureLog({ module }) {
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('Failed to persist temperature measurement', err)
+        measurements.value = measurements.value.filter((m) => m.id !== entry.id)
+        return null
       }
       return entry
     }
