@@ -5,126 +5,8 @@ import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklis
 import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
 import { createChecklist, fetchChecklists, updateChecklist } from '../../../api/checklists'
 
-// Fallback cards used if backend fetch fails.
-const initialCards = [
-  {
-    id: 'ic-alcohol-storage-temperatures',
-    period: 'daily',
-    title: 'Storage temperatures',
-    subtitle: 'IC-Alcohol - daily',
-    statusLabel: '0/2 completed',
-    statusTone: 'muted',
-    progress: null,
-    sections: [
-      {
-        title: 'Temperature control',
-        items: [
-          {
-            id: 'ic-alcohol-storage-temp-1',
-            type: 'temperature',
-            unit: 'C',
-            targetMin: 2,
-            targetMax: 4,
-            label: 'Cold room',
-            meta: '',
-            state: 'todo'
-          },
-          {
-            id: 'ic-alcohol-storage-temp-2',
-            type: 'temperature',
-            unit: 'C',
-            targetMax: -18,
-            label: 'Freezer',
-            meta: '',
-            state: 'todo'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'ic-alcohol-serving-routine',
-    period: 'daily',
-    title: 'Serving routine',
-    subtitle: 'IC-Alcohol - daily',
-    statusLabel: '2/5 completed',
-    statusTone: 'warning',
-    progress: 40,
-    featured: true,
-    moduleChip: 'IC-Alcohol',
-    sections: [
-      {
-        title: 'Training and certification',
-        items: [
-          {
-            id: 'ic-alcohol-serving-routine-train-1',
-            label: 'Confirm internal training for evening shift',
-            meta: '08:00',
-            state: 'completed'
-          }
-        ]
-      },
-      {
-        title: 'Daily logging',
-        items: [
-          {
-            id: 'ic-alcohol-serving-routine-log-1',
-            label: 'Log the number of refused guests',
-            meta: 'Waiting',
-            state: 'pending',
-            highlighted: true
-          },
-          {
-            id: 'ic-alcohol-serving-routine-log-2',
-            label: 'Confirm responsible serving reviewed',
-            meta: 'Missing',
-            state: 'todo'
-          }
-        ]
-      },
-      {
-        title: 'Documentation',
-        items: [
-          {
-            id: 'ic-alcohol-serving-routine-doc-1',
-            label: 'Check validity of serving certificate',
-            meta: '18:00',
-            state: 'todo'
-          },
-          {
-            id: 'ic-alcohol-serving-routine-doc-2',
-            label: 'Record any deviations in the shift log',
-            meta: 'After closing',
-            state: 'todo'
-          }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'ic-alcohol-weekend-report',
-    period: 'weekly',
-    title: 'Weekend report',
-    subtitle: 'Weekly - Friday',
-    statusLabel: 'Planned',
-    statusTone: 'muted',
-    progress: null,
-    sections: [
-      {
-        title: 'Control points',
-        items: [
-          { id: 'ic-alcohol-weekend-report-1', label: 'Confirm staffing plan for the weekend', meta: 'Fri', state: 'todo' },
-          {
-            id: 'ic-alcohol-weekend-report-2',
-            label: 'Review stock of non-alcoholic alternatives',
-            meta: 'Fri',
-            state: 'todo'
-          }
-        ]
-      }
-    ]
-  }
-]
+// Backend-only mode: keep empty so missing backend wiring is visible.
+const initialCards = []
 
 const {
   activePeriod,
@@ -142,13 +24,8 @@ const {
 })
 
 onMounted(async () => {
-  try {
-    const data = await fetchChecklists({ module: 'IC_ALCOHOL' })
-    if (Array.isArray(data) && data.length > 0) cards.value = data
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to fetch IC-Alcohol checklists; using fallback initialCards', err)
-  }
+  const data = await fetchChecklists({ module: 'IC_ALCOHOL' })
+  cards.value = Array.isArray(data) ? data : []
 })
 
 const isCreateOpen = ref(false)
@@ -173,8 +50,8 @@ async function handleCreatedChecklist(newCard) {
       cards.value.splice(optimisticIndex, 1, created)
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to create checklist; keeping optimistic card', err)
+    console.error('Failed to create checklist', err)
+    cards.value.splice(optimisticIndex, 1)
   }
 }
 
@@ -203,7 +80,6 @@ async function handleUpdatedChecklist(updatedCard) {
       cards.value.splice(editingCardIndex.value, 1, saved)
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Failed to update checklist; reverting optimistic update', err)
     cards.value.splice(editingCardIndex.value, 1, previous)
   }
