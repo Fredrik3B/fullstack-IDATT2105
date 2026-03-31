@@ -1,12 +1,12 @@
 package edu.ntnu.idatt2105.backend.config;
 
-import edu.ntnu.idatt2105.backend.security.JwtAuthFilter;
 import java.util.List;
-import lombok.AllArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +18,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import edu.ntnu.idatt2105.backend.security.JwtAuthFilter;
+import lombok.AllArgsConstructor;
 
 
 /**
@@ -63,8 +66,9 @@ public class SecurityConfig {
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/auth/**").permitAll()
-            .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/refresh").permitAll()
+            .requestMatchers("/error").permitAll()
             .anyRequest().authenticated()
         )
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

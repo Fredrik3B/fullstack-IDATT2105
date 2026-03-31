@@ -4,6 +4,7 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateTemperatureMeasur
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.common.service.TemperatureMeasurementService;
+import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import jakarta.validation.Valid;
 import java.time.Instant;
@@ -38,7 +39,7 @@ public class TemperatureMeasurementController {
 		@Valid @RequestBody CreateTemperatureMeasurementRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
 		LOGGER.info(
 			"IC create temperature measurement: orgId={} userId={} module={} checklistId={} taskId={} valueC={} measuredAt={} periodKey={}",
 			principal.getOrganizationId(),
@@ -62,7 +63,7 @@ public class TemperatureMeasurementController {
 		@RequestParam(required = false) Instant to,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
 		LOGGER.info(
 			"IC fetch temperature measurements: orgId={} userId={} module={} from={} to={}",
 			principal.getOrganizationId(),
