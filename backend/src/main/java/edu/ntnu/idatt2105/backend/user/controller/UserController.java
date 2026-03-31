@@ -84,7 +84,7 @@ public class UserController {
     return ResponseCookie.from("refreshToken", refreshToken)
         .httpOnly(true)
         .secure(false) // should be changed
-        .path("/api/users/refresh")
+        .path("/api/auth/refresh")
         .maxAge(Duration.ofDays(7))
         .sameSite("Lax")
         .build();
