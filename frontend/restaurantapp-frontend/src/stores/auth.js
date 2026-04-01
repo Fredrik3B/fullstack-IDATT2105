@@ -116,10 +116,6 @@ export const useAuthStore = defineStore('auth', () => {
    *   null    → onboarding (choose view)
    *
    * Throws on failure so the calling component can show an error message.
-   *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   import api from '@/api/axiosInstance'
-   *   const { data } = await api.post('/api/auth/login', { email, password })
    */
   async function login(email, password) {
     const { data } = await api.post('/api/auth/login', { email, password })
@@ -138,10 +134,6 @@ export const useAuthStore = defineStore('auth', () => {
    * Register a new user account.
    * On success the account is immediately active, but has no restaurant yet.
    * Redirects to /onboarding so the user can join or create a restaurant.
-   *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   import api from '@/api/axiosInstance'
-   *   const { data } = await api.post('/api/auth/register', { name, email, password })
    */
   async function register(name, email, password) {
     const [firstName, ...rest] = name.trim().split(/\s+/)
@@ -163,11 +155,6 @@ export const useAuthStore = defineStore('auth', () => {
    * Called by the Axios response interceptor when a request returns 401.
    * Attempts to exchange the refresh token for a new access token.
    * Returns the new access token string on success, or throws on failure.
-   *
-   * NOTE: this function is intentionally NOT async-safe against parallel calls.
-   * The Axios interceptor should queue concurrent requests while a refresh is
-   * in progress. That logic lives in axiosInstance.js.
-   *
    */
   async function refreshAccessToken() {
     // Uses plain axios — NOT the intercepted api instance.
@@ -187,10 +174,6 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Send a join request for a restaurant by its join code.
    * Sets restaurantStatus to 'pending' on success.
-   *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   import api from '@/api/axiosInstance'
-   *   const { data } = await api.post('/api/restaurants/join', { joinCode })
    */
   async function lookupRestaurant(code) {
     const { data } = await api.get(`/api/organizations/lookup?code=${code}`)
@@ -208,10 +191,6 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Withdraw a pending join request.
    * Resets restaurantStatus and restaurantId to null.
-   *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   import api from '@/api/axiosInstance'
-   *   await api.delete('/api/restaurants/join-request')
    */
   async function withdrawJoinRequest() {
     await api.delete('/api/organizations/join-request')
@@ -223,10 +202,6 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Create a new restaurant. The user becomes its admin on success.
    * Sets restaurantStatus to 'active' immediately.
-   *
-   * TODO: replace the placeholder with a real API call, e.g.:
-   *   import api from '@/api/axiosInstance'
-   *   const { data } = await api.post('/api/restaurants', payload)
    */
   async function createRestaurant(payload) {
     // payload: { name, orgNumber, address, postalCode, city }
@@ -245,8 +220,6 @@ export const useAuthStore = defineStore('auth', () => {
    * Log out the current user.
    * Optionally notifies the backend to invalidate the refresh token.
    * Always clears local state and redirects to /login.
-   *
-   * TODO: optionally call POST /api/auth/logout to invalidate server-side session
    */
   async function logout() {
     try {
