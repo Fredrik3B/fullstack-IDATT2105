@@ -27,9 +27,9 @@
               <div class="checklist-body">
                 <p v-if="isLoadingFood" class="checklist-hint">Laster sjekklister...</p>
                 <p v-else-if="foodError" class="checklist-hint">{{ foodError }}</p>
-                <template v-else-if="foodChecklists.length">
+                <template v-else-if="dailyFoodChecklists.length">
                   <article
-                    v-for="card in foodChecklists"
+                    v-for="card in dailyFoodChecklists"
                     :key="card.id ?? card.title"
                     class="checklist-preview"
                   >
@@ -41,7 +41,7 @@
                     <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
                   </article>
                 </template>
-                <p v-else class="checklist-hint">Ingen IC-Food sjekklister funnet.</p>
+                <p v-else class="checklist-hint">Ingen daglige IC-Food sjekklister funnet.</p>
               </div>
             </div>
             <div class="checklist-placeholder">
@@ -52,9 +52,9 @@
               <div class="checklist-body">
                 <p v-if="isLoadingAlcohol" class="checklist-hint">Laster sjekklister...</p>
                 <p v-else-if="alcoholError" class="checklist-hint">{{ alcoholError }}</p>
-                <template v-else-if="alcoholChecklists.length">
+                <template v-else-if="dailyAlcoholChecklists.length">
                   <article
-                    v-for="card in alcoholChecklists"
+                    v-for="card in dailyAlcoholChecklists"
                     :key="card.id ?? card.title"
                     class="checklist-preview"
                   >
@@ -66,7 +66,7 @@
                     <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
                   </article>
                 </template>
-                <p v-else class="checklist-hint">Ingen IC-Alcohol sjekklister funnet.</p>
+                <p v-else class="checklist-hint">Ingen daglige IC-Alcohol sjekklister funnet.</p>
               </div>
             </div>
           </div>
@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fetchChecklists } from '../api/checklists'
 
 const foodChecklists = ref([])
@@ -114,6 +114,13 @@ const isLoadingFood = ref(true)
 const isLoadingAlcohol = ref(true)
 const foodError = ref('')
 const alcoholError = ref('')
+
+const dailyFoodChecklists = computed(() => foodChecklists.value.filter((card) => isDailyChecklist(card)))
+const dailyAlcoholChecklists = computed(() => alcoholChecklists.value.filter((card) => isDailyChecklist(card)))
+
+function isDailyChecklist(card) {
+  return String(card?.period ?? '').toLowerCase() === 'daily'
+}
 
 function getTaskCount(card) {
   const sections = Array.isArray(card?.sections) ? card.sections : []
