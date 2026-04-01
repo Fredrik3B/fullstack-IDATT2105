@@ -24,14 +24,50 @@
                 <span class="checklist-dot checklist-dot--food"></span>
                 <h3 class="checklist-title">IC-Food</h3>
               </div>
-              <p class="checklist-hint">Sjekkliste-komponenten kommer her</p>
+              <div class="checklist-body">
+                <p v-if="isLoadingFood" class="checklist-hint">Laster sjekklister...</p>
+                <p v-else-if="foodError" class="checklist-hint">{{ foodError }}</p>
+                <template v-else-if="foodChecklists.length">
+                  <article
+                    v-for="card in foodChecklists"
+                    :key="card.id ?? card.title"
+                    class="checklist-preview"
+                  >
+                    <div class="checklist-preview__top">
+                      <h4 class="checklist-preview__title">{{ card.title }}</h4>
+                      <span class="checklist-preview__period">{{ formatPeriod(card.period) }}</span>
+                    </div>
+                    <p v-if="card.subtitle" class="checklist-preview__subtitle">{{ card.subtitle }}</p>
+                    <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
+                  </article>
+                </template>
+                <p v-else class="checklist-hint">Ingen IC-Food sjekklister funnet.</p>
+              </div>
             </div>
             <div class="checklist-placeholder">
               <div class="checklist-header">
                 <span class="checklist-dot checklist-dot--alcohol"></span>
                 <h3 class="checklist-title">IC-Alcohol</h3>
               </div>
-              <p class="checklist-hint">Sjekkliste-komponenten kommer her</p>
+              <div class="checklist-body">
+                <p v-if="isLoadingAlcohol" class="checklist-hint">Laster sjekklister...</p>
+                <p v-else-if="alcoholError" class="checklist-hint">{{ alcoholError }}</p>
+                <template v-else-if="alcoholChecklists.length">
+                  <article
+                    v-for="card in alcoholChecklists"
+                    :key="card.id ?? card.title"
+                    class="checklist-preview"
+                  >
+                    <div class="checklist-preview__top">
+                      <h4 class="checklist-preview__title">{{ card.title }}</h4>
+                      <span class="checklist-preview__period">{{ formatPeriod(card.period) }}</span>
+                    </div>
+                    <p v-if="card.subtitle" class="checklist-preview__subtitle">{{ card.subtitle }}</p>
+                    <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
+                  </article>
+                </template>
+                <p v-else class="checklist-hint">Ingen IC-Alcohol sjekklister funnet.</p>
+              </div>
             </div>
           </div>
         </section>
@@ -69,6 +105,50 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue'
+import { fetchChecklists } from '../api/checklists'
+
+const foodChecklists = ref([])
+const alcoholChecklists = ref([])
+const isLoadingFood = ref(true)
+const isLoadingAlcohol = ref(true)
+const foodError = ref('')
+const alcoholError = ref('')
+
+function getTaskCount(card) {
+  const sections = Array.isArray(card?.sections) ? card.sections : []
+  return sections.reduce((total, section) => {
+    const items = Array.isArray(section?.items) ? section.items.length : 0
+    return total + items
+  }, 0)
+}
+
+function formatPeriod(period) {
+  if (!period) return 'Unknown'
+  return String(period).charAt(0).toUpperCase() + String(period).slice(1).toLowerCase()
+}
+
+onMounted(async () => {
+  try {
+    const data = await fetchChecklists({ module: 'IC_FOOD' })
+    foodChecklists.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('Failed to fetch IC-Food checklists', error)
+    foodError.value = 'Kunne ikke hente IC-Food sjekklister.'
+  } finally {
+    isLoadingFood.value = false
+  }
+
+  try {
+    const data = await fetchChecklists({ module: 'IC_ALCOHOL' })
+    alcoholChecklists.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('Failed to fetch IC-Alcohol checklists', error)
+    alcoholError.value = 'Kunne ikke hente IC-Alcohol sjekklister.'
+  } finally {
+    isLoadingAlcohol.value = false
+  }
+})
 </script>
 
 <style scoped>
@@ -207,6 +287,47 @@
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
+}
+
+.checklist-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.checklist-preview {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.checklist-preview__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.checklist-preview__title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.checklist-preview__period {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.checklist-preview__subtitle,
+.checklist-preview__meta {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .checklist-hint {
