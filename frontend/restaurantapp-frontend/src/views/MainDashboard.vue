@@ -1,23 +1,20 @@
 <template>
   <div class="dashboard-root">
-    <!-- Welcome banner -->
     <section class="welcome-banner">
       <div class="welcome-glow"></div>
       <div class="welcome-inner">
-        <span class="welcome-tag">Internkontrollsystem</span>
+        <span class="welcome-tag">Internal Control System</span>
         <h1 class="welcome-heading">
-          God dag, <span class="welcome-accent">Kari</span>
+          Good day, <span class="welcome-accent">{{ displayUserName }}</span>
         </h1>
-        <p class="welcome-sub">Everest Sushi &amp; Fusion AS · Torsdag 26. mars 2026</p>
+        <p class="welcome-sub">{{ restaurantDisplayName }} - {{ todayLabel }}</p>
       </div>
     </section>
 
     <main class="dashboard-main">
       <div class="dashboard-content">
-
-        <!-- Checklist modules -->
         <section>
-          <h2 class="section-heading">Dagens sjekklister</h2>
+          <h2 class="section-heading">Today's Checklists</h2>
           <div class="checklist-grid">
             <div class="checklist-placeholder">
               <div class="checklist-header">
@@ -25,7 +22,7 @@
                 <h3 class="checklist-title">IC-Food</h3>
               </div>
               <div class="checklist-body">
-                <p v-if="isLoadingFood" class="checklist-hint">Laster sjekklister...</p>
+                <p v-if="isLoadingFood" class="checklist-hint">Loading checklists...</p>
                 <p v-else-if="foodError" class="checklist-hint">{{ foodError }}</p>
                 <template v-else-if="dailyFoodChecklists.length">
                   <article
@@ -46,16 +43,17 @@
                     <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
                   </article>
                 </template>
-                <p v-else class="checklist-hint">Ingen daglige IC-Food sjekklister funnet.</p>
+                <p v-else class="checklist-hint">No daily IC-Food checklists found.</p>
               </div>
             </div>
+
             <div class="checklist-placeholder">
               <div class="checklist-header">
                 <span class="checklist-dot checklist-dot--alcohol"></span>
                 <h3 class="checklist-title">IC-Alcohol</h3>
               </div>
               <div class="checklist-body">
-                <p v-if="isLoadingAlcohol" class="checklist-hint">Laster sjekklister...</p>
+                <p v-if="isLoadingAlcohol" class="checklist-hint">Loading checklists...</p>
                 <p v-else-if="alcoholError" class="checklist-hint">{{ alcoholError }}</p>
                 <template v-else-if="dailyAlcoholChecklists.length">
                   <article
@@ -76,39 +74,37 @@
                     <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
                   </article>
                 </template>
-                <p v-else class="checklist-hint">Ingen daglige IC-Alcohol sjekklister funnet.</p>
+                <p v-else class="checklist-hint">No daily IC-Alcohol checklists found.</p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Shared overview -->
         <section>
           <h2 class="section-heading">Overview</h2>
           <div class="stat-grid">
             <div class="stat-card">
-              <span class="stat-label">Aktive avvik</span>
+              <span class="stat-label">Active Deviations</span>
               <span class="stat-value stat-value--danger">{{ activeDeviationCount }}</span>
               <span class="stat-hint">{{ activeDeviationHint }}</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Oppgaver i dag</span>
+              <span class="stat-label">Tasks Today</span>
               <span class="stat-value">{{ remainingTasksToday }}</span>
               <span class="stat-hint">{{ tasksTodayHint }}</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Siste kontroll</span>
-              <span class="stat-value stat-value--muted">—</span>
-              <span class="stat-hint">Ikke gjennomført</span>
+              <span class="stat-label">Last Check</span>
+              <span class="stat-value stat-value--muted">-</span>
+              <span class="stat-hint">Not completed</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Rapporter</span>
+              <span class="stat-label">Reports</span>
               <span class="stat-value stat-value--muted">0</span>
-              <span class="stat-hint">Ingen rapporter</span>
+              <span class="stat-hint">No reports</span>
             </div>
           </div>
         </section>
-
       </div>
     </main>
   </div>
@@ -120,20 +116,35 @@ import { useRouter } from 'vue-router'
 import { fetchChecklists } from '../api/checklists'
 import { isTemperatureDeviation, isTemperatureTask } from '../features/ic-checklists/temperature'
 import { useTemperatureLog } from '../features/ic-checklists/useTemperatureLog'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
+
 const foodChecklists = ref([])
 const alcoholChecklists = ref([])
 const isLoadingFood = ref(true)
 const isLoadingAlcohol = ref(true)
 const foodError = ref('')
 const alcoholError = ref('')
+
 const { latestByTaskId: foodTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_FOOD' })
 const { latestByTaskId: alcoholTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_ALCOHOL' })
 
 const dailyFoodChecklists = computed(() => foodChecklists.value.filter((card) => isDailyChecklist(card)))
 const dailyAlcoholChecklists = computed(() => alcoholChecklists.value.filter((card) => isDailyChecklist(card)))
 const dailyChecklists = computed(() => [...dailyFoodChecklists.value, ...dailyAlcoholChecklists.value])
+
+const displayUserName = computed(() => auth.user?.name?.trim() || auth.user?.email || 'User')
+const restaurantDisplayName = computed(() => auth.restaurantName?.trim() || 'Restaurant')
+const todayLabel = computed(() =>
+  new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date())
+)
 const remainingTasksToday = computed(() => countRemainingTasks(dailyChecklists.value))
 const totalTasksToday = computed(() => countAllTasks(dailyChecklists.value))
 const activeDeviationCount = computed(() =>
@@ -141,12 +152,12 @@ const activeDeviationCount = computed(() =>
   countTemperatureDeviations(dailyAlcoholChecklists.value, alcoholTemperatureLatestByTaskId.value)
 )
 const tasksTodayHint = computed(() => {
-  if (totalTasksToday.value === 0) return 'Ingen daglige oppgaver'
-  return `${remainingTasksToday.value} gjenstår av ${totalTasksToday.value}`
+  if (totalTasksToday.value === 0) return 'No daily tasks'
+  return `${remainingTasksToday.value} remaining out of ${totalTasksToday.value}`
 })
 const activeDeviationHint = computed(() => {
-  if (activeDeviationCount.value === 0) return 'Ingen temperaturavvik registrert'
-  return `${activeDeviationCount.value} temperaturavvik krever oppfølging`
+  if (activeDeviationCount.value === 0) return 'No temperature deviations recorded'
+  return `${activeDeviationCount.value} temperature deviations need follow-up`
 })
 
 function isDailyChecklist(card) {
@@ -205,7 +216,7 @@ onMounted(async () => {
     foodChecklists.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Failed to fetch IC-Food checklists', error)
-    foodError.value = 'Kunne ikke hente IC-Food sjekklister.'
+    foodError.value = 'Could not fetch IC-Food checklists.'
   } finally {
     isLoadingFood.value = false
   }
@@ -215,7 +226,7 @@ onMounted(async () => {
     alcoholChecklists.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Failed to fetch IC-Alcohol checklists', error)
-    alcoholError.value = 'Kunne ikke hente IC-Alcohol sjekklister.'
+    alcoholError.value = 'Could not fetch IC-Alcohol checklists.'
   } finally {
     isLoadingAlcohol.value = false
   }
@@ -228,7 +239,6 @@ onMounted(async () => {
   background: var(--color-bg-secondary);
 }
 
-/* ── Welcome banner ── */
 .welcome-banner {
   position: relative;
   overflow: hidden;
@@ -295,7 +305,6 @@ onMounted(async () => {
   color: var(--color-dark-border);
 }
 
-/* ── Main layout ── */
 .dashboard-main {
   padding: var(--space-12) var(--space-6);
 }
@@ -315,7 +324,6 @@ onMounted(async () => {
   color: var(--color-text-primary);
 }
 
-/* ── Checklist placeholders ── */
 .checklist-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -350,7 +358,7 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.checklist-dot--food    { background: var(--color-accent); }
+.checklist-dot--food { background: var(--color-accent); }
 .checklist-dot--alcohol { background: var(--color-dark-tertiary); }
 
 .checklist-title {
@@ -417,7 +425,6 @@ onMounted(async () => {
   color: var(--color-text-hint);
 }
 
-/* ── Stat cards ── */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -448,18 +455,18 @@ onMounted(async () => {
 }
 
 .stat-value--danger { color: var(--color-danger); }
-.stat-value--muted  { color: var(--color-text-hint); }
+.stat-value--muted { color: var(--color-text-hint); }
 
 .stat-hint {
   font-size: var(--font-size-xs);
   color: var(--color-text-hint);
 }
 
-/* ── Responsive ── */
 @media (max-width: 900px) {
   .checklist-grid {
     grid-template-columns: 1fr;
   }
+
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }

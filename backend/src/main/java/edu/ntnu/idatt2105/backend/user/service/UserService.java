@@ -16,9 +16,11 @@ import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
+import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import lombok.AllArgsConstructor;
@@ -31,6 +33,7 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
   private final UserMapper userMapper;
   private final JwtService jwtService;
+  private final OrganizationRepository organizationRepository;
 
 
   public AuthDto register(CreateUserRequest request) {
@@ -105,12 +108,15 @@ public class UserService {
     String name = (user.getFirstName() + " " + user.getLastName()).trim();
     UUID orgId = user.getOrganizationId();
     String restaurantStatus = orgId != null ? "active" : null;
+    String restaurantName = orgId == null
+        ? null
+        : organizationRepository.findById(orgId).map(OrganizationModel::getName).orElse(null);
 
     return new MeResponse(
         new MeResponse.UserInfo(user.getEmail(), name),
         restaurantStatus,
         orgId,
-        null
+        restaurantName
     );
   }
 }
