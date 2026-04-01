@@ -10,7 +10,6 @@
         <p class="welcome-sub">{{ restaurantDisplayName }} - {{ todayLabel }}</p>
       </div>
     </section>
-
     <main class="dashboard-main">
       <div class="dashboard-content">
         <section>
@@ -100,7 +99,9 @@
             </div>
             <div class="stat-card">
               <span class="stat-label">Reports</span>
+              <span class="stat-label">Reports</span>
               <span class="stat-value stat-value--muted">0</span>
+              <span class="stat-hint">No reports</span>
               <span class="stat-hint">No reports</span>
             </div>
           </div>

@@ -1,91 +1,81 @@
 <template>
-  <div class="auth-page">
-    <div class="auth-card">
-
-      <div class="brand">
-        <div class="brand-logo">
-          <span class="brand-icon">IK</span>
+  <AuthShell
+    tag="Login"
+    eyebrow="Welcome back"
+    title="Sign in to your workspace"
+    subtitle="Pick up where your team left off"
+    aside-title="Built for calm service shifts"
+    aside-body="Track routines, close gaps, and keep operations smooth without adding noise to your day."
+    :features="[
+      'Quick sign-in for daily checks',
+      'Clear status and fewer surprises',
+      'Shared accountability across your team'
+    ]"
+  >
+    <form class="auth-form" @submit.prevent="handleLogin">
+      <div class="field-group" :class="{ 'has-error': errors.email }">
+        <label class="field-label" for="email">Email</label>
+        <div class="field-wrapper">
+          <Mail class="field-icon" />
+          <input
+            id="email"
+            v-model="form.email"
+            type="email"
+            class="field-input"
+            placeholder="name@restaurant.com"
+            autocomplete="email"
+            @input="clearError('email')"
+          />
         </div>
-        <div class="brand-text">
-          <span class="brand-name">IKSystem</span>
-          <span class="brand-sub">Internkontrollsystem</span>
-        </div>
+        <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
       </div>
 
-      <div class="card-header">
-        <h1 class="card-title">Logg inn</h1>
-        <p class="card-subtitle">Skriv inn dine opplysninger for å fortsette</p>
+      <div class="field-group" :class="{ 'has-error': errors.password }">
+        <label class="field-label" for="password">Password</label>
+        <div class="field-wrapper">
+          <Lock class="field-icon" />
+          <input
+            id="password"
+            v-model="form.password"
+            :type="showPassword ? 'text' : 'password'"
+            class="field-input"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            @input="clearError('password')"
+          />
+          <button type="button" class="toggle-password" @click="showPassword = !showPassword" tabindex="-1">
+            <Eye v-if="!showPassword" />
+            <EyeOff v-else />
+          </button>
+        </div>
+        <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
       </div>
 
-      <form class="auth-form" @submit.prevent="handleLogin">
-        <div class="field-group" :class="{ 'has-error': errors.email }">
-          <label class="field-label" for="email">E-post</label>
-          <div class="field-wrapper">
-            <Mail class="field-icon" />
-            <input
-              id="email"
-              v-model="form.email"
-              type="email"
-              class="field-input"
-              placeholder="navn@restaurant.no"
-              autocomplete="email"
-              @input="clearError('email')"
-            />
-          </div>
-          <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
-        </div>
+      <div v-if="loginError" class="alert alert--error">
+        <AlertCircle />
+        {{ loginError }}
+      </div>
 
-        <div class="field-group" :class="{ 'has-error': errors.password }">
-          <div class="label-row">
-            <label class="field-label" for="password">Passord</label>
-          </div>
-          <div class="field-wrapper">
-            <Lock class="field-icon" />
-            <input
-              id="password"
-              v-model="form.password"
-              :type="showPassword ? 'text' : 'password'"
-              class="field-input"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              @input="clearError('password')"
-            />
-            <button type="button" class="toggle-password" @click="showPassword = !showPassword" tabindex="-1">
-              <Eye v-if="!showPassword" />
-              <EyeOff v-else />
-            </button>
-          </div>
-          <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
-        </div>
+      <button type="submit" class="btn-primary" :disabled="isLoading">
+        <span v-if="!isLoading">Log in</span>
+        <span v-else class="spinner"></span>
+      </button>
+    </form>
 
-        <div v-if="loginError" class="alert alert--error">
-          <AlertCircle />
-          {{ loginError }}
-        </div>
-
-        <button type="submit" class="btn-primary" :disabled="isLoading">
-          <span v-if="!isLoading">Logg inn</span>
-          <span v-else class="spinner"></span>
-        </button>
-      </form>
-
+    <template #footer>
       <div class="auth-footer">
-        <span class="auth-footer-text">Har du ikke konto?</span>
-        <RouterLink to="/register" class="auth-link">Registrer deg</RouterLink>
+        <span class="auth-footer-text">Don't have an account?</span>
+        <RouterLink to="/register" class="auth-link">Create one</RouterLink>
       </div>
-
-    </div>
-
-    <p class="page-footer">
-      IKSystem &copy; {{ new Date().getFullYear() }} &mdash; Internkontroll for næringsmiddelvirksomheter
-    </p>
-  </div>
+    </template>
+  </AuthShell>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { useAuthStore } from '@/stores/auth'
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-vue-next'
+import AuthShell from '@/components/layout/AuthShell.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 
@@ -102,8 +92,8 @@ function clearError(field) {
 
 function validate() {
   let valid = true
-  if (!form.email.trim()) { errors.email = 'E-post er påkrevd'; valid = false }
-  if (!form.password) { errors.password = 'Passord er påkrevd'; valid = false }
+  if (!form.email.trim()) { errors.email = 'Email is required'; valid = false }
+  if (!form.password) { errors.password = 'Password is required'; valid = false }
   return valid
 }
 
@@ -114,8 +104,7 @@ async function handleLogin() {
   try {
     await auth.login(form.email, form.password)
   } catch {
-    loginError.value = 'Feil e-post eller passord. Prøv igjen.'
-
+    loginError.value = 'Wrong email or password. Try again.'
   } finally {
     isLoading.value = false
   }
@@ -123,120 +112,20 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-/* ── Page shell ── */
-.auth-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(145deg, var(--color-dark-primary) 0%, var(--color-dark-secondary) 100%);
-  padding: var(--space-6);
-  gap: var(--space-6);
-}
-
-/* ── Card ── */
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--color-bg-primary);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.06);
-  padding: var(--space-10) var(--space-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-
-/* ── Brand ── */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.brand-logo {
-  width: 44px;
-  height: 44px;
-  background: var(--color-dark-primary);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.brand-icon {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-accent);
-  letter-spacing: 0.5px;
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.brand-name {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
-}
-
-.brand-sub {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  line-height: var(--line-height-tight);
-  letter-spacing: 0.3px;
-}
-
-/* ── Card header ── */
-.card-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.card-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
-  margin: 0;
-}
-
-.card-subtitle {
-  font-size: var(--font-size-md);
-  color: var(--color-text-muted);
-  margin: 0;
-}
-
-/* ── Form ── */
 .auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
 }
 
 .field-group {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-2);
-}
-
-.label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .field-label {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
+  color: #3f3d61;
 }
 
 .field-wrapper {
@@ -250,72 +139,70 @@ async function handleLogin() {
   left: var(--space-3);
   width: 16px;
   height: 16px;
-  color: var(--color-text-hint);
+  color: #8b89ad;
   pointer-events: none;
-  flex-shrink: 0;
 }
 
 .field-input {
   width: 100%;
-  height: 44px;
-  padding: 0 var(--space-10) 0 40px;
+  height: 46px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid #d8d7ea;
+  background: #fbfbff;
+  color: #1c1a36;
+  padding: 0 40px 0 40px;
   font-size: var(--font-size-md);
   font-family: var(--font-sans);
-  color: var(--color-text-primary);
-  background: var(--color-bg-secondary);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  outline: none;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
-  box-sizing: border-box;
 }
 
-.field-input::placeholder { color: var(--color-text-hint); }
+.field-input::placeholder {
+  color: #aaa7c7;
+}
 
 .field-input:focus {
-  border-color: var(--color-dark-secondary);
-  box-shadow: 0 0 0 3px rgba(45, 43, 85, 0.12);
-  background: var(--color-bg-primary);
+  outline: none;
+  border-color: #4b4a72;
+  box-shadow: 0 0 0 3px rgba(75, 74, 114, 0.16);
+  background: #ffffff;
 }
 
-.has-error .field-input { border-color: var(--color-danger); }
-.has-error .field-input:focus { box-shadow: 0 0 0 3px rgba(204, 51, 51, 0.12); }
+.has-error .field-input {
+  border-color: var(--color-danger);
+}
 
 .toggle-password {
   position: absolute;
   right: var(--space-3);
   width: 20px;
   height: 20px;
-  background: none;
   border: none;
-  padding: 0;
+  background: none;
+  color: #8b89ad;
   cursor: pointer;
-  color: var(--color-text-hint);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color var(--transition-fast);
 }
 
-.toggle-password:hover { color: var(--color-text-secondary); }
-.toggle-password svg { width: 16px; height: 16px; }
+.toggle-password svg {
+  width: 16px;
+  height: 16px;
+}
 
 .field-error {
   font-size: var(--font-size-xs);
   color: var(--color-danger);
 }
 
-/* ── Alerts ── */
 .alert {
   display: flex;
-  align-items: center;
   gap: var(--space-2);
+  align-items: center;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
 }
-
-.alert svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 .alert--error {
   background: var(--color-danger-bg);
@@ -323,79 +210,72 @@ async function handleLogin() {
   color: var(--color-danger-text);
 }
 
-.alert--error svg { color: var(--color-danger); }
+.alert svg {
+  width: 16px;
+  height: 16px;
+}
 
-/* ── Primary button ── */
 .btn-primary {
   height: 48px;
-  width: 100%;
-  background: var(--color-dark-primary);
-  color: var(--color-accent);
   border: none;
   border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-dark-primary), var(--color-dark-secondary));
+  color: var(--color-accent);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: var(--space-2);
+  transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
-.btn-primary:hover:not(:disabled) { background: var(--color-dark-secondary); }
-.btn-primary:active:not(:disabled) { transform: scale(0.99); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
 
-/* ── Spinner ── */
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .spinner {
   width: 18px;
   height: 18px;
+  border-radius: 50%;
   border: 2px solid rgba(212, 232, 53, 0.3);
   border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin 700ms linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-/* ── Footer link row ── */
 .auth-footer {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .auth-footer-text {
   font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  color: #6a688a;
 }
 
 .auth-link {
+  color: #2e2c59;
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-dark-secondary);
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
-  transition: color var(--transition-fast);
 }
 
-.auth-link:hover { color: var(--color-text-primary); }
-
-/* ── Page footer ── */
-.page-footer {
-  font-size: var(--font-size-xs);
-  color: rgba(255, 255, 255, 0.3);
-  text-align: center;
-  margin: 0;
-}
-
-/* ── Responsive ── */
-@media (max-width: 480px) {
-  .auth-card { padding: var(--space-8) var(--space-6); }
-  .card-title { font-size: var(--font-size-xl); }
+.auth-link:hover {
+  text-decoration: underline;
 }
 </style>

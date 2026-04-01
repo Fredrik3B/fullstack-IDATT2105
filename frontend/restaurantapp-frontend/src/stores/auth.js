@@ -44,6 +44,12 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const restaurantName = ref(null)
 
+  /**
+   * Join code for the restaurant. Only populated for active ADMIN/MANAGER users.
+   * Used on the admin requests page so the admin can share the code with staff.
+   */
+  const restaurantJoinCode = ref(null)
+
   // ── Computed ───────────────────────────────────────────────────────────────
 
   /** True when a valid access token exists in state. */
@@ -51,6 +57,20 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** True when the user is logged in AND connected to an active restaurant. */
   const hasActiveRestaurant = computed(() => restaurantStatus.value === 'active')
+
+  /** Roles extracted from the JWT payload (e.g. ["ROLE_ADMIN", "ROLE_STAFF"]). */
+  const userRoles = computed(() => {
+    if (!accessToken.value) return []
+    try {
+      return JSON.parse(atob(accessToken.value.split('.')[1])).roles ?? []
+    } catch {
+      return []
+    }
+  })
+
+  /** True when the user holds ADMIN or MANAGER role. */
+  const isAdminOrManager = computed(() =>
+    userRoles.value.some(r => r === 'ROLE_ADMIN' || r === 'ROLE_MANAGER'))
 
   /** Initials derived from the user's name (FL), falling back to email. */
   const userInitials = computed(() => {
@@ -73,10 +93,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** Reset all state to initial/logged-out values. */
   function _resetState() {
-    user.value             = null
-    restaurantStatus.value = null
-    restaurantId.value     = null
-    restaurantName.value   = null
+    user.value               = null
+    restaurantStatus.value   = null
+    restaurantId.value       = null
+    restaurantName.value     = null
+    restaurantJoinCode.value = null
+    _initPromise             = null   // allow initAuth() to re-run after next login
     _clearTokens()
   }
 
@@ -95,10 +117,11 @@ export const useAuthStore = defineStore('auth', () => {
     if (!accessToken.value) return
 
     _initPromise = api.get('/api/auth/me').then(({ data }) => {
-      user.value             = data.user
-      restaurantStatus.value = data.restaurantStatus
-      restaurantId.value     = data.restaurantId
-      restaurantName.value   = data.restaurantName ?? null
+      user.value               = data.user
+      restaurantStatus.value   = data.restaurantStatus
+      restaurantId.value       = data.restaurantId
+      restaurantName.value     = data.restaurantName ?? null
+      restaurantJoinCode.value = data.restaurantJoinCode ?? null
     }).catch(() => {
       _resetState()
       _initPromise = null  // allow retry after reset
@@ -207,13 +230,33 @@ export const useAuthStore = defineStore('auth', () => {
     // payload: { name, orgNumber, address, postalCode, city }
     const { data } = await api.post('/api/organizations', payload)
 
-    restaurantStatus.value = 'active'
-    restaurantId.value     = data.id
-    restaurantName.value   = payload.name
+    restaurantStatus.value   = 'active'
+    restaurantId.value       = data.id
+    restaurantName.value     = payload.name
+    restaurantJoinCode.value = data.joinCode ?? null
 
     await refreshAccessToken()
 
     return data // let the view display the joinCode returned by the backend
+  }
+
+  /**
+   * Fetch join requests for the current user's organization.
+   * @param {string|null} status - 'PENDING', 'ACCEPTED', 'DECLINED', or null for all
+   */
+  async function fetchJoinRequests(status = null) {
+    const params = status ? `?status=${status}` : ''
+    const { data } = await api.get(`/api/organizations/requests${params}`)
+    return data
+  }
+
+  /**
+   * Accept or decline a join request.
+   * @param {string} requestId - UUID of the JoinRequestModel
+   * @param {'ACCEPTED'|'DECLINED'} action
+   */
+  async function resolveJoinRequest(requestId, action) {
+    await api.post(`/api/organizations/requests/${requestId}`, { action })
   }
 
   /**
@@ -253,11 +296,14 @@ export const useAuthStore = defineStore('auth', () => {
     restaurantStatus,
     restaurantId,
     restaurantName,
+    restaurantJoinCode,
 
     // Computed
     isAuthenticated,
     hasActiveRestaurant,
     userInitials,
+    userRoles,
+    isAdminOrManager,
 
     // Actions
     initAuth,
@@ -268,6 +314,8 @@ export const useAuthStore = defineStore('auth', () => {
     joinRestaurant,
     withdrawJoinRequest,
     createRestaurant,
+    fetchJoinRequests,
+    resolveJoinRequest,
     logout,
   }
 })

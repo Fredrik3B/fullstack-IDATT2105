@@ -1,123 +1,157 @@
 <template>
-  <div class="onboarding-page">
+  <div class="create-page">
+    <div class="ambient" aria-hidden="true">
+      <span class="blob blob--a"></span>
+      <span class="blob blob--b"></span>
+    </div>
 
-    <!-- Top bar -->
-    <div class="topbar">
+    <header class="topbar">
       <div class="topbar-brand">
-        <div class="brand-logo"><span class="brand-icon">IK</span></div>
-        <span class="brand-name">IKSystem</span>
+        <div class="brand-logo"><span class="brand-icon">IC</span></div>
+        <div>
+          <span class="brand-name">ICSystem</span>
+          <p class="brand-sub">Restaurant setup</p>
+        </div>
       </div>
       <div class="topbar-user">
         <div class="user-avatar">{{ userInitials }}</div>
         <span class="user-name">{{ userEmail }}</span>
-        <button class="btn-logout" @click="handleLogout">Logg ut</button>
+        <button class="btn-logout" @click="handleLogout">Log out</button>
       </div>
-    </div>
+    </header>
 
-    <div class="onboarding-body">
+    <main class="create-body">
+      <section class="intro">
+        <p class="intro-tag">Organization setup</p>
+        <h1 class="intro-title">Create your restaurant workspace</h1>
+        <p class="intro-subtitle">You can invite staff right after setup using your generated join code.</p>
+      </section>
 
-      <!-- ── SUCCESS STATE ── -->
       <template v-if="submitted">
-        <div class="result-card">
-          <div class="result-icon result-icon--success">
-            <CheckCircle />
-          </div>
-          <h1 class="result-title">Restaurant opprettet!</h1>
+        <section class="result-card">
+          <div class="result-icon"><CheckCircle /></div>
+          <h2 class="result-title">Workspace created</h2>
           <p class="result-body">
-            <strong>{{ form.name }}</strong> er nå registrert i IKSystem.
-            Du er satt som administrator. Del restaurantkoden med dine ansatte så de kan be om tilgang.
+            <strong>{{ form.name }}</strong> is now active in ICSystem and your account is set as administrator.
           </p>
+
           <div class="join-code-display">
-            <span class="join-code-label">Restaurantkode</span>
-            <div class="join-code-value">
-              <span class="join-code-text">{{ joinCode }}</span>
-            </div>
-            <span class="join-code-hint">Del denne koden med ansatte så de kan be om tilgang</span>
+            <span class="join-code-label">Restaurant join code</span>
+            <div class="join-code-value">{{ joinCode }}</div>
+            <span class="join-code-hint">Share this code with team members so they can request access.</span>
           </div>
+
           <button class="btn-primary" @click="$router.push({ name: 'dashboard' })">
-            Gå til dashbord
+            Go to dashboard
             <ArrowRight />
           </button>
-        </div>
+        </section>
       </template>
 
-      <!-- ── FORM ── -->
       <template v-else>
-        <div class="form-card">
-          <div class="form-card-header">
-            <RouterLink to="/onboarding" class="back-btn">
+        <section class="form-card">
+          <div class="form-head">
+            <RouterLink to="/onboarding" class="back-link">
               <ChevronLeft />
-              Tilbake
+              Back to onboarding
             </RouterLink>
-            <div>
-              <h1 class="form-title">Opprett restaurant</h1>
-              <p class="form-subtitle">Fyll ut opplysningene om restauranten din</p>
+
+            <div class="stepper" role="list" aria-label="Create restaurant progress">
+              <span class="step active">Business details</span>
+              <span class="step">Address</span>
             </div>
           </div>
 
           <form class="restaurant-form" @submit.prevent="handleSubmit">
-
             <div class="form-section">
-              <span class="section-label">Generell informasjon</span>
+              <span class="section-label">Business details</span>
 
               <div class="field-group" :class="{ 'has-error': errors.name }">
-                <label class="field-label" for="restName">Restaurantnavn</label>
+                <label class="field-label" for="restName">Restaurant name</label>
                 <div class="field-wrapper">
                   <Store class="field-icon" />
-                  <input id="restName" v-model="form.name" type="text" class="field-input"
-                    placeholder="Everest Sushi & Fusion AS" autocomplete="organization"
-                    @input="clearError('name')" />
+                  <input
+                    id="restName"
+                    v-model="form.name"
+                    type="text"
+                    class="field-input"
+                    placeholder="Everest Sushi and Fusion AS"
+                    autocomplete="organization"
+                    @input="clearError('name')"
+                  />
                 </div>
                 <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
               </div>
 
               <div class="field-group" :class="{ 'has-error': errors.orgNumber }">
                 <label class="field-label" for="orgNumber">
-                  Organisasjonsnummer
-                  <span class="label-hint">9 siffer</span>
+                  Organization number
+                  <span class="label-hint">9 digits</span>
                 </label>
                 <div class="field-wrapper">
                   <FileText class="field-icon" />
-                  <input id="orgNumber" v-model="form.orgNumber" type="text" class="field-input"
-                    placeholder="123 456 789" maxlength="11" inputmode="numeric"
-                    @input="handleOrgInput" />
+                  <input
+                    id="orgNumber"
+                    v-model="form.orgNumber"
+                    type="text"
+                    class="field-input"
+                    placeholder="123 456 789"
+                    maxlength="11"
+                    inputmode="numeric"
+                    @input="handleOrgInput"
+                  />
                 </div>
                 <span v-if="errors.orgNumber" class="field-error">{{ errors.orgNumber }}</span>
               </div>
             </div>
 
             <div class="form-section">
-              <span class="section-label">Adresse</span>
+              <span class="section-label">Address</span>
 
               <div class="field-group" :class="{ 'has-error': errors.address }">
-                <label class="field-label" for="address">Gateadresse</label>
+                <label class="field-label" for="address">Street address</label>
                 <div class="field-wrapper">
                   <MapPin class="field-icon" />
-                  <input id="address" v-model="form.address" type="text" class="field-input"
-                    placeholder="Storgata 1" autocomplete="street-address"
-                    @input="clearError('address')" />
+                  <input
+                    id="address"
+                    v-model="form.address"
+                    type="text"
+                    class="field-input"
+                    placeholder="Storgata 1"
+                    autocomplete="street-address"
+                    @input="clearError('address')"
+                  />
                 </div>
                 <span v-if="errors.address" class="field-error">{{ errors.address }}</span>
               </div>
 
               <div class="field-row">
                 <div class="field-group field-group--narrow" :class="{ 'has-error': errors.postalCode }">
-                  <label class="field-label" for="postalCode">Postnummer</label>
-                  <div class="field-wrapper">
-                    <input id="postalCode" v-model="form.postalCode" type="text" class="field-input field-input--no-icon"
-                      placeholder="0150" maxlength="4" inputmode="numeric"
-                      @input="handlePostalInput" />
-                  </div>
+                  <label class="field-label" for="postalCode">Postal code</label>
+                  <input
+                    id="postalCode"
+                    v-model="form.postalCode"
+                    type="text"
+                    class="field-input field-input--plain"
+                    placeholder="0150"
+                    maxlength="4"
+                    inputmode="numeric"
+                    @input="handlePostalInput"
+                  />
                   <span v-if="errors.postalCode" class="field-error">{{ errors.postalCode }}</span>
                 </div>
 
                 <div class="field-group field-group--grow" :class="{ 'has-error': errors.city }">
-                  <label class="field-label" for="city">Sted</label>
-                  <div class="field-wrapper">
-                    <input id="city" v-model="form.city" type="text" class="field-input field-input--no-icon"
-                      placeholder="Oslo" autocomplete="address-level2"
-                      @input="clearError('city')" />
-                  </div>
+                  <label class="field-label" for="city">City</label>
+                  <input
+                    id="city"
+                    v-model="form.city"
+                    type="text"
+                    class="field-input field-input--plain"
+                    placeholder="Oslo"
+                    autocomplete="address-level2"
+                    @input="clearError('city')"
+                  />
                   <span v-if="errors.city" class="field-error">{{ errors.city }}</span>
                 </div>
               </div>
@@ -129,31 +163,25 @@
             </div>
 
             <button type="submit" class="btn-primary" :disabled="isLoading">
-              <span v-if="!isLoading">Opprett restaurant</span>
+              <span v-if="!isLoading">Create restaurant</span>
               <span v-else class="spinner"></span>
             </button>
-
           </form>
-        </div>
+        </section>
       </template>
-
-    </div>
-
-    <p class="page-footer">
-      IKSystem &copy; {{ new Date().getFullYear() }} &mdash; Internkontroll for næringsmiddelvirksomheter
-    </p>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { computed, reactive, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { CheckCircle, ArrowRight, ChevronLeft, Store, FileText, MapPin, AlertCircle } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 
-// ── User info from store ──
-const userEmail    = computed(() => auth.user?.email ?? '')
+const userEmail = computed(() => auth.user?.email ?? '')
 const userInitials = computed(() => auth.userInitials)
 
 const form = reactive({
@@ -172,18 +200,18 @@ const errors = reactive({
   city: ''
 })
 
-const isLoading  = ref(false)
+const isLoading = ref(false)
 const submitError = ref('')
-const submitted  = ref(false)
-const joinCode   = ref('')   // populated from backend response on success
+const submitted = ref(false)
+const joinCode = ref('')
 
-function clearError(field) { errors[field] = '' }
+function clearError(field) {
+  errors[field] = ''
+}
 
 function handleOrgInput(e) {
   const digits = e.target.value.replace(/\D/g, '').slice(0, 9)
-  form.orgNumber = digits.replace(/(\d{3})(\d{1,3})?(\d{1,3})?/, (_, a, b, c) =>
-    [a, b, c].filter(Boolean).join(' ')
-  )
+  form.orgNumber = digits.replace(/(\d{3})(\d{1,3})?(\d{1,3})?/, (_, a, b, c) => [a, b, c].filter(Boolean).join(' '))
   clearError('orgNumber')
 }
 
@@ -194,19 +222,23 @@ function handlePostalInput(e) {
 
 function validate() {
   let valid = true
-  if (!form.name.trim()) { errors.name = 'Restaurantnavn er påkrevd'; valid = false }
+  if (!form.name.trim()) { errors.name = 'Restaurant name is required'; valid = false }
+
   const orgDigits = form.orgNumber.replace(/\s/g, '')
-  if (!orgDigits) { errors.orgNumber = 'Organisasjonsnummer er påkrevd'; valid = false }
-  else if (orgDigits.length !== 9) { errors.orgNumber = 'Organisasjonsnummer må ha 9 siffer'; valid = false }
-  if (!form.address.trim()) { errors.address = 'Gateadresse er påkrevd'; valid = false }
-  if (!form.postalCode) { errors.postalCode = 'Postnummer er påkrevd'; valid = false }
-  else if (form.postalCode.length !== 4) { errors.postalCode = 'Ugyldig postnummer'; valid = false }
-  if (!form.city.trim()) { errors.city = 'Sted er påkrevd'; valid = false }
+  if (!orgDigits) { errors.orgNumber = 'Organization number is required'; valid = false }
+  else if (orgDigits.length !== 9) { errors.orgNumber = 'Organization number must be 9 digits'; valid = false }
+
+  if (!form.address.trim()) { errors.address = 'Street address is required'; valid = false }
+  if (!form.postalCode) { errors.postalCode = 'Postal code is required'; valid = false }
+  else if (form.postalCode.length !== 4) { errors.postalCode = 'Invalid postal code'; valid = false }
+  if (!form.city.trim()) { errors.city = 'City is required'; valid = false }
+
   return valid
 }
 
 async function handleSubmit() {
   if (!validate()) return
+
   isLoading.value = true
   submitError.value = ''
   try {
@@ -214,7 +246,7 @@ async function handleSubmit() {
     joinCode.value = result.joinCode
     submitted.value = true
   } catch {
-    submitError.value = 'Noe gikk galt. Prøv igjen.'
+    submitError.value = 'Something went wrong. Please try again.'
   } finally {
     isLoading.value = false
   }
@@ -226,212 +258,308 @@ function handleLogout() {
 </script>
 
 <style scoped>
-/* ── Page ── */
-.onboarding-page {
+.create-page {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(145deg, var(--color-dark-primary) 0%, var(--color-dark-secondary) 100%);
+  position: relative;
+  background: linear-gradient(145deg, #17162f 0%, #24224b 52%, #2e2b59 100%);
+  overflow: hidden;
 }
 
-/* ── Topbar ── */
+.ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(4px);
+}
+
+.blob--a {
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(212, 232, 53, 0.25), rgba(212, 232, 53, 0));
+  top: -120px;
+  right: -90px;
+}
+
+.blob--b {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0));
+  bottom: -120px;
+  left: -70px;
+}
+
 .topbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.topbar-brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: var(--space-3);
 }
 
-.topbar-brand { display: flex; align-items: center; gap: var(--space-3); }
-
 .brand-logo {
-  width: 36px; height: 36px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .brand-icon {
+  color: var(--color-accent);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  color: var(--color-accent);
-  letter-spacing: 0.5px;
 }
 
 .brand-name {
-  font-size: var(--font-size-md);
+  color: #fff;
   font-weight: var(--font-weight-bold);
-  color: rgba(255, 255, 255, 0.9);
 }
 
-.topbar-user { display: flex; align-items: center; gap: var(--space-3); }
+.brand-sub {
+  margin: 1px 0 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
 
 .user-avatar {
-  width: 32px; height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: var(--color-dark-tertiary);
-  border: 1.5px solid rgba(255,255,255,0.15);
-  display: flex; align-items: center; justify-content: center;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--color-accent);
-}
-
-.user-name { font-size: var(--font-size-sm); color: rgba(255, 255, 255, 0.7); }
-
-.btn-logout {
-  font-size: var(--font-size-xs);
-  color: rgba(255, 255, 255, 0.4);
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-3);
-  cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-  font-family: var(--font-sans);
-}
-
-.btn-logout:hover { color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.25); }
-
-/* ── Body ── */
-.onboarding-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-12) var(--space-6);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
 }
 
-/* ── Form card ── */
-.form-card {
-  width: 100%;
-  max-width: 520px;
-  background: var(--color-bg-primary);
+.user-name {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: var(--font-size-sm);
+}
+
+.btn-logout {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.btn-logout:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.create-body {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-6) var(--space-12);
+}
+
+.intro {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.intro-tag {
+  margin: 0;
+  color: var(--color-accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+}
+
+.intro-title {
+  margin: var(--space-2) 0 var(--space-2);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 4.2vw, 2.4rem);
+  line-height: 1.13;
+}
+
+.intro-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.form-card,
+.result-card {
+  background: rgba(255, 255, 255, 0.97);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-10) var(--space-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+  padding: var(--space-8);
+  box-shadow: 0 22px 36px rgba(0, 0, 0, 0.24);
 }
 
-.form-card-header {
+.form-head {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.back-link {
+  color: #5f5d86;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.back-link:hover {
+  color: #3f3d61;
+}
+
+.stepper {
+  display: inline-flex;
+  gap: var(--space-2);
+  padding: 5px;
+  border-radius: 999px;
+  background: #f0eff8;
+}
+
+.step {
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #8a87ac;
+  font-size: 12px;
+}
+
+.step.active {
+  background: #e7f188;
+  color: #36411a;
+  font-weight: var(--font-weight-bold);
+}
+
+.restaurant-form {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.form-section {
+  display: grid;
   gap: var(--space-4);
 }
 
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  text-decoration: none;
-  transition: color var(--transition-fast);
-  align-self: flex-start;
-}
-
-.back-btn:hover { color: var(--color-text-secondary); }
-.back-btn svg { width: 14px; height: 14px; }
-
-.form-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
-  margin: 0 0 var(--space-1);
-}
-
-.form-subtitle { font-size: var(--font-size-md); color: var(--color-text-muted); margin: 0; }
-
-/* ── Form sections ── */
-.restaurant-form { display: flex; flex-direction: column; gap: var(--space-8); }
-
-.form-section { display: flex; flex-direction: column; gap: var(--space-4); }
-
 .section-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-muted);
+  color: #7a789b;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.09em;
+  font-weight: var(--font-weight-bold);
+}
+
+.field-group {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .field-row {
-  display: flex;
+  display: grid;
   gap: var(--space-3);
-  align-items: flex-start;
+  grid-template-columns: 150px 1fr;
 }
 
-.field-group { display: flex; flex-direction: column; gap: var(--space-2); }
-.field-group--narrow { width: 110px; flex-shrink: 0; }
-.field-group--grow { flex: 1; }
-
 .field-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  color: #3f3d61;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
 }
 
 .label-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-hint);
-  font-weight: var(--font-weight-normal);
+  color: #9391b3;
+  font-size: 11px;
 }
 
-.field-wrapper { position: relative; display: flex; align-items: center; }
+.field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 
 .field-icon {
-  position: absolute; left: var(--space-3);
-  width: 16px; height: 16px;
-  color: var(--color-text-hint);
+  position: absolute;
+  left: var(--space-3);
+  width: 16px;
+  height: 16px;
+  color: #8b89ad;
   pointer-events: none;
 }
 
 .field-input {
-  width: 100%; height: 44px;
-  padding: 0 var(--space-4) 0 40px;
-  font-size: var(--font-size-md); font-family: var(--font-sans);
-  color: var(--color-text-primary);
-  background: var(--color-bg-secondary);
-  border: 1.5px solid var(--color-border);
+  width: 100%;
+  height: 46px;
   border-radius: var(--radius-md);
-  outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
-  box-sizing: border-box;
+  border: 1.5px solid #d8d7ea;
+  background: #fbfbff;
+  color: #1c1a36;
+  padding: 0 14px 0 40px;
+  font-size: var(--font-size-md);
+  font-family: var(--font-sans);
 }
 
-.field-input--no-icon { padding-left: var(--space-4); }
-
-.field-input::placeholder { color: var(--color-text-hint); }
+.field-input--plain {
+  padding-left: 14px;
+}
 
 .field-input:focus {
-  border-color: var(--color-dark-secondary);
-  box-shadow: 0 0 0 3px rgba(45, 43, 85, 0.12);
-  background: var(--color-bg-primary);
+  outline: none;
+  border-color: #4b4a72;
+  box-shadow: 0 0 0 3px rgba(75, 74, 114, 0.16);
 }
 
-.has-error .field-input { border-color: var(--color-danger); }
-.has-error .field-input:focus { box-shadow: 0 0 0 3px rgba(204, 51, 51, 0.12); }
+.has-error .field-input {
+  border-color: var(--color-danger);
+}
 
-.field-error { font-size: var(--font-size-xs); color: var(--color-danger); }
+.field-error {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
 
-/* ── Alert ── */
 .alert {
-  display: flex; align-items: center; gap: var(--space-2);
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
 }
-
-.alert svg { width: 16px; height: 16px; flex-shrink: 0; }
 
 .alert--error {
   background: var(--color-danger-bg);
@@ -439,135 +567,130 @@ function handleLogout() {
   color: var(--color-danger-text);
 }
 
-.alert--error svg { color: var(--color-danger); }
-
-/* ── Primary button ── */
 .btn-primary {
-  height: 48px; width: 100%;
-  background: var(--color-dark-primary);
+  height: 48px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-dark-primary), var(--color-dark-secondary));
   color: var(--color-accent);
-  border: none; border-radius: var(--radius-md);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-  display: flex; align-items: center; justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: var(--space-2);
+  transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
-.btn-primary svg { width: 16px; height: 16px; }
-.btn-primary:hover:not(:disabled) { background: var(--color-dark-secondary); }
-.btn-primary:active:not(:disabled) { transform: scale(0.99); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
 
-/* ── Spinner ── */
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .spinner {
-  width: 18px; height: 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   border: 2px solid rgba(212, 232, 53, 0.3);
   border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin 700ms linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-/* ── Result card ── */
 .result-card {
-  width: 100%;
-  max-width: 480px;
-  background: var(--color-bg-primary);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-10) var(--space-8);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-5);
   text-align: center;
+  display: grid;
+  gap: var(--space-4);
 }
 
 .result-icon {
-  width: 64px; height: 64px;
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-}
-
-.result-icon svg { width: 32px; height: 32px; }
-
-.result-icon--success {
-  background: var(--color-success-bg);
-  border: 1.5px solid var(--color-success-border);
-  color: var(--color-success-text);
+  background: #edf8c9;
+  border: 1px solid #cddd73;
+  color: #4d7223;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
 }
 
 .result-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
   margin: 0;
+  color: #1f1d3a;
+  font-size: var(--font-size-xl);
 }
 
 .result-body {
-  font-size: var(--font-size-md);
-  color: var(--color-text-muted);
-  line-height: var(--line-height-normal);
   margin: 0;
+  color: #626084;
 }
 
 .join-code-display {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
   padding: var(--space-5);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  border: 1px solid #e4e2f2;
+  background: #f9f9fe;
+  display: grid;
+  gap: var(--space-2);
 }
 
 .join-code-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  color: #7e7ba0;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--color-text-muted);
+  letter-spacing: 0.08em;
 }
 
 .join-code-value {
-  padding: var(--space-2) var(--space-6);
-  background: var(--color-dark-primary);
-  border-radius: var(--radius-md);
-}
-
-.join-code-text {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  width: fit-content;
+  margin: 0 auto;
+  background: #1b1a35;
   color: var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: 8px 20px;
   letter-spacing: 1px;
+  font-weight: var(--font-weight-bold);
 }
 
 .join-code-hint {
+  color: #767399;
   font-size: var(--font-size-xs);
-  color: var(--color-text-hint);
 }
 
-/* ── Page footer ── */
-.page-footer {
-  font-size: var(--font-size-xs);
-  color: rgba(255, 255, 255, 0.2);
-  text-align: center;
-  padding: var(--space-6);
-  margin: 0;
-}
+@media (max-width: 760px) {
+  .topbar {
+    padding: var(--space-3) var(--space-4);
+  }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .topbar { padding: var(--space-3) var(--space-4); }
-  .user-name { display: none; }
-  .form-card { padding: var(--space-8) var(--space-5); }
-  .field-row { flex-direction: column; }
-  .field-group--narrow { width: 100%; }
+  .user-name {
+    display: none;
+  }
+
+  .create-body {
+    padding: var(--space-8) var(--space-4) var(--space-10);
+  }
+
+  .form-card,
+  .result-card {
+    padding: var(--space-6);
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
