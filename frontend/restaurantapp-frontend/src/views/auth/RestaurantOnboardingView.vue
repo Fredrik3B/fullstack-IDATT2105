@@ -1,33 +1,48 @@
 <template>
   <div class="onboarding-page">
+    <div class="ambient" aria-hidden="true">
+      <span class="blob blob--a"></span>
+      <span class="blob blob--b"></span>
+    </div>
 
-    <!-- Top bar — minimal, shows logged-in user -->
-    <div class="topbar">
+    <header class="topbar">
       <div class="topbar-brand">
-        <div class="brand-logo"><span class="brand-icon">IK</span></div>
-        <span class="brand-name">IKSystem</span>
+        <div class="brand-logo"><span class="brand-icon">IC</span></div>
+        <div>
+          <span class="brand-name">ICSystem</span>
+          <p class="brand-sub">Team onboarding</p>
+        </div>
       </div>
       <div class="topbar-user">
         <div class="user-avatar">{{ userInitials }}</div>
         <span class="user-name">{{ userEmail }}</span>
         <button class="btn-logout" @click="handleLogout">Log out</button>
       </div>
-    </div>
+    </header>
 
-    <div class="onboarding-body">
+    <main class="onboarding-body">
+      <section class="onboarding-intro">
+        <p class="intro-tag">Step {{ currentStep }} of 2</p>
+        <h1 class="intro-title">Connect your account to a restaurant</h1>
+        <p class="intro-subtitle">Once connected, you can access checklists, reports, and team workflows.</p>
 
-      <!-- ── PENDING STATE ── -->
+        <div class="stepper" role="list" aria-label="Onboarding progress">
+          <span class="step" :class="{ active: currentStep >= 1 }">Choose path</span>
+          <span class="step" :class="{ active: currentStep >= 2 }">Send request</span>
+        </div>
+      </section>
+
       <template v-if="view === 'pending'">
-        <div class="onboarding-card">
+        <div class="onboarding-card card--pending">
           <div class="pending-icon">
             <Clock />
           </div>
-          <h1 class="onboarding-title">Waiting for approval</h1>
-          <p class="onboarding-subtitle">
-            Your request to <strong>{{ pendingRestaurantName }}</strong> has been sent.
-            An administrator will approve or reject the request.
+          <h2 class="card-title">Request sent</h2>
+          <p class="card-subtitle">
+            Your request to <strong>{{ pendingRestaurantName }}</strong> is pending review.
             You will be notified at <strong>{{ userEmail }}</strong>.
           </p>
+
           <div class="pending-meta">
             <div class="meta-row">
               <Store />
@@ -38,56 +53,40 @@
               Sent {{ pendingSentDate }}
             </div>
           </div>
-          <div class="pending-actions">
-            <button class="btn-ghost btn-ghost--danger" @click="withdrawRequest">
-              Withdraw request
-            </button>
-          </div>
+
+          <button class="btn-secondary" @click="withdrawRequest">Withdraw request</button>
         </div>
+
         <p class="help-text">
-          Wrong restaurant? You can
-          <button class="inline-link" @click="view = 'choose'">choose another one</button>
+          Need a different restaurant?
+          <button class="inline-link" @click="view = 'choose'">Choose another</button>
           or
           <RouterLink to="/onboarding/create" class="inline-link">create a new restaurant</RouterLink>.
         </p>
       </template>
 
-      <!-- ── CHOOSE STATE ── -->
       <template v-else-if="view === 'choose'">
-        <div class="choose-header">
-          <h1 class="onboarding-title">Connect to a restaurant</h1>
-          <p class="onboarding-subtitle">
-            To use IKSystem, your account must be linked to a restaurant.
-            You can join an existing one or create a new one.
-          </p>
-        </div>
-
         <div class="option-grid">
           <button class="option-card" @click="view = 'join'">
-            <div class="option-icon option-icon--join">
-              <LogIn />
-            </div>
+            <div class="option-icon option-icon--join"><LogIn /></div>
             <div class="option-text">
-              <span class="option-title">Join a restaurant</span>
-              <span class="option-desc">Enter the restaurant code you received from your manager</span>
+              <span class="option-title">Join existing restaurant</span>
+              <span class="option-desc">Use the invitation code from your manager</span>
             </div>
             <ChevronRight class="option-arrow" />
           </button>
 
           <button class="option-card" @click="$router.push({ name: 'create-restaurant' })">
-            <div class="option-icon option-icon--create">
-              <Plus />
-            </div>
+            <div class="option-icon option-icon--create"><Plus /></div>
             <div class="option-text">
-              <span class="option-title">Create a new restaurant</span>
-              <span class="option-desc">Register a new restaurant and become administrator</span>
+              <span class="option-title">Create new restaurant</span>
+              <span class="option-desc">Set up a workspace and become the administrator</span>
             </div>
             <ChevronRight class="option-arrow" />
           </button>
         </div>
       </template>
 
-      <!-- ── JOIN STATE ── -->
       <template v-else-if="view === 'join'">
         <div class="onboarding-card">
           <button class="back-btn" @click="view = 'choose'">
@@ -95,10 +94,8 @@
             Back
           </button>
 
-          <h1 class="onboarding-title">Join a restaurant</h1>
-          <p class="onboarding-subtitle">
-            Enter the code you received from your manager. Format: <strong>XXX-0000</strong>.
-          </p>
+          <h2 class="card-title">Enter invitation code</h2>
+          <p class="card-subtitle">Use the format <strong>XXX-0000</strong>.</p>
 
           <div class="join-form">
             <div class="field-group" :class="{ 'has-error': joinError }">
@@ -125,38 +122,35 @@
           </div>
         </div>
       </template>
-
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const toast = useToast()
 
-// ── User info from store ──
-const userEmail    = computed(() => auth.user?.email ?? '')
+const userEmail = computed(() => auth.user?.email ?? '')
 const userInitials = computed(() => auth.userInitials)
 
-// ── View state: 'choose' | 'join' | 'pending' ──
-// Start in pending if the user already has a pending request
 const view = ref(auth.restaurantStatus === 'pending' ? 'pending' : 'choose')
+const joinCode = ref('')
+const joinError = ref('')
+const isLoading = ref(false)
 
-// ── Join flow ──
-const joinCode   = ref('')
-const joinError  = ref('')
-const isLoading  = ref(false)
+const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'your selected restaurant' : '')
+const pendingSentDate = ref('')
 
-// ── Pending state ──
-// If the user arrives already pending, we don't know the restaurant name yet —
-// the backend should return it via GET /api/auth/me. For now show a fallback.
-const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'the restaurant' : '')
-const pendingSentDate       = ref('')
+const currentStep = computed(() => {
+  if (view.value === 'pending' || view.value === 'join') return 2
+  return 1
+})
 
 async function sendJoinRequest() {
   isLoading.value = true
@@ -182,6 +176,7 @@ async function withdrawRequest() {
     toast.error('Could not withdraw the request. Please try again.')
     return
   }
+
   pendingRestaurantName.value = ''
   pendingSentDate.value = ''
   joinCode.value = ''
@@ -194,21 +189,49 @@ function handleLogout() {
 </script>
 
 <style scoped>
-/* ── Page ── */
 .onboarding-page {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(145deg, var(--color-dark-primary) 0%, var(--color-dark-secondary) 100%);
+  position: relative;
+  background: linear-gradient(145deg, #17162f 0%, #24224b 52%, #2e2b59 100%);
+  overflow: hidden;
 }
 
-/* ── Topbar ── */
+.ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(4px);
+}
+
+.blob--a {
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(212, 232, 53, 0.28), rgba(212, 232, 53, 0));
+  top: -120px;
+  right: -80px;
+}
+
+.blob--b {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+  bottom: -120px;
+  left: -80px;
+}
+
 .topbar {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: var(--space-4) var(--space-8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .topbar-brand {
@@ -220,24 +243,28 @@ function handleLogout() {
 .brand-logo {
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-md);
-  display: flex;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .brand-icon {
+  color: var(--color-accent);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  color: var(--color-accent);
-  letter-spacing: 0.5px;
 }
 
 .brand-name {
-  font-size: var(--font-size-md);
+  color: #fff;
   font-weight: var(--font-weight-bold);
-  color: rgba(255, 255, 255, 0.9);
+}
+
+.brand-sub {
+  margin: 1px 0 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
 }
 
 .topbar-user {
@@ -247,397 +274,360 @@ function handleLogout() {
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: var(--color-dark-tertiary);
-  border: 1.5px solid rgba(255,255,255,0.15);
-  display: flex;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-accent);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-xs);
+  font-size: 11px;
   font-weight: var(--font-weight-bold);
-  color: var(--color-accent);
 }
 
 .user-name {
+  color: rgba(255, 255, 255, 0.76);
   font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.7);
 }
 
 .btn-logout {
-  font-size: var(--font-size-xs);
-  color: rgba(255, 255, 255, 0.4);
-  background: none;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
   border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-3);
+  padding: 4px 10px;
+  font-size: 11px;
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-  font-family: var(--font-sans);
 }
 
 .btn-logout:hover {
-  color: rgba(255, 255, 255, 0.7);
-  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.38);
 }
 
-/* ── Body ── */
 .onboarding-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-12) var(--space-6);
-  gap: var(--space-6);
+  position: relative;
+  z-index: 1;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-6) var(--space-12);
 }
 
-/* ── Choose header ── */
-.choose-header {
+.onboarding-intro {
   text-align: center;
-  max-width: 480px;
+  margin-bottom: var(--space-8);
 }
 
-.onboarding-title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: #ffffff;
-  margin: 0 0 var(--space-3);
-  line-height: var(--line-height-tight);
-}
-
-.onboarding-subtitle {
-  font-size: var(--font-size-md);
-  color: rgba(255, 255, 255, 0.55);
+.intro-tag {
   margin: 0;
-  line-height: var(--line-height-normal);
+  color: var(--color-accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
 }
 
-/* ── Option grid ── */
+.intro-title {
+  margin: var(--space-2) 0 var(--space-2);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 4.2vw, 2.4rem);
+  line-height: 1.13;
+}
+
+.intro-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.stepper {
+  margin: var(--space-5) auto 0;
+  display: inline-flex;
+  gap: var(--space-2);
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.step {
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.57);
+  font-size: 12px;
+}
+
+.step.active {
+  background: rgba(212, 232, 53, 0.16);
+  color: #edf9a0;
+}
+
 .option-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--space-4);
-  width: 100%;
-  max-width: 480px;
 }
 
 .option-card {
+  width: 100%;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-5) var(--space-6);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
   cursor: pointer;
-  text-align: left;
-  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
-  font-family: var(--font-sans);
+  color: #fff;
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .option-card:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
 }
-
-.option-card:active { transform: translateY(0); }
 
 .option-icon {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-lg);
-  display: flex;
+  border-radius: 14px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.option-icon svg { width: 24px; height: 24px; }
-
 .option-icon--join {
-  background: rgba(212, 232, 53, 0.12);
+  background: rgba(212, 232, 53, 0.2);
   color: var(--color-accent);
 }
 
 .option-icon--create {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .option-text {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  gap: 2px;
   flex: 1;
 }
 
 .option-title {
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-  color: #ffffff;
-  line-height: var(--line-height-tight);
 }
 
 .option-desc {
   font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.5);
-  line-height: var(--line-height-normal);
+  color: rgba(255, 255, 255, 0.66);
 }
 
 .option-arrow {
   width: 16px;
   height: 16px;
-  color: rgba(255, 255, 255, 0.3);
-  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
 }
 
-/* ── Onboarding card (join + pending) ── */
 .onboarding-card {
-  width: 100%;
-  max-width: 480px;
-  background: var(--color-bg-primary);
+  background: rgba(255, 255, 255, 0.97);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-10) var(--space-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
-
-/* pending card overrides */
-.onboarding-card .onboarding-title { color: var(--color-text-primary); }
-.onboarding-card .onboarding-subtitle { color: var(--color-text-muted); }
-
-/* ── Back button ── */
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: color var(--transition-fast);
-  font-family: var(--font-sans);
-  align-self: flex-start;
-}
-
-.back-btn:hover { color: var(--color-text-secondary); }
-.back-btn svg { width: 14px; height: 14px; }
-
-/* ── Join form ── */
-.join-form {
-  display: flex;
-  flex-direction: column;
+  padding: var(--space-8);
+  box-shadow: 0 22px 36px rgba(0, 0, 0, 0.24);
+  display: grid;
   gap: var(--space-5);
 }
 
-.field-group { display: flex; flex-direction: column; gap: var(--space-2); }
-
-.field-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-secondary);
+.card-title {
+  margin: 0;
+  color: #1b1a35;
+  font-size: clamp(1.25rem, 2.8vw, 1.65rem);
 }
 
-.field-wrapper { position: relative; display: flex; align-items: center; }
+.card-subtitle {
+  margin: 0;
+  color: #686685;
+}
+
+.back-btn {
+  width: fit-content;
+  border: none;
+  background: none;
+  color: #64628b;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  padding: 0;
+}
+
+.pending-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #fff4d4;
+  border: 1px solid #f1d991;
+  color: #b78618;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pending-meta {
+  background: #f8f8fe;
+  border: 1px solid #e6e5f4;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meta-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: #4e4c71;
+  font-size: var(--font-size-sm);
+}
+
+.join-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.field-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field-label {
+  color: #3e3b63;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 
 .field-icon {
-  position: absolute; left: var(--space-3);
-  width: 16px; height: 16px;
-  color: var(--color-text-hint);
-  pointer-events: none;
+  position: absolute;
+  left: var(--space-3);
+  width: 16px;
+  height: 16px;
+  color: #8b89ad;
 }
 
 .field-input {
-  width: 100%; height: 44px;
-  padding: 0 40px 0 40px;
-  font-size: var(--font-size-md); font-family: var(--font-sans);
-  color: var(--color-text-primary);
-  background: var(--color-bg-secondary);
-  border: 1.5px solid var(--color-border);
+  width: 100%;
+  height: 46px;
   border-radius: var(--radius-md);
+  border: 1.5px solid #d8d7ea;
+  background: #fbfbff;
+  color: #1c1a36;
+  padding: 0 14px 0 40px;
+  font-size: var(--font-size-md);
+  font-family: var(--font-sans);
+}
+
+.field-input:focus {
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
-  box-sizing: border-box;
+  border-color: #4b4a72;
+  box-shadow: 0 0 0 3px rgba(75, 74, 114, 0.16);
 }
 
 .field-input--code {
   letter-spacing: 3px;
-  font-weight: var(--font-weight-medium);
   text-transform: uppercase;
+  font-weight: var(--font-weight-medium);
 }
 
-.field-input::placeholder { color: var(--color-text-hint); letter-spacing: normal; }
-
-.field-input:focus {
-  border-color: var(--color-dark-secondary);
-  box-shadow: 0 0 0 3px rgba(45, 43, 85, 0.12);
-  background: var(--color-bg-primary);
+.has-error .field-input {
+  border-color: var(--color-danger);
 }
 
-.has-error .field-input { border-color: var(--color-danger); }
-
-.code-badge {
-  position: absolute; right: var(--space-3);
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-
-.code-badge svg { width: 10px; height: 10px; }
-
-.code-badge--valid {
-  background: var(--color-success-bg);
-  border: 1px solid var(--color-success-border);
-  color: var(--color-success-text);
-}
-
-.code-badge--invalid {
-  background: var(--color-danger-bg);
-  border: 1px solid var(--color-danger-border);
-  color: var(--color-danger-text);
-}
-
-.field-hint--valid {
+.field-error {
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-success-text);
+  color: var(--color-danger);
 }
 
-.field-error { font-size: var(--font-size-xs); color: var(--color-danger); }
-
-/* ── Pending state ── */
-.pending-icon {
-  width: 64px; height: 64px;
-  background: var(--color-warning-bg);
-  border: 1.5px solid var(--color-warning-border);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--color-warning);
-  align-self: center;
-}
-
-.pending-icon svg { width: 32px; height: 32px; }
-
-.pending-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  background: var(--color-bg-secondary);
+.btn-primary,
+.btn-secondary {
+  height: 46px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-}
-
-.meta-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-}
-
-.meta-row svg {
-  width: 14px; height: 14px;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.pending-actions {
-  display: flex;
-  justify-content: center;
-}
-
-.btn-ghost {
-  background: none;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-5);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  border: none;
   font-family: var(--font-sans);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  color: var(--color-text-secondary);
-}
-
-.btn-ghost--danger { border-color: var(--color-danger-border); color: var(--color-danger-text); }
-.btn-ghost--danger:hover { background: var(--color-danger-bg); }
-
-/* ── Primary button ── */
-.btn-primary {
-  height: 48px; width: 100%;
-  background: var(--color-dark-primary);
-  color: var(--color-accent);
-  border: none; border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
-  font-family: var(--font-sans);
   cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
-  display: flex; align-items: center; justify-content: center;
 }
 
-.btn-primary:hover:not(:disabled) { background: var(--color-dark-secondary); }
-.btn-primary:active:not(:disabled) { transform: scale(0.99); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-dark-primary), var(--color-dark-secondary));
+  color: var(--color-accent);
+}
+
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #fff0f0;
+  border: 1px solid #f3cece;
+  color: #863131;
+}
 
 .spinner {
-  width: 18px; height: 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   border: 2px solid rgba(212, 232, 53, 0.3);
   border-top-color: var(--color-accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin 700ms linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-/* ── Help text below card ── */
 .help-text {
-  font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.4);
+  margin: var(--space-4) 0 0;
   text-align: center;
-  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .inline-link {
-  background: none;
+  color: rgba(255, 255, 255, 0.95);
   border: none;
-  padding: 0;
-  font: inherit;
-  color: rgba(255, 255, 255, 0.65);
+  background: none;
+  cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
-  cursor: pointer;
-  transition: color var(--transition-fast);
+  padding: 0;
+  font: inherit;
 }
 
-.inline-link:hover { color: rgba(255, 255, 255, 0.9); }
+@media (max-width: 720px) {
+  .topbar {
+    padding: var(--space-3) var(--space-4);
+  }
 
-/* ── Page footer ── */
-.page-footer {
-  font-size: var(--font-size-xs);
-  color: rgba(255, 255, 255, 0.2);
-  text-align: center;
-  padding: var(--space-6);
-  margin: 0;
-}
+  .user-name {
+    display: none;
+  }
 
-/* ── Responsive ── */
-@media (max-width: 600px) {
-  .topbar { padding: var(--space-3) var(--space-4); }
-  .user-name { display: none; }
-  .onboarding-card { padding: var(--space-8) var(--space-5); }
-  .option-card { padding: var(--space-4); }
-  .option-icon { width: 40px; height: 40px; }
-  .option-icon svg { width: 20px; height: 20px; }
+  .onboarding-body {
+    padding: var(--space-8) var(--space-4) var(--space-10);
+  }
+
+  .onboarding-card {
+    padding: var(--space-6);
+  }
 }
 </style>
