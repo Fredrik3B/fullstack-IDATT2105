@@ -4,48 +4,48 @@
 
       <div class="brand">
         <div class="brand-logo">
-          <span class="brand-icon">IK</span>
+          <span class="brand-icon">IC</span>
         </div>
         <div class="brand-text">
-          <span class="brand-name">IKSystem</span>
-          <span class="brand-sub">Internkontrollsystem</span>
+          <span class="brand-name">ICSystem</span>
+          <span class="brand-sub">Internal controll system</span>
         </div>
       </div>
 
       <div class="card-header">
-        <h1 class="card-title">Opprett konto</h1>
-        <p class="card-subtitle">Fyll ut skjemaet for å opprette din brukerkonto</p>
+        <h1 class="card-title">Create account</h1>
+        <p class="card-subtitle">Fill out the form to create your account</p>
       </div>
 
       <form class="auth-form" @submit.prevent="handleSubmit">
 
         <div class="field-group" :class="{ 'has-error': errors.name }">
-          <label class="field-label" for="name">Fullt navn</label>
+          <label class="field-label" for="name">Full name</label>
           <div class="field-wrapper">
             <User class="field-icon" />
             <input id="name" v-model="form.name" type="text" class="field-input"
-              placeholder="Kari Nordmann" autocomplete="name" @input="clearError('name')" />
+              placeholder="Jane Doe" autocomplete="name" @input="clearError('name')" />
           </div>
           <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
         </div>
 
         <div class="field-group" :class="{ 'has-error': errors.email }">
-          <label class="field-label" for="email">E-post</label>
+          <label class="field-label" for="email">Email</label>
           <div class="field-wrapper">
             <Mail class="field-icon" />
             <input id="email" v-model="form.email" type="email" class="field-input"
-              placeholder="navn@restaurant.no" autocomplete="email" @input="clearError('email')" />
+              placeholder="name@restaurant.com" autocomplete="email" @input="clearError('email')" />
           </div>
           <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
         </div>
 
         <div class="field-group" :class="{ 'has-error': errors.password }">
-          <label class="field-label" for="password">Passord</label>
+          <label class="field-label" for="password">Password</label>
           <div class="field-wrapper">
             <Lock class="field-icon" />
             <input id="password" v-model="form.password"
               :type="showPassword ? 'text' : 'password'" class="field-input"
-              placeholder="Minst 8 tegn" autocomplete="new-password" @input="clearError('password')" />
+              placeholder="At least 8 characters" autocomplete="new-password" @input="clearError('password')" />
             <button type="button" class="toggle-password" @click="showPassword = !showPassword" tabindex="-1">
               <Eye v-if="!showPassword" />
               <EyeOff v-else />
@@ -61,12 +61,12 @@
         </div>
 
         <div class="field-group" :class="{ 'has-error': errors.confirmPassword }">
-          <label class="field-label" for="confirmPassword">Bekreft passord</label>
+          <label class="field-label" for="confirmPassword">Confirm password</label>
           <div class="field-wrapper">
             <Lock class="field-icon" />
             <input id="confirmPassword" v-model="form.confirmPassword"
               :type="showConfirmPassword ? 'text' : 'password'" class="field-input"
-              placeholder="Gjenta passordet" autocomplete="new-password" @input="clearError('confirmPassword')" />
+              placeholder="Repeat password" autocomplete="new-password" @input="clearError('confirmPassword')" />
             <button type="button" class="toggle-password" @click="showConfirmPassword = !showConfirmPassword" tabindex="-1">
               <Eye v-if="!showConfirmPassword" />
               <EyeOff v-else />
@@ -81,22 +81,18 @@
         </div>
 
         <button type="submit" class="btn-primary" :disabled="isLoading">
-          <span v-if="!isLoading">Opprett konto</span>
+          <span v-if="!isLoading">Create account</span>
           <span v-else class="spinner"></span>
         </button>
 
       </form>
 
       <div class="auth-footer">
-        <span class="auth-footer-text">Har du allerede konto?</span>
-        <RouterLink to="/login" class="auth-link">Logg inn</RouterLink>
+        <span class="auth-footer-text">Already have an account?</span>
+        <RouterLink to="/login" class="auth-link">Log in</RouterLink>
       </div>
 
     </div>
-
-    <p class="page-footer">
-      IKSystem &copy; {{ new Date().getFullYear() }} &mdash; Internkontroll for næringsmiddelvirksomheter
-    </p>
   </div>
 </template>
 
@@ -123,22 +119,22 @@ const passwordStrength = computed(() => {
   if (/[A-Z]/.test(p)) score++
   if (/[0-9]/.test(p)) score++
   if (/[^A-Za-z0-9]/.test(p)) score++
-  if (score <= 1) return { level: 'weak',   width: '25%',  label: 'Svakt' }
-  if (score <= 2) return { level: 'fair',   width: '50%',  label: 'Greit' }
-  if (score <= 3) return { level: 'good',   width: '75%',  label: 'Bra' }
-  return              { level: 'strong', width: '100%', label: 'Sterkt' }
+  if (score <= 1) return { level: 'weak',   width: '25%',  label: 'Weak' }
+  if (score <= 2) return { level: 'fair',   width: '50%',  label: 'Fair' }
+  if (score <= 3) return { level: 'good',   width: '75%',  label: 'Good' }
+  return              { level: 'strong', width: '100%', label: 'Strong' }
 })
 
 function clearError(field) { errors[field] = '' }
 
 function validate() {
   let valid = true
-  if (!form.name.trim()) { errors.name = 'Fullt navn er påkrevd'; valid = false }
-  if (!form.email.trim()) { errors.email = 'E-post er påkrevd'; valid = false }
-  if (!form.password) { errors.password = 'Passord er påkrevd'; valid = false }
-  else if (form.password.length < 8) { errors.password = 'Passordet må være minst 8 tegn'; valid = false }
-  if (!form.confirmPassword) { errors.confirmPassword = 'Bekreft passordet'; valid = false }
-  else if (form.password !== form.confirmPassword) { errors.confirmPassword = 'Passordene stemmer ikke overens'; valid = false }
+  if (!form.name.trim()) { errors.name = 'Full name is required'; valid = false }
+  if (!form.email.trim()) { errors.email = 'Email is required'; valid = false }
+  if (!form.password) { errors.password = 'Password is required'; valid = false }
+  else if (form.password.length < 8) { errors.password = 'Password must be at least 8 characters'; valid = false }
+  if (!form.confirmPassword) { errors.confirmPassword = 'Please confirm your password'; valid = false }
+  else if (form.password !== form.confirmPassword) { errors.confirmPassword = 'Passwords do not match'; valid = false }
   return valid
 }
 
@@ -150,7 +146,7 @@ async function handleSubmit() {
     await auth.register(form.name, form.email, form.password)
     // auth.register() handles the redirect to /onboarding
   } catch {
-    submitError.value = 'Noe gikk galt. Prøv igjen.'
+    submitError.value = 'Something went wrong. Please try again.'
   } finally {
     isLoading.value = false
   }

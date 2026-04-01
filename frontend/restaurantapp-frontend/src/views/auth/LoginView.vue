@@ -4,22 +4,22 @@
 
       <div class="brand">
         <div class="brand-logo">
-          <span class="brand-icon">IK</span>
+          <span class="brand-icon">IC</span>
         </div>
         <div class="brand-text">
-          <span class="brand-name">IKSystem</span>
-          <span class="brand-sub">Internkontrollsystem</span>
+          <span class="brand-name">ICSystem</span>
+          <span class="brand-sub">Internal-control system</span>
         </div>
       </div>
 
       <div class="card-header">
-        <h1 class="card-title">Logg inn</h1>
-        <p class="card-subtitle">Skriv inn dine opplysninger for å fortsette</p>
+        <h1 class="card-title">Log in</h1>
+        <p class="card-subtitle">Fill in your information to continue:</p>
       </div>
 
       <form class="auth-form" @submit.prevent="handleLogin">
         <div class="field-group" :class="{ 'has-error': errors.email }">
-          <label class="field-label" for="email">E-post</label>
+          <label class="field-label" for="email">Email</label>
           <div class="field-wrapper">
             <Mail class="field-icon" />
             <input
@@ -27,7 +27,7 @@
               v-model="form.email"
               type="email"
               class="field-input"
-              placeholder="navn@restaurant.no"
+              placeholder="name@restaurant.com"
               autocomplete="email"
               @input="clearError('email')"
             />
@@ -37,7 +37,7 @@
 
         <div class="field-group" :class="{ 'has-error': errors.password }">
           <div class="label-row">
-            <label class="field-label" for="password">Passord</label>
+            <label class="field-label" for="password">Password</label>
           </div>
           <div class="field-wrapper">
             <Lock class="field-icon" />
@@ -64,21 +64,18 @@
         </div>
 
         <button type="submit" class="btn-primary" :disabled="isLoading">
-          <span v-if="!isLoading">Logg inn</span>
+          <span v-if="!isLoading">Log in</span>
           <span v-else class="spinner"></span>
         </button>
       </form>
 
       <div class="auth-footer">
-        <span class="auth-footer-text">Har du ikke konto?</span>
-        <RouterLink to="/register" class="auth-link">Registrer deg</RouterLink>
+        <span class="auth-footer-text">Dont have an account?</span>
+        <RouterLink to="/register" class="auth-link">Register new user</RouterLink>
       </div>
 
     </div>
 
-    <p class="page-footer">
-      IKSystem &copy; {{ new Date().getFullYear() }} &mdash; Internkontroll for næringsmiddelvirksomheter
-    </p>
   </div>
 </template>
 
@@ -102,8 +99,8 @@ function clearError(field) {
 
 function validate() {
   let valid = true
-  if (!form.email.trim()) { errors.email = 'E-post er påkrevd'; valid = false }
-  if (!form.password) { errors.password = 'Passord er påkrevd'; valid = false }
+  if (!form.email.trim()) { errors.email = 'E-mail required'; valid = false }
+  if (!form.password) { errors.password = 'Password required'; valid = false }
   return valid
 }
 
@@ -114,7 +111,7 @@ async function handleLogin() {
   try {
     await auth.login(form.email, form.password)
   } catch {
-    loginError.value = 'Feil e-post eller passord. Prøv igjen.'
+    loginError.value = 'Wrong E-mail or password. Try again.'
 
   } finally {
     isLoading.value = false

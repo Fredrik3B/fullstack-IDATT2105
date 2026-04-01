@@ -4,11 +4,11 @@
     <section class="welcome-banner">
       <div class="welcome-glow"></div>
       <div class="welcome-inner">
-        <span class="welcome-tag">Internkontrollsystem</span>
+        <span class="welcome-tag">Internnalcontrolsystem</span>
         <h1 class="welcome-heading">
-          God dag, <span class="welcome-accent">Kari</span>
+          God dag, <span class="welcome-accent">"Change to name of user"</span>
         </h1>
-        <p class="welcome-sub">Everest Sushi &amp; Fusion AS · Torsdag 26. mars 2026</p>
+        <p class="welcome-sub">CHange to neme of resturant and the current date</p>
       </div>
     </section>
 
@@ -17,7 +17,7 @@
 
         <!-- Checklist modules -->
         <section>
-          <h2 class="section-heading">Dagens sjekklister</h2>
+          <h2 class="section-heading">Todays checklists</h2>
           <div class="checklist-grid">
             <div class="checklist-placeholder">
               <div class="checklist-header">
@@ -41,24 +41,24 @@
           <h2 class="section-heading">Overview</h2>
           <div class="stat-grid">
             <div class="stat-card">
-              <span class="stat-label">Aktive avvik</span>
+              <span class="stat-label">Active deviations</span>
               <span class="stat-value stat-value--danger">0</span>
-              <span class="stat-hint">Ingen avvik registrert</span>
+              <span class="stat-hint">No deviations</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Oppgaver i dag</span>
+              <span class="stat-label">Tasks today</span>
               <span class="stat-value">0</span>
-              <span class="stat-hint">Ingen oppgaver</span>
+              <span class="stat-hint">No tasks</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Siste kontroll</span>
+              <span class="stat-label">Last control</span>
               <span class="stat-value stat-value--muted">—</span>
-              <span class="stat-hint">Ikke gjennomført</span>
+              <span class="stat-hint">Not completed</span>
             </div>
             <div class="stat-card">
-              <span class="stat-label">Rapporter</span>
+              <span class="stat-label">Reports</span>
               <span class="stat-value stat-value--muted">0</span>
-              <span class="stat-hint">Ingen rapporter</span>
+              <span class="stat-hint">No reports</span>
             </div>
           </div>
         </section>

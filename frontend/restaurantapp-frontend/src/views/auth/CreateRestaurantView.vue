@@ -4,13 +4,13 @@
     <!-- Top bar -->
     <div class="topbar">
       <div class="topbar-brand">
-        <div class="brand-logo"><span class="brand-icon">IK</span></div>
-        <span class="brand-name">IKSystem</span>
+        <div class="brand-logo"><span class="brand-icon">IC</span></div>
+        <span class="brand-name">ICSystem</span>
       </div>
       <div class="topbar-user">
         <div class="user-avatar">{{ userInitials }}</div>
         <span class="user-name">{{ userEmail }}</span>
-        <button class="btn-logout" @click="handleLogout">Logg ut</button>
+        <button class="btn-logout" @click="handleLogout">Log out</button>
       </div>
     </div>
 
@@ -22,20 +22,20 @@
           <div class="result-icon result-icon--success">
             <CheckCircle />
           </div>
-          <h1 class="result-title">Restaurant opprettet!</h1>
+          <h1 class="result-title">Resturant created!</h1>
           <p class="result-body">
-            <strong>{{ form.name }}</strong> er nå registrert i IKSystem.
-            Du er satt som administrator. Del restaurantkoden med dine ansatte så de kan be om tilgang.
+            <strong>{{ form.name }}</strong> is now registered in ICSystem.
+            You are set as administrator. Share the resturant code with your employees so they can request access.
           </p>
           <div class="join-code-display">
-            <span class="join-code-label">Restaurantkode</span>
+            <span class="join-code-label">Resturant code:</span>
             <div class="join-code-value">
               <span class="join-code-text">{{ joinCode }}</span>
             </div>
-            <span class="join-code-hint">Del denne koden med ansatte så de kan be om tilgang</span>
+            <span class="join-code-hint">Share this code so employees can request access</span>
           </div>
           <button class="btn-primary" @click="$router.push({ name: 'dashboard' })">
-            Gå til dashbord
+            Go to dashboard
             <ArrowRight />
           </button>
         </div>
@@ -47,21 +47,21 @@
           <div class="form-card-header">
             <RouterLink to="/onboarding" class="back-btn">
               <ChevronLeft />
-              Tilbake
+              Return
             </RouterLink>
             <div>
-              <h1 class="form-title">Opprett restaurant</h1>
-              <p class="form-subtitle">Fyll ut opplysningene om restauranten din</p>
+              <h1 class="form-title">Create resturant</h1>
+              <p class="form-subtitle">Fill the information about your resturant</p>
             </div>
           </div>
 
           <form class="restaurant-form" @submit.prevent="handleSubmit">
 
             <div class="form-section">
-              <span class="section-label">Generell informasjon</span>
+              <span class="section-label">Genreral information</span>
 
               <div class="field-group" :class="{ 'has-error': errors.name }">
-                <label class="field-label" for="restName">Restaurantnavn</label>
+                <label class="field-label" for="restName">Resturantname</label>
                 <div class="field-wrapper">
                   <Store class="field-icon" />
                   <input id="restName" v-model="form.name" type="text" class="field-input"
@@ -73,8 +73,8 @@
 
               <div class="field-group" :class="{ 'has-error': errors.orgNumber }">
                 <label class="field-label" for="orgNumber">
-                  Organisasjonsnummer
-                  <span class="label-hint">9 siffer</span>
+                  Organization number
+                  <span class="label-hint">9 digits</span>
                 </label>
                 <div class="field-wrapper">
                   <FileText class="field-icon" />
@@ -87,10 +87,10 @@
             </div>
 
             <div class="form-section">
-              <span class="section-label">Adresse</span>
+              <span class="section-label">Address</span>
 
               <div class="field-group" :class="{ 'has-error': errors.address }">
-                <label class="field-label" for="address">Gateadresse</label>
+                <label class="field-label" for="address">Street address </label>
                 <div class="field-wrapper">
                   <MapPin class="field-icon" />
                   <input id="address" v-model="form.address" type="text" class="field-input"
@@ -102,7 +102,7 @@
 
               <div class="field-row">
                 <div class="field-group field-group--narrow" :class="{ 'has-error': errors.postalCode }">
-                  <label class="field-label" for="postalCode">Postnummer</label>
+                  <label class="field-label" for="postalCode">Postal code</label>
                   <div class="field-wrapper">
                     <input id="postalCode" v-model="form.postalCode" type="text" class="field-input field-input--no-icon"
                       placeholder="0150" maxlength="4" inputmode="numeric"
@@ -112,7 +112,7 @@
                 </div>
 
                 <div class="field-group field-group--grow" :class="{ 'has-error': errors.city }">
-                  <label class="field-label" for="city">Sted</label>
+                  <label class="field-label" for="city">City</label>
                   <div class="field-wrapper">
                     <input id="city" v-model="form.city" type="text" class="field-input field-input--no-icon"
                       placeholder="Oslo" autocomplete="address-level2"
@@ -129,7 +129,7 @@
             </div>
 
             <button type="submit" class="btn-primary" :disabled="isLoading">
-              <span v-if="!isLoading">Opprett restaurant</span>
+              <span v-if="!isLoading">Create resturant</span>
               <span v-else class="spinner"></span>
             </button>
 
@@ -138,10 +138,6 @@
       </template>
 
     </div>
-
-    <p class="page-footer">
-      IKSystem &copy; {{ new Date().getFullYear() }} &mdash; Internkontroll for næringsmiddelvirksomheter
-    </p>
   </div>
 </template>
 
@@ -194,14 +190,14 @@ function handlePostalInput(e) {
 
 function validate() {
   let valid = true
-  if (!form.name.trim()) { errors.name = 'Restaurantnavn er påkrevd'; valid = false }
+  if (!form.name.trim()) { errors.name = 'Restaurant name is required'; valid = false }
   const orgDigits = form.orgNumber.replace(/\s/g, '')
-  if (!orgDigits) { errors.orgNumber = 'Organisasjonsnummer er påkrevd'; valid = false }
-  else if (orgDigits.length !== 9) { errors.orgNumber = 'Organisasjonsnummer må ha 9 siffer'; valid = false }
-  if (!form.address.trim()) { errors.address = 'Gateadresse er påkrevd'; valid = false }
-  if (!form.postalCode) { errors.postalCode = 'Postnummer er påkrevd'; valid = false }
-  else if (form.postalCode.length !== 4) { errors.postalCode = 'Ugyldig postnummer'; valid = false }
-  if (!form.city.trim()) { errors.city = 'Sted er påkrevd'; valid = false }
+  if (!orgDigits) { errors.orgNumber = 'Organization number is required'; valid = false }
+  else if (orgDigits.length !== 9) { errors.orgNumber = 'Organization number must be 9 digits'; valid = false }
+  if (!form.address.trim()) { errors.address = 'Street address is required'; valid = false }
+  if (!form.postalCode) { errors.postalCode = 'Postal code is required'; valid = false }
+  else if (form.postalCode.length !== 4) { errors.postalCode = 'Invalid postal code'; valid = false }
+  if (!form.city.trim()) { errors.city = 'City is required'; valid = false }
   return valid
 }
 
@@ -214,7 +210,7 @@ async function handleSubmit() {
     joinCode.value = result.joinCode
     submitted.value = true
   } catch {
-    submitError.value = 'Noe gikk galt. Prøv igjen.'
+    submitError.value = 'Something went wrong. Please try again.'
   } finally {
     isLoading.value = false
   }
