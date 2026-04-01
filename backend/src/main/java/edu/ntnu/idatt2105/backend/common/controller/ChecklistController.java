@@ -5,6 +5,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.security.core.Authentication;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
@@ -25,13 +26,15 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskFlagRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.UpdateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.service.ChecklistService;
-import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
-
-
+@Tag(name = "Checklists", description = "Create, fetch, update, and manage checklists")
 @RestController
+@PreAuthorize("isAuthenticated()")
 @RequestMapping("/checklists")
 public class ChecklistController {
 
@@ -45,11 +48,13 @@ public class ChecklistController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Create a checklist")
+	@ApiResponse(responseCode = "201", description = "Checklist created")
 	public ChecklistCardResponse createChecklist(
 		@Valid @RequestBody CreateChecklistCardRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		int sectionCount = request.sections() != null ? request.sections().size() : 0;
 		int taskCount = request.sections() == null ? 0 : request.sections().stream()
 			.mapToInt(s -> s.items() != null ? s.items().size() : 0)
@@ -71,11 +76,13 @@ public class ChecklistController {
 	}
 
 	@GetMapping
+	@Operation(summary = "Fetch checklists by module")
+	@ApiResponse(responseCode = "200", description = "Checklists returned")
 	public List<ChecklistCardResponse> getChecklists(
 		@RequestParam IcModule module,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		LOGGER.info(
 			"IC fetch checklists: orgId={} userId={} module={}",
 			principal.getOrganizationId(),
@@ -88,12 +95,14 @@ public class ChecklistController {
 	}
 
 	@PutMapping("/{checklistId}")
+	@Operation(summary = "Update a checklist")
+	@ApiResponse(responseCode = "200", description = "Checklist updated")
 	public ChecklistCardResponse updateChecklist(
 		@PathVariable Long checklistId,
 		@Valid @RequestBody UpdateChecklistCardRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		int sectionCount = request.sections() != null ? request.sections().size() : 0;
 		int taskCount = request.sections() == null ? 0 : request.sections().stream()
 			.mapToInt(s -> s.items() != null ? s.items().size() : 0)
@@ -114,13 +123,15 @@ public class ChecklistController {
 	}
 
 	@PutMapping("/{checklistId}/tasks/{taskId}/completion")
+	@Operation(summary = "Set checklist task completion state")
+	@ApiResponse(responseCode = "200", description = "Task completion updated")
 	public ChecklistTaskItemResponse setTaskCompletion(
 		@PathVariable Long checklistId,
 		@PathVariable Long taskId,
 		@Valid @RequestBody TaskCompletionRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		LOGGER.info(
 			"IC set completion: orgId={} userId={} checklistId={} taskId={} state={} periodKey={} completedAt={}",
 			principal.getOrganizationId(),
@@ -135,13 +146,15 @@ public class ChecklistController {
 	}
 
 	@PutMapping("/{checklistId}/tasks/{taskId}/flag")
+	@Operation(summary = "Set checklist task flag state")
+	@ApiResponse(responseCode = "200", description = "Task flag updated")
 	public ChecklistTaskItemResponse setTaskFlag(
 		@PathVariable Long checklistId,
 		@PathVariable Long taskId,
 		@Valid @RequestBody TaskFlagRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		LOGGER.info(
 			"IC set flag: orgId={} userId={} checklistId={} taskId={} state={} periodKey={} flaggedAt={}",
 			principal.getOrganizationId(),
@@ -157,8 +170,10 @@ public class ChecklistController {
 
 	@DeleteMapping("/{checklistId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@Operation(summary = "Delete a checklist")
+	@ApiResponse(responseCode = "204", description = "Checklist deleted")
 	public void deleteChecklist(@PathVariable Long checklistId, Authentication auth) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		LOGGER.info(
 			"IC delete checklist: orgId={} userId={} checklistId={}",
 			principal.getOrganizationId(),

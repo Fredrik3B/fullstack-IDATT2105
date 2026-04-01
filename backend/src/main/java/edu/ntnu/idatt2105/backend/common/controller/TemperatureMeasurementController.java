@@ -4,14 +4,17 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateTemperatureMeasur
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.common.service.TemperatureMeasurementService;
-import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +24,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(
+	name = "Temperature Measurements",
+	description = "Create and fetch temperature measurements"
+)
 @RestController
+@PreAuthorize("isAuthenticated()")
 @RequestMapping("/temperature-measurements")
 public class TemperatureMeasurementController {
 
@@ -35,11 +43,13 @@ public class TemperatureMeasurementController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Create a temperature measurement")
+	@ApiResponse(responseCode = "201", description = "Temperature measurement created")
 	public TemperatureMeasurementResponse createMeasurement(
 		@Valid @RequestBody CreateTemperatureMeasurementRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		LOGGER.info(
 			"IC create temperature measurement: orgId={} userId={} module={} checklistId={} taskId={} valueC={} measuredAt={} periodKey={}",
 			principal.getOrganizationId(),
@@ -57,13 +67,15 @@ public class TemperatureMeasurementController {
 	}
 
 	@GetMapping
+	@Operation(summary = "Fetch temperature measurements")
+	@ApiResponse(responseCode = "200", description = "Temperature measurements returned")
 	public List<TemperatureMeasurementResponse> fetchMeasurements(
 		@RequestParam IcModule module,
 		@RequestParam(required = false) Instant from,
 		@RequestParam(required = false) Instant to,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
 		LOGGER.info(
 			"IC fetch temperature measurements: orgId={} userId={} module={} from={} to={}",
 			principal.getOrganizationId(),
