@@ -184,7 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
     const { data } = await api.post('/api/organizations/join', { joinCode })
 
     restaurantStatus.value = 'pending'
-    restaurantId.value     = data.restaurantId
+    restaurantId.value     = data.id
     restaurantName.value   = name ?? null
   }
 

@@ -54,6 +54,14 @@ public class OrganizationService {
     return organizationMapper.toResponse(org);
   }
 
+  public void withdrawJoinRequest(UUID userId) {
+    List<JoinRequestModel> pending = joinRequestRepository.findAllByUserIdAndStatus(userId, JoinOrgStatus.PENDING);
+    if (pending.isEmpty()) {
+      throw new ResourceNotFoundException("No pending join request found");
+    }
+    joinRequestRepository.deleteAll(pending);
+  }
+
   public OrganizationResponse lookupByCode(String code) {
     OrganizationModel org = organizationRepository.findByJoinCode(code)
         .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
@@ -72,9 +80,8 @@ public class OrganizationService {
       throw new RuntimeException("User already belongs to an organization");
     }
 
-    if (joinRequestRepository.existsByUserIdAndOrganizationIdAndStatus(
-        userId, org.getId(), JoinOrgStatus.PENDING)) {
-      throw new RuntimeException("You already have a pending request for this organization");
+    if (joinRequestRepository.existsByUserIdAndStatus(userId, JoinOrgStatus.PENDING)) {
+      throw new RuntimeException("You already have a pending join request");
     }
 
     JoinRequestModel joinRequest = new JoinRequestModel();
