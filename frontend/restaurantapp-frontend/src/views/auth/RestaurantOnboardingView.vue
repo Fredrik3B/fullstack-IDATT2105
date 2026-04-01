@@ -10,7 +10,7 @@
       <div class="topbar-user">
         <div class="user-avatar">{{ userInitials }}</div>
         <span class="user-name">{{ userEmail }}</span>
-        <button class="btn-logout" @click="handleLogout">Logg ut</button>
+        <button class="btn-logout" @click="handleLogout">Log out</button>
       </div>
     </div>
 
@@ -22,11 +22,11 @@
           <div class="pending-icon">
             <Clock />
           </div>
-          <h1 class="onboarding-title">Venter på godkjenning</h1>
+          <h1 class="onboarding-title">Waiting for approval</h1>
           <p class="onboarding-subtitle">
-            Din forespørsel til <strong>{{ pendingRestaurantName }}</strong> er sendt.
-            En administrator vil godkjenne eller avslå forespørselen.
-            Du vil bli varslet på <strong>{{ userEmail }}</strong>.
+            Your request to <strong>{{ pendingRestaurantName }}</strong> has been sent.
+            An administrator will approve or reject the request.
+            You will be notified at <strong>{{ userEmail }}</strong>.
           </p>
           <div class="pending-meta">
             <div class="meta-row">
@@ -35,30 +35,30 @@
             </div>
             <div class="meta-row">
               <Info />
-              Sendt {{ pendingSentDate }}
+              Sent {{ pendingSentDate }}
             </div>
           </div>
           <div class="pending-actions">
             <button class="btn-ghost btn-ghost--danger" @click="withdrawRequest">
-              Trekk tilbake forespørsel
+              Withdraw request
             </button>
           </div>
         </div>
         <p class="help-text">
-          Feil restaurant? Du kan
-          <button class="inline-link" @click="view = 'choose'">velge en annen</button>
-          eller
-          <RouterLink to="/onboarding/create" class="inline-link">opprette en ny restaurant</RouterLink>.
+          Wrong restaurant? You can
+          <button class="inline-link" @click="view = 'choose'">choose another one</button>
+          or
+          <RouterLink to="/onboarding/create" class="inline-link">create a new restaurant</RouterLink>.
         </p>
       </template>
 
       <!-- ── CHOOSE STATE ── -->
       <template v-else-if="view === 'choose'">
         <div class="choose-header">
-          <h1 class="onboarding-title">Koble til restaurant</h1>
+          <h1 class="onboarding-title">Connect to a restaurant</h1>
           <p class="onboarding-subtitle">
-            For å bruke IKSystem må kontoen din være tilknyttet en restaurant.
-            Du kan bli med i en eksisterende eller opprette en ny.
+            To use IKSystem, your account must be linked to a restaurant.
+            You can join an existing one or create a new one.
           </p>
         </div>
 
@@ -68,8 +68,8 @@
               <LogIn />
             </div>
             <div class="option-text">
-              <span class="option-title">Bli med i restaurant</span>
-              <span class="option-desc">Skriv inn restaurantkoden du har fått fra din leder</span>
+              <span class="option-title">Join a restaurant</span>
+              <span class="option-desc">Enter the restaurant code you received from your manager</span>
             </div>
             <ChevronRight class="option-arrow" />
           </button>
@@ -79,8 +79,8 @@
               <Plus />
             </div>
             <div class="option-text">
-              <span class="option-title">Opprett ny restaurant</span>
-              <span class="option-desc">Registrer en ny restaurant og bli administrator</span>
+              <span class="option-title">Create a new restaurant</span>
+              <span class="option-desc">Register a new restaurant and become administrator</span>
             </div>
             <ChevronRight class="option-arrow" />
           </button>
@@ -92,17 +92,17 @@
         <div class="onboarding-card">
           <button class="back-btn" @click="view = 'choose'">
             <ChevronLeft />
-            Tilbake
+            Back
           </button>
 
-          <h1 class="onboarding-title">Bli med i restaurant</h1>
+          <h1 class="onboarding-title">Join a restaurant</h1>
           <p class="onboarding-subtitle">
-            Skriv inn koden du har fått fra din daglige leder. Formatet er <strong>XXX-0000</strong>.
+            Enter the code you received from your manager. Format: <strong>XXX-0000</strong>.
           </p>
 
           <div class="join-form">
             <div class="field-group" :class="{ 'has-error': joinError }">
-              <label class="field-label" for="joinCode">Restaurantkode</label>
+              <label class="field-label" for="joinCode">Restaurant code</label>
               <div class="field-wrapper">
                 <KeyRound class="field-icon" />
                 <input
@@ -119,7 +119,7 @@
             </div>
 
             <button class="btn-primary" :disabled="isLoading || joinCode.length < 8" @click="sendJoinRequest">
-              <span v-if="!isLoading">Send tilgangsforespørsel</span>
+              <span v-if="!isLoading">Send access request</span>
               <span v-else class="spinner"></span>
             </button>
           </div>
@@ -127,10 +127,6 @@
       </template>
 
     </div>
-
-    <p class="page-footer">
-      IKSystem &copy; {{ new Date().getFullYear() }} &mdash; Internkontroll for næringsmiddelvirksomheter
-    </p>
   </div>
 </template>
 
@@ -159,7 +155,7 @@ const isLoading  = ref(false)
 // ── Pending state ──
 // If the user arrives already pending, we don't know the restaurant name yet —
 // the backend should return it via GET /api/auth/me. For now show a fallback.
-const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'restauranten' : '')
+const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'the restaurant' : '')
 const pendingSentDate       = ref('')
 
 async function sendJoinRequest() {
@@ -169,10 +165,10 @@ async function sendJoinRequest() {
     const { name } = await auth.lookupRestaurant(joinCode.value)
     await auth.joinRestaurant(joinCode.value, name)
     pendingRestaurantName.value = name
-    pendingSentDate.value = new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric' })
+    pendingSentDate.value = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     view.value = 'pending'
   } catch {
-    joinError.value = 'Ugyldig restaurantkode. Prøv igjen.'
+    joinError.value = 'Invalid restaurant code. Please try again.'
   } finally {
     isLoading.value = false
   }
@@ -181,9 +177,9 @@ async function sendJoinRequest() {
 async function withdrawRequest() {
   try {
     await auth.withdrawJoinRequest()
-    toast.info('Forespørsel trukket tilbake')
+    toast.info('Request withdrawn')
   } catch {
-    toast.error('Kunne ikke trekke tilbake forespørselen. Prøv igjen.')
+    toast.error('Could not withdraw the request. Please try again.')
     return
   }
   pendingRestaurantName.value = ''

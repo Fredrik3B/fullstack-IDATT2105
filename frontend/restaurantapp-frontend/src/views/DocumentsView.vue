@@ -3,9 +3,9 @@
     <!-- Page banner -->
     <section class="page-banner">
       <div class="page-banner-inner">
-        <span class="page-tag">Dokumenter</span>
-        <h1 class="page-heading">Dokumentlagring og <span class="page-accent">sertifikater</span></h1>
-        <p class="page-sub">Sentralisert lagring av retningslinjer, opplæringsmateriell og sertifikater</p>
+        <span class="page-tag">Documents</span>
+        <h1 class="page-heading">Document storage and <span class="page-accent">certificates</span></h1>
+        <p class="page-sub">Centralized storage of guidelines, training material, and certificates</p>
       </div>
     </section>
 
@@ -15,24 +15,24 @@
         <!-- Summary row -->
         <div class="summary-grid">
           <div class="summary-card">
-            <span class="summary-label">Totalt dokumenter</span>
+            <span class="summary-label">Total documents</span>
             <span class="summary-value">0</span>
-            <span class="summary-hint">Ingen dokumenter lastet opp</span>
+            <span class="summary-hint">No documents uploaded</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Retningslinjer</span>
+            <span class="summary-label">Guidelines</span>
             <span class="summary-value summary-value--accent">0</span>
-            <span class="summary-hint">Policies og prosedyrer</span>
+            <span class="summary-hint">Policies and procedures</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Opplæringsmateriell</span>
+            <span class="summary-label">Training material</span>
             <span class="summary-value">0</span>
-            <span class="summary-hint">Kurs og instruksjoner</span>
+            <span class="summary-hint">Courses and instructions</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Sertifikater</span>
+            <span class="summary-label">Certificates</span>
             <span class="summary-value summary-value--warning">0</span>
-            <span class="summary-hint">Utløper snart: ingen</span>
+            <span class="summary-hint">Expiring soon: none</span>
           </div>
         </div>
 
@@ -40,51 +40,51 @@
         <div class="action-bar">
           <div class="search-wrap">
             <span class="search-icon">&#128269;</span>
-            <input class="search-input" type="search" placeholder="Søk i dokumenter..." />
+            <input class="search-input" type="search" placeholder="Search documents..." />
           </div>
           <div class="filter-group">
-            <label class="filter-label" for="filter-cat">Kategori</label>
+            <label class="filter-label" for="filter-cat">Category</label>
             <select class="filter-select" id="filter-cat">
-              <option value="">Alle kategorier</option>
-              <option value="policy">Retningslinjer</option>
-              <option value="training">Opplæringsmateriell</option>
-              <option value="cert">Sertifikater</option>
+              <option value="">All categories</option>
+              <option value="policy">Guidelines</option>
+              <option value="training">Training material</option>
+              <option value="cert">Certificates</option>
             </select>
           </div>
           <div class="filter-group">
-            <label class="filter-label" for="filter-module">Modul</label>
+            <label class="filter-label" for="filter-module">Module</label>
             <select class="filter-select" id="filter-module">
-              <option value="">Alle moduler</option>
-              <option value="shared">Felles</option>
+              <option value="">All modules</option>
+              <option value="shared">Shared</option>
               <option value="food">IC-Food</option>
               <option value="alcohol">IC-Alcohol</option>
             </select>
           </div>
-          <button class="btn-upload" type="button">+ Last opp dokument</button>
+          <button class="btn-upload" type="button">+ Upload document</button>
         </div>
 
         <!-- Category sections -->
         <section>
           <div class="category-header">
-            <h2 class="section-heading">Retningslinjer</h2>
-            <span class="category-count">0 dokumenter</span>
+            <h2 class="section-heading">Guidelines</h2>
+            <span class="category-count">0 documents</span>
           </div>
           <div class="doc-list">
             <div class="empty-state">
-              <p class="empty-title">Ingen retningslinjer lastet opp</p>
-              <p class="empty-sub">Last opp bedriftens policies og prosedyrer for hygiene og alkoholhåndtering.</p>
+              <p class="empty-title">No guidelines uploaded</p>
+              <p class="empty-sub">Upload company policies and procedures for hygiene and alcohol handling.</p>
             </div>
             <!-- Document row structure (will be v-for rendered later) -->
             <div class="doc-row" style="display: none;" aria-hidden="true">
               <div class="doc-icon doc-icon--pdf">PDF</div>
               <div class="doc-info">
-                <span class="doc-name">Hygienepolicy 2026.pdf</span>
-                <span class="doc-meta">Lastet opp 15. jan 2026 · 1.2 MB</span>
+                <span class="doc-name">Hygiene policy 2026.pdf</span>
+                <span class="doc-meta">Uploaded 15 Jan 2026 · 1.2 MB</span>
               </div>
-              <span class="doc-badge doc-badge--shared">Felles</span>
+              <span class="doc-badge doc-badge--shared">Shared</span>
               <div class="doc-actions">
-                <button class="doc-btn" type="button">Last ned</button>
-                <button class="doc-btn doc-btn--danger" type="button">Slett</button>
+                <button class="doc-btn" type="button">Download</button>
+                <button class="doc-btn doc-btn--danger" type="button">Delete</button>
               </div>
             </div>
           </div>
@@ -92,38 +92,38 @@
 
         <section>
           <div class="category-header">
-            <h2 class="section-heading">Opplæringsmateriell</h2>
-            <span class="category-count">0 dokumenter</span>
+            <h2 class="section-heading">Training material</h2>
+            <span class="category-count">0 documents</span>
           </div>
           <div class="doc-list">
             <div class="empty-state">
-              <p class="empty-title">Ingen opplæringsmateriell lastet opp</p>
-              <p class="empty-sub">Legg til kursmateriell, instruksjoner og opplæringsdokumenter for ansatte.</p>
+              <p class="empty-title">No training material uploaded</p>
+              <p class="empty-sub">Add course material, instructions, and training documents for employees.</p>
             </div>
           </div>
         </section>
 
         <section>
           <div class="category-header">
-            <h2 class="section-heading">Sertifikater</h2>
-            <span class="category-count">0 sertifikater</span>
+            <h2 class="section-heading">Certificates</h2>
+            <span class="category-count">0 certificates</span>
           </div>
           <div class="doc-list">
             <div class="empty-state">
-              <p class="empty-title">Ingen sertifikater registrert</p>
-              <p class="empty-sub">Legg til sertifikater for ansatte, f.eks. serveringsbevilling og mattrygghetskurs.</p>
+              <p class="empty-title">No certificates registered</p>
+              <p class="empty-sub">Add employee certificates, e.g. serving license and food safety course.</p>
             </div>
             <!-- Certificate row structure (will be v-for rendered later) -->
             <div class="cert-row" style="display: none;" aria-hidden="true">
               <div class="doc-icon doc-icon--cert">CERT</div>
               <div class="doc-info">
-                <span class="doc-name">Serveringsbevillingskurs – Kari Nordmann</span>
-                <span class="doc-meta">Utstedt 10. jan 2025 · Utløper 10. jan 2027</span>
+                <span class="doc-name">Serving license course - Jane Doe</span>
+                <span class="doc-meta">Issued 10 Jan 2025 · Expires 10 Jan 2027</span>
               </div>
-              <span class="cert-expiry cert-expiry--ok">Gyldig</span>
+              <span class="cert-expiry cert-expiry--ok">Valid</span>
               <div class="doc-actions">
-                <button class="doc-btn" type="button">Last ned</button>
-                <button class="doc-btn doc-btn--danger" type="button">Slett</button>
+                <button class="doc-btn" type="button">Download</button>
+                <button class="doc-btn doc-btn--danger" type="button">Delete</button>
               </div>
             </div>
           </div>

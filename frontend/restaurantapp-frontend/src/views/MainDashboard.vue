@@ -10,7 +10,6 @@
         <p class="welcome-sub">{{ restaurantDisplayName }} - {{ todayLabel }}</p>
       </div>
     </section>
-
     <main class="dashboard-main">
       <div class="dashboard-content">
         <section>

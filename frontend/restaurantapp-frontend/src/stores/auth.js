@@ -52,6 +52,20 @@ export const useAuthStore = defineStore('auth', () => {
   /** True when the user is logged in AND connected to an active restaurant. */
   const hasActiveRestaurant = computed(() => restaurantStatus.value === 'active')
 
+  /** Roles extracted from the JWT payload (e.g. ["ROLE_ADMIN", "ROLE_STAFF"]). */
+  const userRoles = computed(() => {
+    if (!accessToken.value) return []
+    try {
+      return JSON.parse(atob(accessToken.value.split('.')[1])).roles ?? []
+    } catch {
+      return []
+    }
+  })
+
+  /** True when the user holds ADMIN or MANAGER role. */
+  const isAdminOrManager = computed(() =>
+    userRoles.value.some(r => r === 'ROLE_ADMIN' || r === 'ROLE_MANAGER'))
+
   /** Initials derived from the user's name (FL), falling back to email. */
   const userInitials = computed(() => {
     if (user.value?.name) {
@@ -217,6 +231,25 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Fetch join requests for the current user's organization.
+   * @param {string|null} status - 'PENDING', 'ACCEPTED', 'DECLINED', or null for all
+   */
+  async function fetchJoinRequests(status = null) {
+    const params = status ? `?status=${status}` : ''
+    const { data } = await api.get(`/api/organizations/requests${params}`)
+    return data
+  }
+
+  /**
+   * Accept or decline a join request.
+   * @param {string} requestId - UUID of the JoinRequestModel
+   * @param {'ACCEPTED'|'DECLINED'} action
+   */
+  async function resolveJoinRequest(requestId, action) {
+    await api.post(`/api/organizations/requests/${requestId}`, { action })
+  }
+
+  /**
    * Log out the current user.
    * Optionally notifies the backend to invalidate the refresh token.
    * Always clears local state and redirects to /login.
@@ -258,6 +291,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     hasActiveRestaurant,
     userInitials,
+    userRoles,
+    isAdminOrManager,
 
     // Actions
     initAuth,
@@ -268,6 +303,8 @@ export const useAuthStore = defineStore('auth', () => {
     joinRestaurant,
     withdrawJoinRequest,
     createRestaurant,
+    fetchJoinRequests,
+    resolveJoinRequest,
     logout,
   }
 })

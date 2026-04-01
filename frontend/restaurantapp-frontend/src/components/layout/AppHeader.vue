@@ -5,14 +5,14 @@
       <!-- Logo -->
       <div class="header-brand">
         <div class="brand-text">
-          <span class="brand-name">IKSystem</span>
+          <span class="brand-name">ICSystem</span>
           <span class="brand-tenant">{{ auth.restaurantName ?? '—' }}</span>
         </div>
       </div>
 
       <!-- Navigation -->
       <nav class="header-nav">
-        <RouterLink to="/" class="nav-item" exact-active-class="active">Dashbord</RouterLink>
+        <RouterLink to="/" class="nav-item" exact-active-class="active">Dashboard</RouterLink>
         <RouterLink to="/ic-food" class="nav-item" active-class="active">IC-Food</RouterLink>
         <RouterLink to="/ic-alcohol" class="nav-item" active-class="active">IC-Alcohol</RouterLink>
         <RouterLink to="/reports" class="nav-item" active-class="active">Reports</RouterLink>
@@ -23,8 +23,8 @@
         <div class="user-chip" @click="handleLogout">
           <div class="user-avatar">{{ auth.userInitials }}</div>
           <div class="user-info">
-            <span class="user-name">{{ auth.user?.name ?? auth.user?.email ?? 'Ukjent bruker' }}</span>
-            <span class="user-role">{{ auth.user?.role ?? 'Logg ut' }}</span>
+            <span class="user-name">{{ auth.user?.name ?? auth.user?.email ?? 'Unknown user' }}</span>
+            <span class="user-role">{{ auth.user?.role ?? 'Log out' }}</span>
           </div>
         </div>
       </div>
@@ -43,7 +43,7 @@ const auth = useAuthStore()
 const toast = useToast()
 
 function handleLogout() {
-  toast.info('Du er nå logget ut')
+  toast.info('You are now logged out')
   auth.logout()
 }
 </script>

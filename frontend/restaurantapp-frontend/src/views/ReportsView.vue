@@ -3,9 +3,9 @@
     <!-- Page banner -->
     <section class="page-banner">
       <div class="page-banner-inner">
-        <span class="page-tag">Rapporter</span>
-        <h1 class="page-heading">Revisjon og <span class="page-accent">inspeksjonsrapporter</span></h1>
-        <p class="page-sub">Automatisk genererte rapporter for internrevisjon og eksterne tilsyn</p>
+        <span class="page-tag">Reports</span>
+        <h1 class="page-heading">Audit and <span class="page-accent">inspection reports</span></h1>
+        <p class="page-sub">Automatically generated reports for internal audits and external inspections</p>
       </div>
     </section>
 
@@ -15,24 +15,24 @@
         <!-- Summary row -->
         <div class="summary-grid">
           <div class="summary-card">
-            <span class="summary-label">Totalt denne måneden</span>
+            <span class="summary-label">Total this month</span>
             <span class="summary-value">0</span>
-            <span class="summary-hint">Ingen rapporter generert</span>
+            <span class="summary-hint">No reports generated</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Internrevisjoner</span>
+            <span class="summary-label">Internal audits</span>
             <span class="summary-value summary-value--accent">0</span>
-            <span class="summary-hint">IC-Food og IC-Alcohol</span>
+            <span class="summary-hint">IC-Food and IC-Alcohol</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Eksterne tilsyn</span>
+            <span class="summary-label">External inspections</span>
             <span class="summary-value">0</span>
             <span class="summary-hint">Mattilsynet / Skjenkekontrollen</span>
           </div>
           <div class="summary-card">
-            <span class="summary-label">Ventende eksport</span>
+            <span class="summary-label">Pending export</span>
             <span class="summary-value summary-value--warning">0</span>
-            <span class="summary-hint">Ikke eksportert ennå</span>
+            <span class="summary-hint">Not exported yet</span>
           </div>
         </div>
 
@@ -41,61 +41,61 @@
           <div class="filter-group">
             <label class="filter-label" for="filter-type">Type</label>
             <select class="filter-select" id="filter-type">
-              <option value="">Alle typer</option>
-              <option value="internal">Internrevisjon</option>
-              <option value="external">Eksternt tilsyn</option>
+              <option value="">All types</option>
+              <option value="internal">Internal audit</option>
+              <option value="external">External inspection</option>
             </select>
           </div>
           <div class="filter-group">
             <label class="filter-label" for="filter-module">Modul</label>
             <select class="filter-select" id="filter-module">
-              <option value="">Alle moduler</option>
+              <option value="">All modules</option>
               <option value="food">IC-Food</option>
               <option value="alcohol">IC-Alcohol</option>
             </select>
           </div>
           <div class="filter-group">
-            <label class="filter-label" for="filter-from">Fra dato</label>
+            <label class="filter-label" for="filter-from">From date</label>
             <input class="filter-input" id="filter-from" type="date" />
           </div>
           <div class="filter-group">
-            <label class="filter-label" for="filter-to">Til dato</label>
+            <label class="filter-label" for="filter-to">To date</label>
             <input class="filter-input" id="filter-to" type="date" />
           </div>
-          <button class="btn-generate" type="button">+ Generer rapport</button>
+          <button class="btn-generate" type="button">+ Generate report</button>
         </div>
 
         <!-- Report list -->
         <section>
-          <h2 class="section-heading">Rapporter</h2>
+          <h2 class="section-heading">Reports</h2>
 
           <!-- Empty state -->
           <div class="empty-state">
             <div class="empty-icon">&#128196;</div>
-            <p class="empty-title">Ingen rapporter ennå</p>
-            <p class="empty-sub">Rapporter genereres automatisk etter gjennomførte sjekklister og revisjoner.</p>
+            <p class="empty-title">No reports yet</p>
+            <p class="empty-sub">Reports are generated automatically after completed checklists and audits.</p>
           </div>
 
           <!-- Report table (hidden when empty, shown when data exists) -->
           <div class="report-table" aria-hidden="true" style="display: none;">
             <div class="report-table-head">
-              <span>Navn</span>
+              <span>Name</span>
               <span>Type</span>
-              <span>Modul</span>
-              <span>Dato</span>
+              <span>Module</span>
+              <span>Date</span>
               <span>Status</span>
-              <span>Eksport</span>
+              <span>Export</span>
             </div>
             <!-- Example row structure (will be rendered by v-for later) -->
             <div class="report-row">
-              <span class="report-name">Ukesrapport uke 12</span>
-              <span class="report-type">Internrevisjon</span>
+              <span class="report-name">Weekly report week 12</span>
+              <span class="report-type">Internal audit</span>
               <span class="report-module">
                 <span class="module-badge module-badge--food">IC-Food</span>
               </span>
-              <span class="report-date">20. mars 2026</span>
+              <span class="report-date">20 March 2026</span>
               <span class="report-status">
-                <span class="status-pill status-pill--ok">Fullført</span>
+                <span class="status-pill status-pill--ok">Completed</span>
               </span>
               <span class="report-actions">
                 <button class="export-btn" type="button">PDF</button>

@@ -1,19 +1,21 @@
 package edu.ntnu.idatt2105.backend.security;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Extracts and validates the JWT from every request Authorization header.
@@ -45,7 +47,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
    * @param response the response object
    * @param chain the cain of filers for the request
    * @throws ServletException an error occurs during the processing of the request
-   * @throws IOException an I/O error occurs during the processing og the request
+  * @throws IOException an I/O error occurs during the processing of the request
    */
   @Override
   protected void doFilterInternal(
