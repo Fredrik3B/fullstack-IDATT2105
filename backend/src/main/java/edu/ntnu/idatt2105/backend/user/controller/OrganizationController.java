@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +42,21 @@ public class OrganizationController {
 
     OrganizationResponse resp =  organizationService.create(request, principal.getUserId());
     return ResponseEntity.ok(resp);
+  }
+
+  @Operation(summary = "Withdraw a pending join request")
+  @DeleteMapping("/organizations/join-request")
+  public ResponseEntity<Void> withdrawJoinRequest(Authentication auth) {
+    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+    organizationService.withdrawJoinRequest(principal.getUserId());
+    return ResponseEntity.ok().build();
+  }
+
+  @Operation(summary = "Look up an organization by join code",
+      description = "Returns the organization name for a given join code. Used to preview before joining.")
+  @GetMapping("/organizations/lookup")
+  public ResponseEntity<OrganizationResponse> lookupOrganization(@RequestParam String code) {
+    return ResponseEntity.ok(organizationService.lookupByCode(code));
   }
 
   @Operation(summary = "Request to join an organization",

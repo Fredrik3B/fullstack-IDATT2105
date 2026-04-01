@@ -10,7 +10,7 @@ public class UserMapper {
   public UserDto toResponse(UserModel user) {
     return UserDto.builder()
         .userId(user.getId())
-        .organizationId(user.getOrganizationId())
+        .organizationId(user.getOrganization() != null ? user.getOrganization().getId() : null)
         .email(user.getEmail())
         .role(user.getRoles())
         .build();

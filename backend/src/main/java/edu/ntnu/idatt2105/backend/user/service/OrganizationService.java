@@ -43,7 +43,7 @@ public class OrganizationService {
 
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    user.setOrganizationId(saved.getId());
+    user.setOrganization(saved);
 
     RoleModel adminRole = roleRepository.findByName(RoleEnum.ADMIN)
         .orElseThrow(() ->
@@ -51,6 +51,20 @@ public class OrganizationService {
     user.getRoles().add(adminRole);
     userRepository.save(user);
 
+    return organizationMapper.toResponse(org);
+  }
+
+  public void withdrawJoinRequest(UUID userId) {
+    List<JoinRequestModel> pending = joinRequestRepository.findAllByUserIdAndStatus(userId, JoinOrgStatus.PENDING);
+    if (pending.isEmpty()) {
+      throw new ResourceNotFoundException("No pending join request found");
+    }
+    joinRequestRepository.deleteAll(pending);
+  }
+
+  public OrganizationResponse lookupByCode(String code) {
+    OrganizationModel org = organizationRepository.findByJoinCode(code)
+        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
     return organizationMapper.toResponse(org);
   }
 
@@ -62,13 +76,12 @@ public class OrganizationService {
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    if (user.getOrganizationId() != null) {
+    if (user.getOrganization() != null) {
       throw new RuntimeException("User already belongs to an organization");
     }
 
-    if (joinRequestRepository.existsByUserIdAndOrganizationIdAndStatus(
-        userId, org.getId(), JoinOrgStatus.PENDING)) {
-      throw new RuntimeException("You already have a pending request for this organization");
+    if (joinRequestRepository.existsByUserIdAndStatus(userId, JoinOrgStatus.PENDING)) {
+      throw new RuntimeException("You already have a pending join request");
     }
 
     JoinRequestModel joinRequest = new JoinRequestModel();
@@ -113,7 +126,10 @@ public class OrganizationService {
     if (action == JoinOrgStatus.ACCEPTED) {
       UserModel user = userRepository.findById(request.getUserId())
           .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-      user.setOrganizationId(request.getOrganizationId());
+      OrganizationModel org = organizationRepository.findById(request.getOrganizationId())
+          .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+
+      user.setOrganization(org);
       userRepository.save(user);
     }
 

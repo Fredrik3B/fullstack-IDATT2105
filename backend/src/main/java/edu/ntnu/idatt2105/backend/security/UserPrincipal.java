@@ -35,7 +35,7 @@ public class UserPrincipal implements UserDetails {
   }
 
   public UUID getOrganizationId() {
-    return user.getOrganizationId();
+    return user.getOrganization() != null ? user.getOrganization().getId() : null;
   }
 
   @Override
