@@ -103,19 +103,22 @@ public class UserService {
     );
   }
 
+  // With new relationship this can be shortened
+  // might have screwed things up here, org join code gone
   public MeResponse getMe(UUID userId) {
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
     String name = (user.getFirstName() + " " + user.getLastName()).trim();
-    UUID orgId = user.getOrganization() != null ? user.getOrganization().getId() : null;
+    UUID orgId = user.getOrganization().getId();
 
     if (orgId != null) {
-      return organizationRepository.findById(orgId)
-          .map(org -> new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "active", orgId, org.getName(), org.getJoinCode()))
+      String orgName = organizationRepository.findById(orgId)
+          .map(org -> org.getName())
           .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
               "active", orgId, null, null));
+      return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
+          "active", orgId, orgName, null);
     }
 
     return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
@@ -124,9 +127,9 @@ public class UserService {
               .map(org -> org.getName())
               .orElse(null);
           return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "pending", request.getOrganizationId(), orgName, null);
+              "pending", request.getOrganizationId(), orgName);
         })
         .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-            null, null, null, null));
+            null, null, null));
   }
 }

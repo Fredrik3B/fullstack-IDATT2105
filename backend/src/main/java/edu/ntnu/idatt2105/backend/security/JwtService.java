@@ -48,6 +48,8 @@ public class JwtService {
   @Value("${jwt.expiration-ms}")
   private long expiration;
 
+  private final int refreshExpiration = 604800000;
+
   private Claims getClaims(String token) {
     return Jwts.parser()
         .verifyWith(getSigningKey())
@@ -99,7 +101,7 @@ public class JwtService {
     return Jwts.builder()
         .subject(principal.getUsername())
         .issuedAt(new Date())
-        .expiration(new Date(System.currentTimeMillis() + 604800000))
+        .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
         .signWith(getSigningKey())
         .compact();
   }
