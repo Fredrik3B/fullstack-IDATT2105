@@ -109,22 +109,11 @@ public class UserService {
         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
     String name = (user.getFirstName() + " " + user.getLastName()).trim();
-    UUID orgId = user.getOrganizationId();
-    String restaurantStatus = orgId != null ? "active" : null;
-    String restaurantName = orgId == null
-        ? null
-        : organizationRepository.findById(orgId).map(OrganizationModel::getName).orElse(null);
-
-    return new MeResponse(
-        new MeResponse.UserInfo(user.getEmail(), name),
-        restaurantStatus,
-        orgId,
-        restaurantName
-    );
+    UUID orgId = user.getOrganization() != null ? user.getOrganization().getId() : null;
 
     if (orgId != null) {
       String orgName = organizationRepository.findById(orgId)
-          .map(org -> org.getName())
+          .map(OrganizationModel::getName)
           .orElse(null);
       return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
           "active", orgId, orgName);
