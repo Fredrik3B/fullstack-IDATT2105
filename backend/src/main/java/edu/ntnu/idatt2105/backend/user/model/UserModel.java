@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.HashSet;
 import java.util.Set;
@@ -26,8 +27,9 @@ public class UserModel {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column
-  private UUID organizationId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "organization_id")
+  private OrganizationModel organization;
 
   @Column(nullable = false)
   private String email;
