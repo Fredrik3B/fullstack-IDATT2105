@@ -32,6 +32,11 @@
                     v-for="card in dailyFoodChecklists"
                     :key="card.id ?? card.title"
                     class="checklist-preview"
+                    role="button"
+                    tabindex="0"
+                    @click="openChecklistModule('IC_FOOD')"
+                    @keydown.enter="openChecklistModule('IC_FOOD')"
+                    @keydown.space.prevent="openChecklistModule('IC_FOOD')"
                   >
                     <div class="checklist-preview__top">
                       <h4 class="checklist-preview__title">{{ card.title }}</h4>
@@ -57,6 +62,11 @@
                     v-for="card in dailyAlcoholChecklists"
                     :key="card.id ?? card.title"
                     class="checklist-preview"
+                    role="button"
+                    tabindex="0"
+                    @click="openChecklistModule('IC_ALCOHOL')"
+                    @keydown.enter="openChecklistModule('IC_ALCOHOL')"
+                    @keydown.space.prevent="openChecklistModule('IC_ALCOHOL')"
                   >
                     <div class="checklist-preview__top">
                       <h4 class="checklist-preview__title">{{ card.title }}</h4>
@@ -106,8 +116,10 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { fetchChecklists } from '../api/checklists'
 
+const router = useRouter()
 const foodChecklists = ref([])
 const alcoholChecklists = ref([])
 const isLoadingFood = ref(true)
@@ -133,6 +145,11 @@ function getTaskCount(card) {
 function formatPeriod(period) {
   if (!period) return 'Unknown'
   return String(period).charAt(0).toUpperCase() + String(period).slice(1).toLowerCase()
+}
+
+function openChecklistModule(module) {
+  const routeName = module === 'IC_ALCOHOL' ? 'ic-alcohol-dashboard' : 'ic-food-dashboard'
+  router.push({ name: routeName })
 }
 
 onMounted(async () => {
@@ -307,6 +324,16 @@ onMounted(async () => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-secondary);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.checklist-preview:hover,
+.checklist-preview:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent);
+  outline: none;
 }
 
 .checklist-preview__top {
