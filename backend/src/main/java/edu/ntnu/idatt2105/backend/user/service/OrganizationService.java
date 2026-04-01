@@ -54,6 +54,12 @@ public class OrganizationService {
     return organizationMapper.toResponse(org);
   }
 
+  public OrganizationResponse lookupByCode(String code) {
+    OrganizationModel org = organizationRepository.findByJoinCode(code)
+        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+    return organizationMapper.toResponse(org);
+  }
+
   // TODO: just cast to user instead of lookup?
   public OrganizationResponse requestToJoin(JoinOrganizationRequest request, UUID userId) {
     OrganizationModel org = organizationRepository.findByJoinCode(request.getJoinCode())

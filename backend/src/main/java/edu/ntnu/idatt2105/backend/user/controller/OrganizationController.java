@@ -43,6 +43,13 @@ public class OrganizationController {
     return ResponseEntity.ok(resp);
   }
 
+  @Operation(summary = "Look up an organization by join code",
+      description = "Returns the organization name for a given join code. Used to preview before joining.")
+  @GetMapping("/organizations/lookup")
+  public ResponseEntity<OrganizationResponse> lookupOrganization(@RequestParam String code) {
+    return ResponseEntity.ok(organizationService.lookupByCode(code));
+  }
+
   @Operation(summary = "Request to join an organization",
       description = "Creates a pending request. An admin must accept before the user is added.")
   @PostMapping("/organizations/join")

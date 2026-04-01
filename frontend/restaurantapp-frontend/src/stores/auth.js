@@ -193,12 +193,12 @@ export const useAuthStore = defineStore('auth', () => {
    *   const { data } = await api.post('/api/restaurants/join', { joinCode })
    */
   async function lookupRestaurant(code) {
-    const { data } = await api.get(`/api/restaurants/lookup?code=${code}`)
+    const { data } = await api.get(`/api/organizations/lookup?code=${code}`)
     return data // { name: String }
   }
 
   async function joinRestaurant(joinCode, name) {
-    const { data } = await api.post('/api/restaurants/join', { joinCode })
+    const { data } = await api.post('/api/organizations/join', { joinCode })
 
     restaurantStatus.value = 'pending'
     restaurantId.value     = data.restaurantId
@@ -214,7 +214,7 @@ export const useAuthStore = defineStore('auth', () => {
    *   await api.delete('/api/restaurants/join-request')
    */
   async function withdrawJoinRequest() {
-    await api.delete('/api/restaurants/join-request')
+    await api.delete('/api/organizations/join-request')
 
     restaurantStatus.value = null
     restaurantId.value     = null
