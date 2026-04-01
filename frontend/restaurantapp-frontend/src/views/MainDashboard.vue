@@ -88,13 +88,13 @@
           <div class="stat-grid">
             <div class="stat-card">
               <span class="stat-label">Aktive avvik</span>
-              <span class="stat-value stat-value--danger">0</span>
-              <span class="stat-hint">Ingen avvik registrert</span>
+              <span class="stat-value stat-value--danger">{{ activeDeviationCount }}</span>
+              <span class="stat-hint">{{ activeDeviationHint }}</span>
             </div>
             <div class="stat-card">
               <span class="stat-label">Oppgaver i dag</span>
-              <span class="stat-value">0</span>
-              <span class="stat-hint">Ingen oppgaver</span>
+              <span class="stat-value">{{ remainingTasksToday }}</span>
+              <span class="stat-hint">{{ tasksTodayHint }}</span>
             </div>
             <div class="stat-card">
               <span class="stat-label">Siste kontroll</span>
@@ -118,6 +118,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchChecklists } from '../api/checklists'
+import { isTemperatureDeviation, isTemperatureTask } from '../features/ic-checklists/temperature'
+import { useTemperatureLog } from '../features/ic-checklists/useTemperatureLog'
 
 const router = useRouter()
 const foodChecklists = ref([])
@@ -126,20 +128,65 @@ const isLoadingFood = ref(true)
 const isLoadingAlcohol = ref(true)
 const foodError = ref('')
 const alcoholError = ref('')
+const { latestByTaskId: foodTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_FOOD' })
+const { latestByTaskId: alcoholTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_ALCOHOL' })
 
 const dailyFoodChecklists = computed(() => foodChecklists.value.filter((card) => isDailyChecklist(card)))
 const dailyAlcoholChecklists = computed(() => alcoholChecklists.value.filter((card) => isDailyChecklist(card)))
+const dailyChecklists = computed(() => [...dailyFoodChecklists.value, ...dailyAlcoholChecklists.value])
+const remainingTasksToday = computed(() => countRemainingTasks(dailyChecklists.value))
+const totalTasksToday = computed(() => countAllTasks(dailyChecklists.value))
+const activeDeviationCount = computed(() =>
+  countTemperatureDeviations(dailyFoodChecklists.value, foodTemperatureLatestByTaskId.value) +
+  countTemperatureDeviations(dailyAlcoholChecklists.value, alcoholTemperatureLatestByTaskId.value)
+)
+const tasksTodayHint = computed(() => {
+  if (totalTasksToday.value === 0) return 'Ingen daglige oppgaver'
+  return `${remainingTasksToday.value} gjenstår av ${totalTasksToday.value}`
+})
+const activeDeviationHint = computed(() => {
+  if (activeDeviationCount.value === 0) return 'Ingen temperaturavvik registrert'
+  return `${activeDeviationCount.value} temperaturavvik krever oppfølging`
+})
 
 function isDailyChecklist(card) {
   return String(card?.period ?? '').toLowerCase() === 'daily'
 }
 
-function getTaskCount(card) {
+function getAllTasks(card) {
   const sections = Array.isArray(card?.sections) ? card.sections : []
-  return sections.reduce((total, section) => {
-    const items = Array.isArray(section?.items) ? section.items.length : 0
-    return total + items
-  }, 0)
+  return sections.flatMap((section) => (Array.isArray(section?.items) ? section.items : []))
+}
+
+function getTaskCount(card) {
+  return getAllTasks(card).length
+}
+
+function countAllTasks(cards) {
+  return cards.reduce((total, card) => total + getTaskCount(card), 0)
+}
+
+function countRemainingTasks(cards) {
+  return cards.reduce(
+    (total, card) => total + getAllTasks(card).filter((task) => String(task?.state ?? 'todo') !== 'completed').length,
+    0
+  )
+}
+
+function countTemperatureDeviations(cards, latestByTaskId) {
+  const latestMap = latestByTaskId instanceof Map ? latestByTaskId : new Map()
+  let count = 0
+
+  cards.forEach((card) => {
+    getAllTasks(card).forEach((task) => {
+      if (!isTemperatureTask(task)) return
+      const latest = latestMap.get(task?.id)
+      const valueC = Number(latest?.valueC)
+      if (isTemperatureDeviation(task, valueC)) count += 1
+    })
+  })
+
+  return count
 }
 
 function formatPeriod(period) {
