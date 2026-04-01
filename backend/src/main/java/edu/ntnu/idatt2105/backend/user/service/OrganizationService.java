@@ -43,7 +43,7 @@ public class OrganizationService {
 
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    user.setOrganizationId(saved.getId());
+    user.setOrganization(saved);
 
     RoleModel adminRole = roleRepository.findByName(RoleEnum.ADMIN)
         .orElseThrow(() ->
@@ -76,7 +76,7 @@ public class OrganizationService {
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    if (user.getOrganizationId() != null) {
+    if (user.getOrganization() != null) {
       throw new RuntimeException("User already belongs to an organization");
     }
 
@@ -126,7 +126,10 @@ public class OrganizationService {
     if (action == JoinOrgStatus.ACCEPTED) {
       UserModel user = userRepository.findById(request.getUserId())
           .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-      user.setOrganizationId(request.getOrganizationId());
+      OrganizationModel org = organizationRepository.findById(request.getOrganizationId())
+          .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+
+      user.setOrganization(org);
       userRepository.save(user);
     }
 
