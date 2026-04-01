@@ -16,6 +16,7 @@ import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
@@ -109,6 +110,17 @@ public class UserService {
 
     String name = (user.getFirstName() + " " + user.getLastName()).trim();
     UUID orgId = user.getOrganizationId();
+    String restaurantStatus = orgId != null ? "active" : null;
+    String restaurantName = orgId == null
+        ? null
+        : organizationRepository.findById(orgId).map(OrganizationModel::getName).orElse(null);
+
+    return new MeResponse(
+        new MeResponse.UserInfo(user.getEmail(), name),
+        restaurantStatus,
+        orgId,
+        restaurantName
+    );
 
     if (orgId != null) {
       String orgName = organizationRepository.findById(orgId)
