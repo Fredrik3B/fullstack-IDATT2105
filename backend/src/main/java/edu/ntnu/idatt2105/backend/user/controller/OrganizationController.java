@@ -8,6 +8,8 @@ import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
 import edu.ntnu.idatt2105.backend.user.dto.ResolveJoinRequest;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import edu.ntnu.idatt2105.backend.user.service.OrganizationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -22,11 +24,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Organizations", description = "Create, join, and manage organizations")
 @RestController
 @AllArgsConstructor
 public class OrganizationController {
   private final OrganizationService organizationService;
 
+  @Operation(summary = "Create a new organization",
+      description = "Creator becomes ADMIN of the organization. Generates a join code.")
   @PostMapping("/organizations")
   public ResponseEntity<OrganizationResponse> createOrganization(
       @RequestBody @Valid CreateOrganizationRequest request, Authentication auth
@@ -37,6 +42,8 @@ public class OrganizationController {
     return ResponseEntity.ok(resp);
   }
 
+  @Operation(summary = "Request to join an organization",
+      description = "Creates a pending request. An admin must accept before the user is added.")
   @PostMapping("/organizations/join")
   public ResponseEntity<OrganizationResponse> joinOrganization(
       @RequestBody @Valid JoinOrganizationRequest request,
@@ -46,6 +53,7 @@ public class OrganizationController {
   }
 
   // TODO: Dobbelsjekk sikkerhet her
+  @Operation(summary = "Accept or decline a join request")
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
   @PostMapping("/organizations/requests/{id}")
   public ResponseEntity<Void> acceptRequest(
@@ -59,6 +67,7 @@ public class OrganizationController {
     return ResponseEntity.ok().build();
   }
 
+  @Operation(summary = "List join requests for your organization")
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
   @GetMapping("/organizations/requests")
   public ResponseEntity<List<JoinOrganizationDto>> getOrganizationRequests(

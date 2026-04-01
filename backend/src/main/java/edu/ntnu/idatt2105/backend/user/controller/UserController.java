@@ -7,6 +7,9 @@ import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
 import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import lombok.AllArgsConstructor;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Authentication", description = "Register, login, refresh token, and logout")
 @RestController
 @RequestMapping("/auth")
 @AllArgsConstructor
@@ -35,12 +39,18 @@ public class UserController {
     return ResponseEntity.ok(userService.getMe(principal.getUserId()));
   }
 
+
+  @Operation(summary = "Register a new user",
+      description = "Creates a user with STAFF role. Returns access token, refresh token in HttpOnly cookie.")
+  @ApiResponse(responseCode = "200", description = "Registration successful")
+  @ApiResponse(responseCode = "409", description = "Email already in use")
   @PostMapping("/register")
   public ResponseEntity<LoginResponse> register(@RequestBody @Valid CreateUserRequest request) {
     AuthDto result = userService.register(request);
     return buildLoginResponse(result);
   }
 
+  @Operation(summary = "Login with email and password")
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
     AuthDto result = userService.login(request);
