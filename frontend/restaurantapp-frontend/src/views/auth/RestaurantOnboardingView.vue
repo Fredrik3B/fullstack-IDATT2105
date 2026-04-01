@@ -57,12 +57,6 @@
           <button class="btn-secondary" @click="withdrawRequest">Withdraw request</button>
         </div>
 
-        <p class="help-text">
-          Need a different restaurant?
-          <button class="inline-link" @click="view = 'choose'">Choose another</button>
-          or
-          <RouterLink to="/onboarding/create" class="inline-link">create a new restaurant</RouterLink>.
-        </p>
       </template>
 
       <template v-else-if="view === 'choose'">
