@@ -111,11 +111,11 @@ public class UserService {
     UUID orgId = user.getOrganizationId();
 
     if (orgId != null) {
-      String orgName = organizationRepository.findById(orgId)
-          .map(org -> org.getName())
-          .orElse(null);
-      return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-          "active", orgId, orgName);
+      return organizationRepository.findById(orgId)
+          .map(org -> new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
+              "active", orgId, org.getName(), org.getJoinCode()))
+          .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
+              "active", orgId, null, null));
     }
 
     return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
@@ -124,9 +124,9 @@ public class UserService {
               .map(org -> org.getName())
               .orElse(null);
           return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "pending", request.getOrganizationId(), orgName);
+              "pending", request.getOrganizationId(), orgName, null);
         })
         .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-            null, null, null));
+            null, null, null, null));
   }
 }

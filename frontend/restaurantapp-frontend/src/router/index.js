@@ -67,6 +67,11 @@ const router = createRouter({
           path: 'reports',
           name: 'reports',
           component: () => import('../views/ReportsView.vue')
+        },
+        {
+          path: 'admin/requests',
+          name: 'admin-requests',
+          component: () => import('../views/admin/JoinRequestsView.vue')
         }
       ]
     }
@@ -79,6 +84,7 @@ router.beforeEach(async (to) => {
 
   const isPublic = ['login', 'register'].includes(to.name)
   const isOnboarding = ['onboarding', 'create-restaurant'].includes(to.name)
+  const isAdminOnly = ['admin-requests'].includes(to.name)
 
   if (!auth.isAuthenticated) {
     if (isPublic) return true
@@ -97,6 +103,8 @@ router.beforeEach(async (to) => {
   }
 
   if (isOnboarding) return { name: 'dashboard' }
+
+  if (isAdminOnly && !auth.isAdminOrManager) return { name: 'dashboard' }
 
   return true
 })
