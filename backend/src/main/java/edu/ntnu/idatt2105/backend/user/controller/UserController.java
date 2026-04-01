@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.user.controller;
 
+import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
@@ -35,7 +36,7 @@ public class UserController {
 
   @GetMapping("/me")
   public ResponseEntity<MeResponse> getMe(Authentication authentication) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) authentication.getPrincipal();
+    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(authentication);
     return ResponseEntity.ok(userService.getMe(principal.getUserId()));
   }
 

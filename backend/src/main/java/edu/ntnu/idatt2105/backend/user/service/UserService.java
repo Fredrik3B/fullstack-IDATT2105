@@ -1,9 +1,16 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
+import java.util.Set;
+import java.util.UUID;
+
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException;
 import edu.ntnu.idatt2105.backend.security.JwtService;
 import edu.ntnu.idatt2105.backend.security.UserPrincipal;
-import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
@@ -11,15 +18,10 @@ import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
+import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
-import java.util.UUID;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
-import java.util.Set;
 import lombok.AllArgsConstructor;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 @Service
 @AllArgsConstructor
