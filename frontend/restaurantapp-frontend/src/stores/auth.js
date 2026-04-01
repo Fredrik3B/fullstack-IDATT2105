@@ -44,6 +44,12 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const restaurantName = ref(null)
 
+  /**
+   * Join code for the restaurant. Only populated for active ADMIN/MANAGER users.
+   * Used on the admin requests page so the admin can share the code with staff.
+   */
+  const restaurantJoinCode = ref(null)
+
   // ── Computed ───────────────────────────────────────────────────────────────
 
   /** True when a valid access token exists in state. */
@@ -87,10 +93,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   /** Reset all state to initial/logged-out values. */
   function _resetState() {
-    user.value             = null
-    restaurantStatus.value = null
-    restaurantId.value     = null
-    restaurantName.value   = null
+    user.value               = null
+    restaurantStatus.value   = null
+    restaurantId.value       = null
+    restaurantName.value     = null
+    restaurantJoinCode.value = null
+    _initPromise             = null   // allow initAuth() to re-run after next login
     _clearTokens()
   }
 
@@ -109,10 +117,11 @@ export const useAuthStore = defineStore('auth', () => {
     if (!accessToken.value) return
 
     _initPromise = api.get('/api/auth/me').then(({ data }) => {
-      user.value             = data.user
-      restaurantStatus.value = data.restaurantStatus
-      restaurantId.value     = data.restaurantId
-      restaurantName.value   = data.restaurantName ?? null
+      user.value               = data.user
+      restaurantStatus.value   = data.restaurantStatus
+      restaurantId.value       = data.restaurantId
+      restaurantName.value     = data.restaurantName ?? null
+      restaurantJoinCode.value = data.restaurantJoinCode ?? null
     }).catch(() => {
       _resetState()
       _initPromise = null  // allow retry after reset
@@ -221,9 +230,10 @@ export const useAuthStore = defineStore('auth', () => {
     // payload: { name, orgNumber, address, postalCode, city }
     const { data } = await api.post('/api/organizations', payload)
 
-    restaurantStatus.value = 'active'
-    restaurantId.value     = data.id
-    restaurantName.value   = payload.name
+    restaurantStatus.value   = 'active'
+    restaurantId.value       = data.id
+    restaurantName.value     = payload.name
+    restaurantJoinCode.value = data.joinCode ?? null
 
     await refreshAccessToken()
 
@@ -286,6 +296,7 @@ export const useAuthStore = defineStore('auth', () => {
     restaurantStatus,
     restaurantId,
     restaurantName,
+    restaurantJoinCode,
 
     // Computed
     isAuthenticated,

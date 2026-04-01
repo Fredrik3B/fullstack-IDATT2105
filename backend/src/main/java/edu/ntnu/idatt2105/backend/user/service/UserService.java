@@ -16,7 +16,6 @@ import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
@@ -112,11 +111,11 @@ public class UserService {
     UUID orgId = user.getOrganization() != null ? user.getOrganization().getId() : null;
 
     if (orgId != null) {
-      String orgName = organizationRepository.findById(orgId)
-          .map(OrganizationModel::getName)
-          .orElse(null);
-      return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-          "active", orgId, orgName);
+      return organizationRepository.findById(orgId)
+          .map(org -> new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
+              "active", orgId, org.getName(), org.getJoinCode()))
+          .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
+              "active", orgId, null, null));
     }
 
     return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
@@ -125,9 +124,9 @@ public class UserService {
               .map(org -> org.getName())
               .orElse(null);
           return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "pending", request.getOrganizationId(), orgName);
+              "pending", request.getOrganizationId(), orgName, null);
         })
         .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-            null, null, null));
+            null, null, null, null));
   }
 }

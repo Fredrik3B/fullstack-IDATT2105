@@ -12,6 +12,7 @@ public class MeResponse {
   private String restaurantStatus;
   private UUID restaurantId;
   private String restaurantName;
+  private String restaurantJoinCode;
 
   @Data
   @AllArgsConstructor
