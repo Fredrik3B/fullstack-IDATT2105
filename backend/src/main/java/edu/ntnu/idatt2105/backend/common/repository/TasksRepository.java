@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 
+	List<TasksModel> findAllByTaskTemplate_Id(Long taskTemplateId);
+
 	List<TasksModel> findAllByChecklist_IdAndActiveTrue(Long checklistId);
 
 	List<TasksModel> findAllByChecklist_Id(Long checklistId);

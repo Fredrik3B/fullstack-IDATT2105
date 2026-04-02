@@ -3,21 +3,38 @@ package edu.ntnu.idatt2105.backend.common.service.impl;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.task.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.common.dto.task.TaskResponse;
+import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.service.TaskService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TaskServiceImpl implements TaskService {
 
 	private final TaskTemplateRepository taskTemplateRepository;
+	private final ChecklistRepository checklistRepository;
+	private final TasksRepository tasksRepository;
+	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
 
-	public TaskServiceImpl(TaskTemplateRepository taskTemplateRepository) {
+	public TaskServiceImpl(
+		TaskTemplateRepository taskTemplateRepository,
+		ChecklistRepository checklistRepository,
+		TasksRepository tasksRepository,
+		TemperatureMeasurementRepository temperatureMeasurementRepository
+	) {
 		this.taskTemplateRepository = taskTemplateRepository;
+		this.checklistRepository = checklistRepository;
+		this.tasksRepository = tasksRepository;
+		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
 	}
 
 	@Override
@@ -57,8 +74,24 @@ public class TaskServiceImpl implements TaskService {
 	}
 
 	@Override
+	@Transactional
 	public void deleteTask(Long taskId, JwtAuthenticatedPrincipal principal) {
-		TaskTemplate template = getTemplate(taskId, requirePrincipal(principal));
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
+		TaskTemplate template = getTemplate(taskId, safePrincipal);
+
+		List<ChecklistModel> checklists = checklistRepository.findAllByOrganization_IdOrderByIdAsc(safePrincipal.getOrganizationId());
+		for (ChecklistModel checklist : checklists) {
+			if (checklist.getTaskTemplates().removeIf(task -> template.getId().equals(task.getId()))) {
+				checklistRepository.save(checklist);
+			}
+		}
+
+		List<TasksModel> activatedTasks = tasksRepository.findAllByTaskTemplate_Id(taskId);
+		if (!activatedTasks.isEmpty()) {
+			temperatureMeasurementRepository.deleteAllByTaskIn(activatedTasks);
+			tasksRepository.deleteAll(activatedTasks);
+		}
+
 		taskTemplateRepository.delete(template);
 	}
 

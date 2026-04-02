@@ -172,6 +172,11 @@ function handleSaveTemperature(task) {
   const valueC = Number(temperatureDraftByTaskId[id])
   if (!Number.isFinite(valueC)) return
 
+  const confirmed = window.confirm(
+    `Save temperature reading ${valueC} C for "${task.label}"?\n\nMake sure this is the correct temperature before continuing.`
+  )
+  if (!confirmed) return
+
   emit('log-temperature', { checklistId, taskId: id, valueC })
 }
 </script>
