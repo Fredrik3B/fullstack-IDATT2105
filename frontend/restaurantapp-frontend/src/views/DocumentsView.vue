@@ -148,6 +148,24 @@
           </div>
         </Teleport>
 
+        <!-- Certificate expiry alert -->
+        <div v-if="expiryAlerts.length > 0" class="expiry-banner">
+          <div class="expiry-banner-header">
+            <AlertTriangle :size="16" class="expiry-icon" />
+            <span class="expiry-banner-title">Certificate alerts</span>
+          </div>
+          <ul class="expiry-list">
+            <li
+              v-for="alert in expiryAlerts"
+              :key="alert.id"
+              :class="['expiry-item', alert.expired ? 'expiry-item--expired' : 'expiry-item--warning']"
+            >
+              <span class="expiry-item-name">{{ alert.name }}</span>
+              <span class="expiry-item-status">{{ alert.label }}</span>
+            </li>
+          </ul>
+        </div>
+
         <!-- Loading state -->
         <div v-if="loading" class="loading-state">Loading documents...</div>
 
@@ -220,7 +238,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { Search, AlertTriangle } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
 
@@ -235,6 +253,30 @@ const error = ref(null)
 const searchQuery = ref('')
 const activeCategory = ref('')
 const activeModule = ref('')
+
+// ── Certificate expiry alerts ──────────────────────────────────────────────
+
+const expiryAlerts = computed(() => {
+  const today = new Date()
+  return documents.value
+    .filter(doc => doc.category === 'CERTIFICATE' && doc.expiryDate)
+    .flatMap(doc => {
+      const expiry = new Date(doc.expiryDate)
+      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+      if (daysLeft > 30) return []
+      return [{
+        id: doc.id,
+        name: doc.name,
+        expired: daysLeft < 0,
+        label: daysLeft < 0
+          ? `Expired ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} ago`
+          : daysLeft === 0
+            ? 'Expires today'
+            : `Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
+      }]
+    })
+    .sort((a, b) => a.expired === b.expired ? 0 : a.expired ? -1 : 1)
+})
 
 // ── Upload modal state ─────────────────────────────────────────────────────
 
@@ -782,6 +824,75 @@ function expiryLabel(expiryDate) {
     margin-left: 0;
   }
 }
+
+/* ── Expiry alert banner ── */
+.expiry-banner {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-text);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.expiry-banner-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.expiry-icon {
+  color: var(--color-warning-text);
+  flex-shrink: 0;
+}
+
+.expiry-banner-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-warning-text);
+}
+
+.expiry-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.expiry-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.expiry-item--expired {
+  background: var(--color-danger-bg);
+}
+
+.expiry-item--warning {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.expiry-item-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.expiry-item-status {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.expiry-item--expired .expiry-item-status { color: var(--color-danger-text); }
+.expiry-item--warning .expiry-item-status { color: var(--color-warning-text); }
 
 /* ── Upload modal ── */
 .modal-backdrop {
