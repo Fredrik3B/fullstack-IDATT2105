@@ -12,122 +12,104 @@
     <main class="page-main">
       <div class="page-content">
 
-        <!-- Summary row -->
-        <div class="summary-grid">
-          <div class="summary-card">
-            <span class="summary-label">Total documents</span>
-            <span class="summary-value">0</span>
-            <span class="summary-hint">No documents uploaded</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Guidelines</span>
-            <span class="summary-value summary-value--accent">0</span>
-            <span class="summary-hint">Policies and procedures</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Training material</span>
-            <span class="summary-value">0</span>
-            <span class="summary-hint">Courses and instructions</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Certificates</span>
-            <span class="summary-value summary-value--warning">0</span>
-            <span class="summary-hint">Expiring soon: none</span>
-          </div>
-        </div>
-
         <!-- Action bar -->
         <div class="action-bar">
           <div class="search-wrap">
-            <span class="search-icon">&#128269;</span>
-            <input class="search-input" type="search" placeholder="Search documents..." />
+            <Search class="search-icon" :size="16" />
+            <input
+              v-model="searchQuery"
+              class="search-input"
+              type="search"
+              placeholder="Search documents..."
+            />
           </div>
           <div class="filter-group">
             <label class="filter-label" for="filter-cat">Category</label>
-            <select class="filter-select" id="filter-cat">
+            <select v-model="activeCategory" class="filter-select" id="filter-cat">
               <option value="">All categories</option>
-              <option value="policy">Guidelines</option>
-              <option value="training">Training material</option>
-              <option value="cert">Certificates</option>
+              <option v-for="cat in CATEGORIES" :key="cat.value" :value="cat.value">
+                {{ cat.label }}
+              </option>
             </select>
           </div>
           <div class="filter-group">
             <label class="filter-label" for="filter-module">Module</label>
-            <select class="filter-select" id="filter-module">
+            <select v-model="activeModule" class="filter-select" id="filter-module">
               <option value="">All modules</option>
-              <option value="shared">Shared</option>
-              <option value="food">IC-Food</option>
-              <option value="alcohol">IC-Alcohol</option>
+              <option v-for="mod in MODULES" :key="mod.value" :value="mod.value">
+                {{ mod.label }}
+              </option>
             </select>
           </div>
-          <button class="btn-upload" type="button">+ Upload document</button>
+          <button v-if="isAdminOrManager" class="btn-upload" type="button">
+            + Upload document
+          </button>
         </div>
 
-        <!-- Category sections -->
-        <section>
-          <div class="category-header">
-            <h2 class="section-heading">Guidelines</h2>
-            <span class="category-count">0 documents</span>
-          </div>
-          <div class="doc-list">
-            <div class="empty-state">
-              <p class="empty-title">No guidelines uploaded</p>
-              <p class="empty-sub">Upload company policies and procedures for hygiene and alcohol handling.</p>
-            </div>
-            <!-- Document row structure (will be v-for rendered later) -->
-            <div class="doc-row" style="display: none;" aria-hidden="true">
-              <div class="doc-icon doc-icon--pdf">PDF</div>
-              <div class="doc-info">
-                <span class="doc-name">Hygiene policy 2026.pdf</span>
-                <span class="doc-meta">Uploaded 15 Jan 2026 · 1.2 MB</span>
-              </div>
-              <span class="doc-badge doc-badge--shared">Shared</span>
-              <div class="doc-actions">
-                <button class="doc-btn" type="button">Download</button>
-                <button class="doc-btn doc-btn--danger" type="button">Delete</button>
-              </div>
-            </div>
-          </div>
-        </section>
+        <!-- Loading state -->
+        <div v-if="loading" class="loading-state">Loading documents...</div>
 
-        <section>
-          <div class="category-header">
-            <h2 class="section-heading">Training material</h2>
-            <span class="category-count">0 documents</span>
-          </div>
-          <div class="doc-list">
-            <div class="empty-state">
-              <p class="empty-title">No training material uploaded</p>
-              <p class="empty-sub">Add course material, instructions, and training documents for employees.</p>
-            </div>
-          </div>
-        </section>
+        <!-- Error state -->
+        <div v-else-if="error" class="error-state">{{ error }}</div>
 
-        <section>
-          <div class="category-header">
-            <h2 class="section-heading">Certificates</h2>
-            <span class="category-count">0 certificates</span>
-          </div>
-          <div class="doc-list">
-            <div class="empty-state">
-              <p class="empty-title">No certificates registered</p>
-              <p class="empty-sub">Add employee certificates, e.g. serving license and food safety course.</p>
+        <!-- Document sections -->
+        <template v-else>
+          <section
+            v-for="cat in visibleCategories"
+            :key="cat.value"
+          >
+            <div class="category-header">
+              <h2 class="section-heading">{{ cat.label }}</h2>
+              <span class="category-count">
+                {{ documentsForCategory(cat.value).length }}
+                {{ cat.value === 'CERTIFICATE' ? 'certificates' : 'documents' }}
+              </span>
             </div>
-            <!-- Certificate row structure (will be v-for rendered later) -->
-            <div class="cert-row" style="display: none;" aria-hidden="true">
-              <div class="doc-icon doc-icon--cert">CERT</div>
-              <div class="doc-info">
-                <span class="doc-name">Serving license course - Jane Doe</span>
-                <span class="doc-meta">Issued 10 Jan 2025 · Expires 10 Jan 2027</span>
+            <div class="doc-list">
+              <div v-if="documentsForCategory(cat.value).length === 0" class="empty-state">
+                <p class="empty-title">No {{ cat.label.toLowerCase() }} uploaded</p>
+                <p class="empty-sub">{{ cat.emptyHint }}</p>
               </div>
-              <span class="cert-expiry cert-expiry--ok">Valid</span>
-              <div class="doc-actions">
-                <button class="doc-btn" type="button">Download</button>
-                <button class="doc-btn doc-btn--danger" type="button">Delete</button>
+              <div
+                v-for="doc in documentsForCategory(cat.value)"
+                :key="doc.id"
+                class="doc-row"
+              >
+                <div :class="['doc-icon', fileIconClass(doc.fileType)]">
+                  {{ fileIconLabel(doc.fileType) }}
+                </div>
+                <div class="doc-info">
+                  <span class="doc-name">{{ doc.name }}</span>
+                  <span class="doc-meta">
+                    Uploaded {{ formatDate(doc.uploadedAt) }} · {{ formatSize(doc.fileSize) }} · {{ doc.uploadedByName }}
+                  </span>
+                </div>
+                <span :class="['doc-badge', moduleBadgeClass(doc.module)]">
+                  {{ moduleLabel(doc.module) }}
+                </span>
+                <span
+                  v-if="doc.category === 'CERTIFICATE' && doc.expiryDate"
+                  :class="['cert-expiry', expiryClass(doc.expiryDate)]"
+                >
+                  {{ expiryLabel(doc.expiryDate) }}
+                </span>
+                <div class="doc-actions">
+                  <button class="doc-btn" type="button" @click="handleDownload(doc)">
+                    Download
+                  </button>
+                  <button
+                    v-if="isAdminOrManager"
+                    class="doc-btn doc-btn--danger"
+                    type="button"
+                    @click="handleDelete(doc)"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </template>
 
       </div>
     </main>
@@ -135,6 +117,170 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { Search } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+import { fetchDocuments, downloadDocument, deleteDocument } from '@/api/documents'
+
+const auth = useAuthStore()
+const isAdminOrManager = computed(() => auth.isAdminOrManager)
+
+// ── State ──────────────────────────────────────────────────────────────────
+
+const documents = ref([])
+const loading = ref(false)
+const error = ref(null)
+const searchQuery = ref('')
+const activeCategory = ref('')
+const activeModule = ref('')
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  { value: 'GUIDELINES',   label: 'Guidelines',        emptyHint: 'Upload company policies and procedures for hygiene and alcohol handling.' },
+  { value: 'TRAINING',     label: 'Training material',  emptyHint: 'Add course material, instructions, and training documents for employees.' },
+  { value: 'CERTIFICATE',  label: 'Certificates',       emptyHint: 'Add employee certificates, e.g. serving license and food safety course.' },
+  { value: 'AUDIT_REPORT', label: 'Audit & inspection', emptyHint: 'Store results from external food authority inspections.' },
+  { value: 'HACCP',        label: 'HACCP / Risk',       emptyHint: 'Upload food safety hazard analysis and risk assessment documents.' },
+  { value: 'EMERGENCY',    label: 'Emergency procedures', emptyHint: 'Add fire evacuation, first aid, and other emergency plans.' },
+]
+
+const MODULES = [
+  { value: 'SHARED',     label: 'Shared' },
+  { value: 'IC_FOOD',    label: 'IC-Food' },
+  { value: 'IC_ALCOHOL', label: 'IC-Alcohol' },
+]
+
+// ── Data fetching ──────────────────────────────────────────────────────────
+
+async function loadDocuments() {
+  loading.value = true
+  error.value = null
+  try {
+    documents.value = await fetchDocuments()
+  } catch {
+    error.value = 'Failed to load documents. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadDocuments)
+
+// ── Filtering ──────────────────────────────────────────────────────────────
+
+const filteredDocuments = computed(() => {
+  return documents.value.filter(doc => {
+    if (activeCategory.value && doc.category !== activeCategory.value) return false
+    if (activeModule.value && doc.module !== activeModule.value) return false
+    if (searchQuery.value) {
+      const q = searchQuery.value.toLowerCase()
+      if (!doc.name.toLowerCase().includes(q) && !doc.originalFileName.toLowerCase().includes(q)) return false
+    }
+    return true
+  })
+})
+
+// Only show categories that have documents when a filter is active, or always show all when no filter
+const visibleCategories = computed(() => {
+  if (activeCategory.value) {
+    return CATEGORIES.filter(c => c.value === activeCategory.value)
+  }
+  return CATEGORIES
+})
+
+function documentsForCategory(category) {
+  return filteredDocuments.value.filter(d => d.category === category)
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+
+async function handleDownload(doc) {
+  try {
+    const response = await downloadDocument(doc.id)
+    const url = URL.createObjectURL(response.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = doc.originalFileName
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    alert('Failed to download file.')
+  }
+}
+
+async function handleDelete(doc) {
+  if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return
+  try {
+    await deleteDocument(doc.id)
+    documents.value = documents.value.filter(d => d.id !== doc.id)
+  } catch {
+    alert('Failed to delete document.')
+  }
+}
+
+// ── Display helpers ────────────────────────────────────────────────────────
+
+function fileIconLabel(fileType) {
+  if (!fileType) return 'FILE'
+  if (fileType.includes('pdf')) return 'PDF'
+  if (fileType.includes('word') || fileType.includes('document')) return 'DOC'
+  if (fileType.includes('image')) return 'IMG'
+  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'XLS'
+  return 'FILE'
+}
+
+function fileIconClass(fileType) {
+  if (!fileType) return 'doc-icon--file'
+  if (fileType.includes('pdf')) return 'doc-icon--pdf'
+  if (fileType.includes('word') || fileType.includes('document')) return 'doc-icon--doc'
+  if (fileType.includes('image')) return 'doc-icon--img'
+  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'doc-icon--xls'
+  return 'doc-icon--file'
+}
+
+function moduleBadgeClass(module) {
+  if (module === 'IC_FOOD') return 'doc-badge--food'
+  if (module === 'IC_ALCOHOL') return 'doc-badge--alcohol'
+  return 'doc-badge--shared'
+}
+
+function moduleLabel(module) {
+  if (module === 'IC_FOOD') return 'IC-Food'
+  if (module === 'IC_ALCOHOL') return 'IC-Alcohol'
+  return 'Shared'
+}
+
+function formatDate(isoString) {
+  if (!isoString) return ''
+  return new Date(isoString).toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatSize(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function expiryClass(expiryDate) {
+  const today = new Date()
+  const expiry = new Date(expiryDate)
+  const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+  if (daysLeft < 0) return 'cert-expiry--expired'
+  if (daysLeft <= 30) return 'cert-expiry--warning'
+  return 'cert-expiry--ok'
+}
+
+function expiryLabel(expiryDate) {
+  const today = new Date()
+  const expiry = new Date(expiryDate)
+  const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+  if (daysLeft < 0) return 'Expired'
+  if (daysLeft === 0) return 'Expires today'
+  if (daysLeft <= 30) return `Expires in ${daysLeft}d`
+  return 'Valid'
+}
 </script>
 
 <style scoped>
@@ -202,42 +348,17 @@
   gap: var(--space-8);
 }
 
-/* ── Summary ── */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-}
-
-.summary-card {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  box-shadow: var(--shadow-sm);
-}
-
-.summary-label {
+/* ── Loading / Error ── */
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: var(--space-10);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
 }
 
-.summary-value {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.summary-value--accent  { color: var(--color-accent-text); }
-.summary-value--warning { color: var(--color-warning); }
-
-.summary-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-hint);
+.error-state {
+  color: var(--color-danger);
 }
 
 /* ── Action bar ── */
@@ -264,7 +385,7 @@
   left: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
   pointer-events: none;
 }
 
@@ -387,8 +508,7 @@
 }
 
 /* ── Document row ── */
-.doc-row,
-.cert-row {
+.doc-row {
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -396,8 +516,7 @@
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.doc-row:last-child,
-.cert-row:last-child {
+.doc-row:last-child {
   border-bottom: none;
 }
 
@@ -413,15 +532,11 @@
   flex-shrink: 0;
 }
 
-.doc-icon--pdf {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
-.doc-icon--cert {
-  background: var(--color-accent-light);
-  color: var(--color-accent-text);
-}
+.doc-icon--pdf  { background: var(--color-danger-bg);   color: var(--color-danger-text); }
+.doc-icon--doc  { background: #dbeafe;                  color: #1d4ed8; }
+.doc-icon--img  { background: #f3e8ff;                  color: #7c3aed; }
+.doc-icon--xls  { background: #dcfce7;                  color: #15803d; }
+.doc-icon--file { background: var(--color-bg-subtle);   color: var(--color-text-muted); }
 
 .doc-info {
   flex: 1;
@@ -453,10 +568,9 @@
   white-space: nowrap;
 }
 
-.doc-badge--shared {
-  background: var(--color-bg-subtle);
-  color: var(--color-dark-tertiary);
-}
+.doc-badge--shared  { background: var(--color-bg-subtle);   color: var(--color-dark-tertiary); }
+.doc-badge--food    { background: #dcfce7;                   color: #15803d; }
+.doc-badge--alcohol { background: #fef3c7;                   color: #92400e; }
 
 .cert-expiry {
   font-size: var(--font-size-xs);
@@ -466,20 +580,9 @@
   white-space: nowrap;
 }
 
-.cert-expiry--ok {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-
-.cert-expiry--warning {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-
-.cert-expiry--expired {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
+.cert-expiry--ok      { background: var(--color-success-bg);  color: var(--color-success-text); }
+.cert-expiry--warning { background: var(--color-warning-bg);  color: var(--color-warning-text); }
+.cert-expiry--expired { background: var(--color-danger-bg);   color: var(--color-danger-text); }
 
 .doc-actions {
   display: flex;
@@ -505,21 +608,11 @@
   color: var(--color-dark-primary);
 }
 
-.doc-btn--danger {
-  color: var(--color-danger);
-  border-color: var(--color-danger-border);
-}
-
-.doc-btn--danger:hover {
-  background: var(--color-danger-bg);
-  border-color: var(--color-danger);
-}
+.doc-btn--danger { color: var(--color-danger); border-color: var(--color-danger-border); }
+.doc-btn--danger:hover { background: var(--color-danger-bg); border-color: var(--color-danger); }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .action-bar {
     flex-direction: column;
     align-items: stretch;
