@@ -152,11 +152,11 @@ public class DocumentServiceImpl implements DocumentService {
 
     private String saveFileToDisk(MultipartFile file, UUID orgId) {
         try {
-            Path orgDir = Paths.get(storagePath, orgId.toString());
+            Path orgDir = Paths.get(storagePath).toAbsolutePath().normalize().resolve(orgId.toString());
             Files.createDirectories(orgDir);
             String uniqueFileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
             Path destination = orgDir.resolve(uniqueFileName);
-            file.transferTo(destination.toFile());
+            Files.copy(file.getInputStream(), destination);
             return destination.toAbsolutePath().toString();
         } catch (IOException e) {
             LOGGER.error("Failed to save file to disk: {}", e.getMessage());
