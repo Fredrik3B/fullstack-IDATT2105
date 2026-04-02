@@ -4,12 +4,12 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateTemperatureMeasur
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskModel;
 import edu.ntnu.idatt2105.backend.common.model.TemperatureMeasurementModel;
+import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TaskRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.service.TemperatureMeasurementService;
 import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
@@ -32,20 +32,20 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 
 	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
 	private final ChecklistRepository checklistRepository;
-	private final TaskRepository taskRepository;
+	private final TasksRepository tasksRepository;
 	private final OrganizationRepository organizationRepository;
 	private final UserRepository userRepository;
 
 	public TemperatureMeasurementServiceImpl(
 		TemperatureMeasurementRepository temperatureMeasurementRepository,
 		ChecklistRepository checklistRepository,
-		TaskRepository taskRepository,
+		TasksRepository tasksRepository,
 		OrganizationRepository organizationRepository,
 		UserRepository userRepository
 	) {
 		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
 		this.checklistRepository = checklistRepository;
-		this.taskRepository = taskRepository;
+		this.tasksRepository = tasksRepository;
 		this.organizationRepository = organizationRepository;
 		this.userRepository = userRepository;
 	}
@@ -79,21 +79,24 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 			throw new IllegalArgumentException("module does not match checklist.");
 		}
 
-		TaskModel task = taskRepository.findById(request.taskId())
-			.orElseThrow(() -> new IllegalArgumentException("Task not found."));
-		if (!Objects.equals(task.getChecklist().getId(), checklist.getId())) {
-			throw new IllegalArgumentException("Task does not belong to checklist.");
-		}
+		TasksModel task = tasksRepository.findByIdAndChecklist_Id(request.taskId(), checklist.getId())
+			.orElseThrow(() -> new IllegalArgumentException("Activated task not found."));
 
+		String resolvedPeriodKey = task.getPeriodKey();
 		if (request.periodKey() != null && !request.periodKey().isBlank()) {
 			PeriodKeyUtil.validatePeriodKey(request.periodKey(), checklist.getFrequency());
+			String requestedPeriodKey = request.periodKey().trim();
+			if (!Objects.equals(requestedPeriodKey, resolvedPeriodKey)) {
+				throw new IllegalArgumentException("periodKey does not match activated task.");
+			}
+			resolvedPeriodKey = requestedPeriodKey;
 		}
 
 		TemperatureMeasurementModel model = new TemperatureMeasurementModel();
 		model.setComplianceArea(area);
 		model.setChecklist(checklist);
 		model.setTask(task);
-		model.setPeriodKey(request.periodKey() != null ? request.periodKey().trim() : null);
+		model.setPeriodKey(resolvedPeriodKey);
 		model.setValueC(request.valueC());
 		model.setMeasuredAt(request.measuredAt() != null ? request.measuredAt() : Instant.now());
 

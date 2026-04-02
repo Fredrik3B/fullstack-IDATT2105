@@ -7,7 +7,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -17,28 +16,28 @@ public class TasksModel extends AuditableEntity {
 	@Column(nullable = false)
 	private boolean completed;
 
-	@Column(nullable=false)
-	private boolean flag;
+	@Column(nullable = false)
+	private boolean flagged;
 
 	@Column(nullable = false)
-	private boolean active;
+	private boolean active = true;
 
 	@Column(length = 255)
 	private String meta;
 
-	@Column(name = "completed_at", nullable = false)
+	@Column(name = "period_key", nullable = false, length = 16)
+	private String periodKey;
+
+	@Column(name = "completed_at")
 	private LocalDateTime completedAt;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "task_id", nullable = false)
-	private TasksModel task;
+	@JoinColumn(name = "checklist_id", nullable = false)
+	private ChecklistModel checklist;
 
-	@PrePersist
-	public void setDefaultCompletedAt() {
-		if (completedAt == null) {
-			completedAt = LocalDateTime.now();
-		}
-	}
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "task_template_id", nullable = false)
+	private TaskTemplate taskTemplate;
 
 	public boolean isCompleted() {
 		return completed;
@@ -49,35 +48,19 @@ public class TasksModel extends AuditableEntity {
 	}
 
 	public boolean isFlagged() {
-		return flag;
+		return flagged;
 	}
 
-	public void setFlag (boolean flag) {
-		this.flag = flag;
+	public void setFlagged(boolean flagged) {
+		this.flagged = flagged;
 	}
-		
+
 	public boolean isActive() {
 		return active;
 	}
 
 	public void setActive(boolean active) {
 		this.active = active;
-	}
-
-	public LocalDateTime getCompletedAt() {
-		return completedAt;
-	}
-
-	public void setCompletedAt(LocalDateTime completedAt) {
-		this.completedAt = completedAt;
-	}
-
-	public TasksModel getTask() {
-		return task;
-	}
-
-	public void setTask(TasksModel task) {
-		this.task = task;
 	}
 
 	public String getMeta() {
@@ -88,4 +71,35 @@ public class TasksModel extends AuditableEntity {
 		this.meta = meta;
 	}
 
+	public String getPeriodKey() {
+		return periodKey;
+	}
+
+	public void setPeriodKey(String periodKey) {
+		this.periodKey = periodKey;
+	}
+
+	public LocalDateTime getCompletedAt() {
+		return completedAt;
+	}
+
+	public void setCompletedAt(LocalDateTime completedAt) {
+		this.completedAt = completedAt;
+	}
+
+	public ChecklistModel getChecklist() {
+		return checklist;
+	}
+
+	public void setChecklist(ChecklistModel checklist) {
+		this.checklist = checklist;
+	}
+
+	public TaskTemplate getTaskTemplate() {
+		return taskTemplate;
+	}
+
+	public void setTaskTemplate(TaskTemplate taskTemplate) {
+		this.taskTemplate = taskTemplate;
+	}
 }

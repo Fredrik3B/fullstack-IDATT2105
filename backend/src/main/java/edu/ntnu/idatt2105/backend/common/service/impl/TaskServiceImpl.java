@@ -3,24 +3,21 @@ package edu.ntnu.idatt2105.backend.common.service.impl;
 import edu.ntnu.idatt2105.backend.common.dto.task.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.common.dto.task.TaskResponse;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskModel;
+import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TaskRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.common.service.TaskService;
 import java.util.List;
-
 import org.springframework.stereotype.Service;
-
-
 
 @Service
 public class TaskServiceImpl implements TaskService {
 
-	private final TaskRepository taskRepository;
+	private final TaskTemplateRepository taskTemplateRepository;
 	private final ChecklistRepository checklistRepository;
 
-	public TaskServiceImpl(TaskRepository taskRepository, ChecklistRepository checklistRepository) {
-		this.taskRepository = taskRepository;
+	public TaskServiceImpl(TaskTemplateRepository taskTemplateRepository, ChecklistRepository checklistRepository) {
+		this.taskTemplateRepository = taskTemplateRepository;
 		this.checklistRepository = checklistRepository;
 	}
 
@@ -31,51 +28,52 @@ public class TaskServiceImpl implements TaskService {
 		ChecklistModel checklist = checklistRepository.findById(request.checklistId())
 			.orElseThrow(() -> new IllegalArgumentException("Checklist not found with id: " + request.checklistId()));
 
-		TaskModel task = new TaskModel();
-		task.setTitle(request.title().trim());
-		task.setDescription(trimToNull(request.description()));
-		Integer orderIndex = request.orderIndex();
-		task.setOrderIndex(orderIndex != null ? orderIndex : 0);
-		task.setRequiredTask(request.requiredTask() == null || request.requiredTask());
-		task.setActive(request.active() == null || request.active());
-		task.setOrganisationId(request.organisationId());
-		task.setChecklist(checklist);
+		TaskTemplate template = new TaskTemplate();
+		template.setTitle(request.title().trim());
+		template.setSectionTitle(trimToNull(request.sectionTitle()));
+		template.setSectionType(request.sectionType());
+		template.setUnit(trimToNull(request.unit()));
+		template.setTargetMin(request.targetMin());
+		template.setTargetMax(request.targetMax());
+		template.setChecklist(checklist);
+		template.setOrganisationId(checklist.getOrganization().getId());
 
-		return toResponse(taskRepository.save(task));
+		return toResponse(taskTemplateRepository.save(template));
 	}
 
 	@Override
 	public List<TaskResponse> getAllTasks() {
-		return taskRepository.findAll().stream()
+		return taskTemplateRepository.findAll().stream()
 			.map(this::toResponse)
 			.toList();
 	}
 
 	@Override
 	public TaskResponse getTaskById(Long taskId) {
-		TaskModel task = taskRepository.findById(taskId)
+		TaskTemplate template = taskTemplateRepository.findById(taskId)
 			.orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + taskId));
 
-		return toResponse(task);
+		return toResponse(template);
 	}
 
 	@Override
 	public void deleteTask(Long taskId) {
-		if (!taskRepository.existsById(taskId)) {
+		if (!taskTemplateRepository.existsById(taskId)) {
 			throw new IllegalArgumentException("Task not found with id: " + taskId);
 		}
-		taskRepository.deleteById(taskId);
+		taskTemplateRepository.deleteById(taskId);
 	}
 
-	private TaskResponse toResponse(TaskModel task) {
+	private TaskResponse toResponse(TaskTemplate template) {
 		return new TaskResponse(
-			task.getId(),
-			task.getTitle(),
-			task.getDescription(),
-			task.getOrderIndex(),
-			task.isRequiredTask(),
-			task.isActive(),
-			task.getChecklist() != null ? task.getChecklist().getId() : null
+			template.getId(),
+			template.getTitle(),
+			template.getSectionTitle(),
+			template.getSectionType(),
+			template.getUnit(),
+			template.getTargetMin(),
+			template.getTargetMax(),
+			template.getChecklist() != null ? template.getChecklist().getId() : null
 		);
 	}
 
@@ -89,14 +87,9 @@ public class TaskServiceImpl implements TaskService {
 		if (request.checklistId() == null) {
 			throw new IllegalArgumentException("Checklist id is required.");
 		}
-		if (request.orderIndex() != null && request.orderIndex() < 0) {
-			throw new IllegalArgumentException("Order index cannot be negative.");
-		}
-		if (request.organisationId() == null) {
-			throw new IllegalArgumentException("Organisation id is required.");
-		}
-		if (request.organisationId() < 1) {
-			throw new IllegalArgumentException("Organisation id must be greater than 0.");
+		if (request.targetMin() != null && request.targetMax() != null
+			&& request.targetMin().compareTo(request.targetMax()) > 0) {
+			throw new IllegalArgumentException("targetMin cannot be greater than targetMax.");
 		}
 	}
 

@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.common.model;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
 import jakarta.persistence.Column;
@@ -35,9 +36,8 @@ public class TaskTemplate extends AuditableEntity {
 	@Column(name = "target_max", precision = 5, scale = 2)
 	private BigDecimal targetMax;
 
-
 	@Column (nullable = false)
-	private int organisationId;
+	private UUID organisationId;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "checklist_id", nullable = false)
@@ -101,11 +101,11 @@ public class TaskTemplate extends AuditableEntity {
 		this.checklist = checklist;
 	}
 
-	public int getOrganisationId() {
+	public UUID getOrganisationId() {
 		return organisationId;
 	}
 
-	public void setOrganisationId(int organisationId) {
+	public void setOrganisationId(UUID organisationId) {
 		this.organisationId = organisationId;
 	}
 }
