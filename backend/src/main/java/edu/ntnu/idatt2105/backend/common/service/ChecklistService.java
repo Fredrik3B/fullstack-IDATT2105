@@ -38,5 +38,7 @@ public interface ChecklistService {
 		JwtAuthenticatedPrincipal principal
 	);
 
+	ChecklistCardResponse submitChecklist(Long checklistId, JwtAuthenticatedPrincipal principal);
+
 	void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal);
 }

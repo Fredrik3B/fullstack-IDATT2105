@@ -36,6 +36,9 @@ public class ChecklistModel extends AuditableEntity {
 	@Column(name = "compliance_area", nullable = false, length = 30)
 	private ComplianceArea complianceArea;
 
+	@Column(name = "active_period_key", nullable = false, length = 16)
+	private String activePeriodKey;
+
 	@Column(nullable = false)
 	private boolean active = true;
 
@@ -81,6 +84,14 @@ public class ChecklistModel extends AuditableEntity {
 
 	public void setComplianceArea(ComplianceArea complianceArea) {
 		this.complianceArea = complianceArea;
+	}
+
+	public String getActivePeriodKey() {
+		return activePeriodKey;
+	}
+
+	public void setActivePeriodKey(String activePeriodKey) {
+		this.activePeriodKey = activePeriodKey;
 	}
 
 	public boolean isActive() {

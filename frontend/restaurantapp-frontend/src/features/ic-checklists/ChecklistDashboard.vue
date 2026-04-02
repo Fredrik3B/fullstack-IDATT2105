@@ -18,10 +18,12 @@
         v-for="(card, cardIndex) in cards"
         :key="card.id ?? card.title"
         v-bind="card"
+        :now="now"
         :temperature-latest-by-task-id="temperatureLatestByTaskId"
         @toggle-task="emit('toggle-task', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @toggle-pending="emit('toggle-pending', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @edit-checklist="emit('edit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex })"
+        @submit-checklist="emit('submit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @log-temperature="emit('log-temperature', $event)"
       />
     </div>
@@ -73,10 +75,14 @@ defineProps({
   temperatureLatestByTaskId: {
     type: Object,
     default: null
+  },
+  now: {
+    type: [Date, String, Number],
+    default: null
   }
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'log-temperature', 'update:activePeriod', 'create', 'manage-tasks'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'submit-checklist', 'log-temperature', 'update:activePeriod', 'create', 'manage-tasks'])
 
 </script>
 

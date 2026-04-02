@@ -160,6 +160,20 @@ public class ChecklistController {
 		return checklistService.setTaskFlag(checklistId, taskId, request, principal);
 	}
 
+	@PutMapping("/{checklistId}/submit")
+	@Operation(summary = "Submit the current checklist period and start a new one")
+	@ApiResponse(responseCode = "200", description = "Checklist submitted")
+	public ChecklistCardResponse submitChecklist(@PathVariable Long checklistId, Authentication auth) {
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		LOGGER.info(
+			"IC submit checklist: orgId={} userId={} checklistId={}",
+			principal.getOrganizationId(),
+			principal.getUserId(),
+			checklistId
+		);
+		return checklistService.submitChecklist(checklistId, principal);
+	}
+
 	@DeleteMapping("/{checklistId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Operation(summary = "Delete a checklist")

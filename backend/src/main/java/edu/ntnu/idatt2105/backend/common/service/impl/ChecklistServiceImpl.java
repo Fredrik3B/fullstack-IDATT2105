@@ -11,6 +11,7 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.UpdateChecklistCardRequ
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.common.model.TasksModel;
+import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
@@ -69,7 +70,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		return checklists.stream()
 			.map(this::sortTemplates)
-			.map(checklist -> toCardResponse(checklist, ensureTasksForCurrentPeriod(checklist)))
+			.map(checklist -> toCardResponse(checklist, ensureTasksForActivePeriod(checklist)))
 			.toList();
 	}
 
@@ -86,13 +87,14 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setDescription(trimToNull(request.subtitle()));
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
 		checklist.setComplianceArea(requireModule(request.module()).toComplianceArea());
+		checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
 		checklist.setActive(true);
 		checklist.setOrganization(organization);
 		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
-		return toCardResponse(savedChecklist, ensureTasksForCurrentPeriod(savedChecklist));
+		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
 	}
 
 	@Override
@@ -105,14 +107,19 @@ public class ChecklistServiceImpl implements ChecklistService {
 		Objects.requireNonNull(request, "Checklist request cannot be null.");
 
 		ChecklistModel checklist = getChecklist(checklistId, safePrincipal.getOrganizationId());
+		ChecklistFrequency previousFrequency = checklist.getFrequency();
 		checklist.setName(requireText(request.title(), "title"));
 		checklist.setDescription(trimToNull(request.subtitle()));
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
+		if (!Objects.equals(previousFrequency, checklist.getFrequency())) {
+			checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
+			deactivateActiveTasks(checklist.getId());
+		}
 		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
-		return toCardResponse(savedChecklist, ensureTasksForCurrentPeriod(savedChecklist));
+		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
 	}
 
 	@Override
@@ -189,6 +196,25 @@ public class ChecklistServiceImpl implements ChecklistService {
 	}
 
 	@Override
+	public ChecklistCardResponse submitChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
+		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
+		String activePeriodKey = resolveActivePeriodKey(checklist);
+
+		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), activePeriodKey);
+		for (TasksModel task : activeTasks) {
+			task.setActive(false);
+		}
+		if (!activeTasks.isEmpty()) {
+			tasksRepository.saveAll(activeTasks);
+		}
+
+		checklist.setActivePeriodKey(PeriodKeyUtil.nextPeriodKey(checklist.getFrequency(), activePeriodKey));
+		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
+	}
+
+	@Override
 	public void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
 		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
 
@@ -228,9 +254,9 @@ public class ChecklistServiceImpl implements ChecklistService {
 		return new LinkedHashSet<>(selected);
 	}
 
-	private List<TasksModel> ensureTasksForCurrentPeriod(ChecklistModel checklist) {
-		String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault());
-		List<TasksModel> existing = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), currentPeriodKey);
+	private List<TasksModel> ensureTasksForActivePeriod(ChecklistModel checklist) {
+		String activePeriodKey = resolveActivePeriodKey(checklist);
+		List<TasksModel> existing = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), activePeriodKey);
 		Map<Long, TasksModel> existingByTemplateId = new LinkedHashMap<>();
 		for (TasksModel task : existing) {
 			if (task.getTaskTemplate() != null && task.getTaskTemplate().getId() != null) {
@@ -248,7 +274,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 				TasksModel task = new TasksModel();
 				task.setChecklist(checklist);
 				task.setTaskTemplate(template);
-				task.setPeriodKey(currentPeriodKey);
+				task.setPeriodKey(activePeriodKey);
 				task.setActive(true);
 				task.setCompleted(false);
 				task.setFlagged(false);
@@ -268,7 +294,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			tasksRepository.saveAll(toSave);
 		}
 
-		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), currentPeriodKey);
+		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), activePeriodKey);
 		activeTasks.sort(Comparator.comparing((TasksModel task) -> sectionLabel(task.getTaskTemplate().getSectionType()))
 			.thenComparing(task -> task.getTaskTemplate().getTitle(), String.CASE_INSENSITIVE_ORDER));
 		return activeTasks;
@@ -278,19 +304,42 @@ public class ChecklistServiceImpl implements ChecklistService {
 		int completedCount = (int) tasks.stream().filter(TasksModel::isCompleted).count();
 		int total = tasks.size();
 		Integer progress = total == 0 ? 0 : Math.toIntExact(Math.round((completedCount * 100.0) / total));
+		boolean completed = total > 0 && completedCount == total;
 
 		return new ChecklistCardResponse(
 			checklist.getId(),
 			PeriodKeyUtil.frequencyToPeriod(checklist.getFrequency()),
+			resolveActivePeriodKey(checklist),
 			checklist.getName(),
 			checklist.getDescription() != null ? checklist.getDescription() : "",
 			null,
 			Boolean.FALSE,
-			"",
-			"muted",
+			completed ? "Ready to submit" : "In progress",
+			completed ? "success" : "muted",
 			progress,
 			toSectionResponses(tasks)
 		);
+	}
+
+	private String resolveActivePeriodKey(ChecklistModel checklist) {
+		String key = checklist.getActivePeriodKey();
+		if (key == null || key.isBlank()) {
+			key = PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault());
+			checklist.setActivePeriodKey(key);
+			checklistRepository.save(checklist);
+		}
+		return key;
+	}
+
+	private void deactivateActiveTasks(Long checklistId) {
+		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndActiveTrue(checklistId);
+		if (activeTasks.isEmpty()) {
+			return;
+		}
+		for (TasksModel task : activeTasks) {
+			task.setActive(false);
+		}
+		tasksRepository.saveAll(activeTasks);
 	}
 
 	private List<ChecklistSectionResponse> toSectionResponses(List<TasksModel> tasks) {

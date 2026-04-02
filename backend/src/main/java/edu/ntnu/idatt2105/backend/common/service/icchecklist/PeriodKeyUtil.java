@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.IsoFields;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
 
@@ -86,6 +87,28 @@ public final class PeriodKeyUtil {
 		LocalDate.parse(key, DateTimeFormatter.ISO_LOCAL_DATE);
 	}
 
+	public static String nextPeriodKey(ChecklistFrequency frequency, String periodKey) {
+		validatePeriodKey(periodKey, frequency);
+		ChecklistFrequency freq = frequency != null ? frequency : ChecklistFrequency.DAILY;
+		String key = periodKey.trim();
+
+		if (freq == ChecklistFrequency.MONTHLY) {
+			return YearMonth.parse(key, MONTH_FORMATTER).plusMonths(1).format(MONTH_FORMATTER);
+		}
+
+		if (freq == ChecklistFrequency.WEEKLY) {
+			int isoYear = Integer.parseInt(key.substring(0, 4));
+			int week = Integer.parseInt(key.substring(6, 8));
+			LocalDate monday = LocalDate.of(isoYear, 1, 4)
+				.with(IsoFields.WEEK_BASED_YEAR, isoYear)
+				.with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, week)
+				.with(WeekFields.ISO.dayOfWeek(), 1);
+			return currentPeriodKey(freq, monday.plusWeeks(1));
+		}
+
+		return LocalDate.parse(key, DateTimeFormatter.ISO_LOCAL_DATE).plusDays(1).toString();
+	}
+
 	private static String normalizePeriod(String period) {
 		String raw = String.valueOf(period == null ? "" : period).trim();
 		if (raw.isEmpty()) return "daily";
@@ -97,4 +120,3 @@ public final class PeriodKeyUtil {
 		throw new IllegalArgumentException("Unsupported period: " + period);
 	}
 }
-

@@ -82,3 +82,8 @@ export async function updateChecklist({ checklistId, period, title, subtitle, ta
   })
   return data
 }
+
+export async function submitChecklist({ checklistId }) {
+  const { data } = await api.put(`/api/checklists/${checklistId}/submit`)
+  return data
+}

@@ -5,6 +5,7 @@ import java.util.List;
 public record ChecklistCardResponse(
 	Long id,
 	String period,
+	String activePeriodKey,
 	String title,
 	String subtitle,
 	String moduleChip,
@@ -15,4 +16,3 @@ public record ChecklistCardResponse(
 	List<ChecklistSectionResponse> sections
 ) {
 }
-

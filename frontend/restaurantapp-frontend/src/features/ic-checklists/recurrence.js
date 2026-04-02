@@ -65,6 +65,66 @@ export function getPeriodKey(periodEnumLike, date = new Date()) {
   return `${yyyy}-${mm}-${dd}`
 }
 
+function getWeekStart(isoYear, week) {
+  const jan4Utc = new Date(Date.UTC(isoYear, 0, 4))
+  const day = jan4Utc.getUTCDay() || 7
+  jan4Utc.setUTCDate(jan4Utc.getUTCDate() - day + 1)
+  jan4Utc.setUTCDate(jan4Utc.getUTCDate() + (week - 1) * 7)
+  return jan4Utc
+}
+
+function getPeriodStart(periodEnumLike, periodKey) {
+  const periodEnum = normalizePeriodEnum(periodEnumLike) ?? 'daily'
+  const key = String(periodKey ?? '').trim()
+  if (!key) return null
+
+  if (periodEnum === 'monthly') {
+    const match = key.match(/^(\d{4})-(\d{2})$/)
+    if (!match) return null
+    return new Date(Number(match[1]), Number(match[2]) - 1, 1, 0, 0, 0, 0)
+  }
+
+  if (periodEnum === 'weekly') {
+    const match = key.match(/^(\d{4})-W(\d{2})$/)
+    if (!match) return null
+    const weekStartUtc = getWeekStart(Number(match[1]), Number(match[2]))
+    return new Date(
+      weekStartUtc.getUTCFullYear(),
+      weekStartUtc.getUTCMonth(),
+      weekStartUtc.getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    )
+  }
+
+  const parsed = new Date(`${key}T00:00:00`)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+export function getPeriodEnd(periodEnumLike, periodKey) {
+  const periodEnum = normalizePeriodEnum(periodEnumLike) ?? 'daily'
+  const start = getPeriodStart(periodEnum, periodKey)
+  if (!start) return null
+
+  const end = new Date(start)
+  if (periodEnum === 'monthly') {
+    end.setMonth(end.getMonth() + 1)
+  } else if (periodEnum === 'weekly') {
+    end.setDate(end.getDate() + 7)
+  } else {
+    end.setDate(end.getDate() + 1)
+  }
+  return end
+}
+
+export function isPeriodExpired(periodEnumLike, periodKey, now = new Date()) {
+  const end = getPeriodEnd(periodEnumLike, periodKey)
+  if (!end) return false
+  return now.getTime() >= end.getTime()
+}
+
 export function getCardPeriodEnum(card) {
   if (!card || typeof card !== 'object') return null
 
@@ -123,7 +183,7 @@ export function deriveDisplayCards(cards, { activePeriodLabel, now = new Date() 
   return sourceCards
     .map((card, sourceIndex) => {
       const cardPeriodEnum = getCardPeriodEnum(card) ?? 'daily'
-      const currentPeriodKey = getPeriodKey(cardPeriodEnum, now)
+      const currentPeriodKey = String(card.activePeriodKey ?? '').trim() || getPeriodKey(cardPeriodEnum, now)
 
       const sections = Array.isArray(card.sections) ? card.sections : []
       const displaySections = sections.map((section) => {

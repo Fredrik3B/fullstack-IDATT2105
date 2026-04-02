@@ -15,6 +15,7 @@ const {
   displayCards,
   togglePending,
   toggleTask,
+  submitCard,
   logTemperatureMeasurement,
   temperatureLatestByTaskId,
   now
@@ -105,11 +106,13 @@ function editChecklist({ cardIndex }) {
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
     :cards="displayCards"
+    :now="now"
     :temperature-latest-by-task-id="temperatureLatestByTaskId"
     @manage-tasks="handleManageTasks"
     @create="handleCreate"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
+    @submit-checklist="submitCard"
     @log-temperature="logTemperatureMeasurement"
     @edit-checklist="editChecklist"
   />
