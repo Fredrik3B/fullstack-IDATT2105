@@ -2,9 +2,7 @@ package edu.ntnu.idatt2105.backend.common.service.impl;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistSectionResponse;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistSectionUpsertRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskUpsertRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
@@ -28,13 +26,14 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -67,21 +66,10 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		List<ChecklistModel> checklists = checklistRepository
 			.findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(safePrincipal.getOrganizationId(), area);
-		if (checklists.isEmpty()) {
-			return List.of();
-		}
-
-		List<Long> checklistIds = checklists.stream().map(ChecklistModel::getId).toList();
-		List<TaskTemplate> templates = taskTemplateRepository.findActiveByChecklistIdsOrdered(checklistIds);
-		Map<Long, List<TaskTemplate>> templatesByChecklist = templates.stream()
-			.collect(Collectors.groupingBy(template -> template.getChecklist().getId(), LinkedHashMap::new, Collectors.toList()));
 
 		return checklists.stream()
-			.map(checklist -> {
-				List<TaskTemplate> checklistTemplates = templatesByChecklist.getOrDefault(checklist.getId(), List.of());
-				List<TasksModel> periodTasks = ensureTasksForCurrentPeriod(checklist, checklistTemplates);
-				return toCardResponse(checklist, periodTasks);
-			})
+			.map(this::sortTemplates)
+			.map(checklist -> toCardResponse(checklist, ensureTasksForCurrentPeriod(checklist)))
 			.toList();
 	}
 
@@ -100,11 +88,11 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setComplianceArea(requireModule(request.module()).toComplianceArea());
 		checklist.setActive(true);
 		checklist.setOrganization(organization);
+		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
-		List<TaskTemplate> templates = replaceTemplates(savedChecklist, request.sections(), safePrincipal.getOrganizationId());
-		List<TasksModel> periodTasks = ensureTasksForCurrentPeriod(savedChecklist, templates);
-		return toCardResponse(savedChecklist, periodTasks);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist, ensureTasksForCurrentPeriod(savedChecklist));
 	}
 
 	@Override
@@ -116,17 +104,15 @@ public class ChecklistServiceImpl implements ChecklistService {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		Objects.requireNonNull(request, "Checklist request cannot be null.");
 
-		ChecklistModel checklist = checklistRepository.findByIdAndOrganization_Id(checklistId, safePrincipal.getOrganizationId())
-			.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
-
+		ChecklistModel checklist = getChecklist(checklistId, safePrincipal.getOrganizationId());
 		checklist.setName(requireText(request.title(), "title"));
 		checklist.setDescription(trimToNull(request.subtitle()));
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
+		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
-		List<TaskTemplate> templates = replaceTemplates(savedChecklist, request.sections(), safePrincipal.getOrganizationId());
-		List<TasksModel> periodTasks = ensureTasksForCurrentPeriod(savedChecklist, templates);
-		return toCardResponse(savedChecklist, periodTasks);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist, ensureTasksForCurrentPeriod(savedChecklist));
 	}
 
 	@Override
@@ -163,8 +149,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			task.setCompletedAt(null);
 		}
 
-		TasksModel saved = tasksRepository.save(task);
-		return toTaskItemResponse(saved);
+		return toTaskItemResponse(tasksRepository.save(task));
 	}
 
 	@Override
@@ -200,14 +185,12 @@ public class ChecklistServiceImpl implements ChecklistService {
 			task.setFlagged(false);
 		}
 
-		TasksModel saved = tasksRepository.save(task);
-		return toTaskItemResponse(saved);
+		return toTaskItemResponse(tasksRepository.save(task));
 	}
 
 	@Override
 	public void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
-		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
-		ChecklistModel checklist = getChecklist(checklistId, safePrincipal.getOrganizationId());
+		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
 
 		List<TasksModel> tasks = tasksRepository.findAllByChecklist_Id(checklistId);
 		if (!tasks.isEmpty()) {
@@ -215,83 +198,67 @@ public class ChecklistServiceImpl implements ChecklistService {
 			tasksRepository.deleteAll(tasks);
 		}
 
-		List<TaskTemplate> templates = taskTemplateRepository.findAllByChecklist_IdOrderBySectionTitleAscIdAsc(checklistId);
-		if (!templates.isEmpty()) {
-			taskTemplateRepository.deleteAll(templates);
-		}
-
 		checklistRepository.delete(checklist);
 	}
 
-	private List<TaskTemplate> replaceTemplates(
-		ChecklistModel checklist,
-		List<ChecklistSectionUpsertRequest> sections,
-		UUID organizationId
-	) {
-		List<TaskTemplate> existing = taskTemplateRepository.findAllByChecklist_IdOrderBySectionTitleAscIdAsc(checklist.getId());
-		if (!existing.isEmpty()) {
-			taskTemplateRepository.deleteAll(existing);
-		}
-
-		List<ChecklistSectionUpsertRequest> safeSections = sections != null ? sections : List.of();
-		List<TaskTemplate> templatesToSave = new ArrayList<>();
-
-		for (ChecklistSectionUpsertRequest section : safeSections) {
-			String sectionTitle = requireText(section.title(), "section.title");
-			List<ChecklistTaskUpsertRequest> items = section.items() != null ? section.items() : List.of();
-
-			for (ChecklistTaskUpsertRequest item : items) {
-				TaskTemplate template = new TaskTemplate();
-				template.setChecklist(checklist);
-				template.setOrganisationId(organizationId);
-				template.setTitle(requireText(item.label(), "task.label"));
-				template.setSectionTitle(sectionTitle);
-				template.setSectionType(resolveSectionType(sectionTitle, item.type()));
-				template.setUnit(trimToNull(item.unit()));
-				template.setTargetMin(item.targetMin());
-				template.setTargetMax(item.targetMax());
-				templatesToSave.add(template);
-			}
-		}
-
-		if (templatesToSave.isEmpty()) {
-			return List.of();
-		}
-
-		return taskTemplateRepository.saveAll(templatesToSave);
+	private ChecklistModel sortTemplates(ChecklistModel checklist) {
+		List<TaskTemplate> sorted = new ArrayList<>(checklist.getTaskTemplates());
+		sorted.sort(taskTemplateComparator());
+		checklist.setTaskTemplates(new LinkedHashSet<>(sorted));
+		return checklist;
 	}
 
-	private List<TasksModel> ensureTasksForCurrentPeriod(ChecklistModel checklist, List<TaskTemplate> templates) {
+	private Set<TaskTemplate> resolveSelectedTemplates(
+		List<Long> templateIds,
+		UUID organizationId,
+		ComplianceArea complianceArea
+	) {
+		if (templateIds == null || templateIds.isEmpty()) {
+			throw new IllegalArgumentException("taskTemplateIds must contain at least one task.");
+		}
+
+		List<TaskTemplate> selected = taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(
+			templateIds,
+			organizationId,
+			complianceArea
+		);
+		if (selected.size() != templateIds.stream().filter(Objects::nonNull).distinct().count()) {
+			throw new IllegalArgumentException("One or more selected tasks were not found.");
+		}
+		return new LinkedHashSet<>(selected);
+	}
+
+	private List<TasksModel> ensureTasksForCurrentPeriod(ChecklistModel checklist) {
 		String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault());
 		List<TasksModel> existing = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), currentPeriodKey);
-		Map<Long, TasksModel> existingByTemplateId = existing.stream()
-			.filter(task -> task.getTaskTemplate() != null && task.getTaskTemplate().getId() != null)
-			.collect(Collectors.toMap(task -> task.getTaskTemplate().getId(), task -> task, (left, right) -> left, LinkedHashMap::new));
+		Map<Long, TasksModel> existingByTemplateId = new LinkedHashMap<>();
+		for (TasksModel task : existing) {
+			if (task.getTaskTemplate() != null && task.getTaskTemplate().getId() != null) {
+				existingByTemplateId.put(task.getTaskTemplate().getId(), task);
+			}
+		}
 
 		List<TasksModel> toSave = new ArrayList<>();
-		Map<Long, TaskTemplate> templatesById = new LinkedHashMap<>();
-		for (TaskTemplate template : templates) {
-			if (template.getId() == null) {
-				continue;
-			}
-			templatesById.put(template.getId(), template);
-			TasksModel existingTask = existingByTemplateId.get(template.getId());
-			if (existingTask == null) {
-				TasksModel created = new TasksModel();
-				created.setChecklist(checklist);
-				created.setTaskTemplate(template);
-				created.setPeriodKey(currentPeriodKey);
-				created.setActive(true);
-				created.setCompleted(false);
-				created.setFlagged(false);
-				toSave.add(created);
+		Set<Long> selectedTemplateIds = new LinkedHashSet<>();
+		for (TaskTemplate template : checklist.getTaskTemplates()) {
+			Long templateId = template.getId();
+			if (templateId == null) continue;
+			selectedTemplateIds.add(templateId);
+			if (!existingByTemplateId.containsKey(templateId)) {
+				TasksModel task = new TasksModel();
+				task.setChecklist(checklist);
+				task.setTaskTemplate(template);
+				task.setPeriodKey(currentPeriodKey);
+				task.setActive(true);
+				task.setCompleted(false);
+				task.setFlagged(false);
+				toSave.add(task);
 			}
 		}
 
 		for (TasksModel task : existing) {
-			TaskTemplate template = task.getTaskTemplate();
-			Long templateId = template != null ? template.getId() : null;
-			if (templateId == null || !templatesById.containsKey(templateId)) {
+			Long templateId = task.getTaskTemplate() != null ? task.getTaskTemplate().getId() : null;
+			if (templateId == null || !selectedTemplateIds.contains(templateId)) {
 				task.setActive(false);
 				toSave.add(task);
 			}
@@ -301,13 +268,17 @@ public class ChecklistServiceImpl implements ChecklistService {
 			tasksRepository.saveAll(toSave);
 		}
 
-		return tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), currentPeriodKey);
+		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), currentPeriodKey);
+		activeTasks.sort(Comparator.comparing((TasksModel task) -> sectionLabel(task.getTaskTemplate().getSectionType()))
+			.thenComparing(task -> task.getTaskTemplate().getTitle(), String.CASE_INSENSITIVE_ORDER));
+		return activeTasks;
 	}
 
 	private ChecklistCardResponse toCardResponse(ChecklistModel checklist, List<TasksModel> tasks) {
 		int completedCount = (int) tasks.stream().filter(TasksModel::isCompleted).count();
 		int total = tasks.size();
 		Integer progress = total == 0 ? 0 : Math.toIntExact(Math.round((completedCount * 100.0) / total));
+
 		return new ChecklistCardResponse(
 			checklist.getId(),
 			PeriodKeyUtil.frequencyToPeriod(checklist.getFrequency()),
@@ -325,25 +296,24 @@ public class ChecklistServiceImpl implements ChecklistService {
 	private List<ChecklistSectionResponse> toSectionResponses(List<TasksModel> tasks) {
 		Map<String, List<TasksModel>> grouped = new LinkedHashMap<>();
 		for (TasksModel task : tasks) {
-			TaskTemplate template = task.getTaskTemplate();
-			String sectionTitle = template != null ? template.getSectionTitle() : null;
-			String key = sectionTitle == null || sectionTitle.isBlank() ? "Tasks" : sectionTitle.trim();
+			String key = sectionLabel(task.getTaskTemplate().getSectionType());
 			grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(task);
 		}
 
-		return grouped.entrySet().stream()
-			.map(entry -> new ChecklistSectionResponse(
+		List<ChecklistSectionResponse> sections = new ArrayList<>();
+		for (Map.Entry<String, List<TasksModel>> entry : grouped.entrySet()) {
+			entry.getValue().sort(Comparator.comparing(task -> task.getTaskTemplate().getTitle(), String.CASE_INSENSITIVE_ORDER));
+			sections.add(new ChecklistSectionResponse(
 				entry.getKey(),
 				entry.getValue().stream().map(this::toTaskItemResponse).toList()
-			))
-			.toList();
+			));
+		}
+		sections.sort(Comparator.comparing(ChecklistSectionResponse::title, String.CASE_INSENSITIVE_ORDER));
+		return sections;
 	}
 
 	private ChecklistTaskItemResponse toTaskItemResponse(TasksModel task) {
 		TaskTemplate template = task.getTaskTemplate();
-		if (template == null) {
-			throw new IllegalArgumentException("Activated task is missing template.");
-		}
 		String type = isTemperatureTemplate(template) ? "temperature" : null;
 		String state = "todo";
 		String completedForPeriodKey = null;
@@ -363,6 +333,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		return new ChecklistTaskItemResponse(
 			task.getId(),
+			template.getId(),
 			template.getTitle(),
 			task.getMeta(),
 			type,
@@ -378,31 +349,26 @@ public class ChecklistServiceImpl implements ChecklistService {
 	}
 
 	private boolean isTemperatureTemplate(TaskTemplate template) {
-		if (template.getSectionType() == SectionTypes.TEMPERATURE_CONTROL) {
-			return true;
-		}
 		return template.getUnit() != null || template.getTargetMin() != null || template.getTargetMax() != null;
 	}
 
-	private SectionTypes resolveSectionType(String sectionTitle, String itemType) {
-		if ("temperature".equalsIgnoreCase(String.valueOf(itemType))) {
-			return SectionTypes.TEMPERATURE_CONTROL;
-		}
+	private Comparator<TaskTemplate> taskTemplateComparator() {
+		return Comparator.comparing((TaskTemplate template) -> sectionLabel(template.getSectionType()), String.CASE_INSENSITIVE_ORDER)
+			.thenComparing(TaskTemplate::getTitle, String.CASE_INSENSITIVE_ORDER);
+	}
 
-		if (sectionTitle == null || sectionTitle.isBlank()) {
-			return null;
+	private String sectionLabel(SectionTypes sectionType) {
+		if (sectionType == null) {
+			return "Tasks";
 		}
-
-		String normalized = sectionTitle.trim().toUpperCase()
-			.replace('&', '_')
-			.replace('-', '_')
-			.replace(' ', '_');
-
-		try {
-			return SectionTypes.valueOf(normalized);
-		} catch (IllegalArgumentException ignored) {
-			return null;
+		String[] parts = sectionType.name().split("_");
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < parts.length; i++) {
+			if (i > 0) builder.append(' ');
+			String part = parts[i].toLowerCase();
+			builder.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
 		}
+		return builder.toString();
 	}
 
 	private ChecklistModel getChecklist(Long checklistId, UUID organizationId) {
@@ -442,16 +408,12 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 	private String requireText(String value, String fieldName) {
 		String trimmed = value == null ? "" : value.trim();
-		if (trimmed.isEmpty()) {
-			throw new IllegalArgumentException(fieldName + " is required.");
-		}
+		if (trimmed.isEmpty()) throw new IllegalArgumentException(fieldName + " is required.");
 		return trimmed;
 	}
 
 	private String trimToNull(String value) {
-		if (value == null) {
-			return null;
-		}
+		if (value == null) return null;
 		String trimmed = value.trim();
 		return trimmed.isEmpty() ? null : trimmed;
 	}

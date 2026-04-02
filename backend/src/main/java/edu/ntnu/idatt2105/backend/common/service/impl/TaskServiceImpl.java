@@ -1,12 +1,13 @@
 package edu.ntnu.idatt2105.backend.common.service.impl;
 
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.task.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.common.dto.task.TaskResponse;
-import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.common.service.TaskService;
+import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -14,79 +15,89 @@ import org.springframework.stereotype.Service;
 public class TaskServiceImpl implements TaskService {
 
 	private final TaskTemplateRepository taskTemplateRepository;
-	private final ChecklistRepository checklistRepository;
 
-	public TaskServiceImpl(TaskTemplateRepository taskTemplateRepository, ChecklistRepository checklistRepository) {
+	public TaskServiceImpl(TaskTemplateRepository taskTemplateRepository) {
 		this.taskTemplateRepository = taskTemplateRepository;
-		this.checklistRepository = checklistRepository;
 	}
 
 	@Override
-	public TaskResponse createTask(CreateTaskRequest request) {
+	public TaskResponse createTask(CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
-
-		ChecklistModel checklist = checklistRepository.findById(request.checklistId())
-			.orElseThrow(() -> new IllegalArgumentException("Checklist not found with id: " + request.checklistId()));
 
 		TaskTemplate template = new TaskTemplate();
 		template.setTitle(request.title().trim());
-		template.setSectionTitle(trimToNull(request.sectionTitle()));
 		template.setSectionType(request.sectionType());
+		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
 		template.setUnit(trimToNull(request.unit()));
 		template.setTargetMin(request.targetMin());
 		template.setTargetMax(request.targetMax());
-		template.setChecklist(checklist);
-		template.setOrganisationId(checklist.getOrganization().getId());
+		template.setOrganisationId(safePrincipal.getOrganizationId());
 
 		return toResponse(taskTemplateRepository.save(template));
 	}
 
 	@Override
-	public List<TaskResponse> getAllTasks() {
-		return taskTemplateRepository.findAll().stream()
+	public List<TaskResponse> getAllTasks(IcModule module, JwtAuthenticatedPrincipal principal) {
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
+		ComplianceArea complianceArea = requireModule(module).toComplianceArea();
+
+		return taskTemplateRepository
+			.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(safePrincipal.getOrganizationId(), complianceArea)
+			.stream()
 			.map(this::toResponse)
 			.toList();
 	}
 
 	@Override
-	public TaskResponse getTaskById(Long taskId) {
-		TaskTemplate template = taskTemplateRepository.findById(taskId)
-			.orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + taskId));
-
+	public TaskResponse getTaskById(Long taskId, JwtAuthenticatedPrincipal principal) {
+		TaskTemplate template = getTemplate(taskId, requirePrincipal(principal));
 		return toResponse(template);
 	}
 
 	@Override
-	public void deleteTask(Long taskId) {
-		if (!taskTemplateRepository.existsById(taskId)) {
+	public void deleteTask(Long taskId, JwtAuthenticatedPrincipal principal) {
+		TaskTemplate template = getTemplate(taskId, requirePrincipal(principal));
+		taskTemplateRepository.delete(template);
+	}
+
+	private TaskTemplate getTemplate(Long taskId, JwtAuthenticatedPrincipal principal) {
+		TaskTemplate template = taskTemplateRepository.findById(taskId)
+			.orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + taskId));
+		if (!template.getOrganisationId().equals(principal.getOrganizationId())) {
 			throw new IllegalArgumentException("Task not found with id: " + taskId);
 		}
-		taskTemplateRepository.deleteById(taskId);
+		return template;
 	}
 
 	private TaskResponse toResponse(TaskTemplate template) {
 		return new TaskResponse(
 			template.getId(),
+			toModule(template.getComplianceArea()),
 			template.getTitle(),
-			template.getSectionTitle(),
 			template.getSectionType(),
 			template.getUnit(),
 			template.getTargetMin(),
-			template.getTargetMax(),
-			template.getChecklist() != null ? template.getChecklist().getId() : null
+			template.getTargetMax()
 		);
 	}
 
+	private JwtAuthenticatedPrincipal requirePrincipal(JwtAuthenticatedPrincipal principal) {
+		if (principal == null) throw new IllegalArgumentException("Authentication required.");
+		if (principal.getOrganizationId() == null) throw new IllegalArgumentException("Organization required.");
+		return principal;
+	}
+
+	private IcModule requireModule(IcModule module) {
+		if (module == null) throw new IllegalArgumentException("module is required.");
+		return module;
+	}
+
 	private void validateRequest(CreateTaskRequest request) {
-		if (request == null) {
-			throw new IllegalArgumentException("Task request cannot be null.");
-		}
-		if (!hasText(request.title())) {
-			throw new IllegalArgumentException("Task title is required.");
-		}
-		if (request.checklistId() == null) {
-			throw new IllegalArgumentException("Checklist id is required.");
-		}
+		if (request == null) throw new IllegalArgumentException("Task request cannot be null.");
+		if (!hasText(request.title())) throw new IllegalArgumentException("Task title is required.");
+		if (request.module() == null) throw new IllegalArgumentException("module is required.");
+		if (request.sectionType() == null) throw new IllegalArgumentException("sectionType is required.");
 		if (request.targetMin() != null && request.targetMax() != null
 			&& request.targetMin().compareTo(request.targetMax()) > 0) {
 			throw new IllegalArgumentException("targetMin cannot be greater than targetMax.");
@@ -99,5 +110,12 @@ public class TaskServiceImpl implements TaskService {
 
 	private String trimToNull(String value) {
 		return hasText(value) ? value.trim() : null;
+	}
+
+	private IcModule toModule(ComplianceArea complianceArea) {
+		if (complianceArea == ComplianceArea.IK_ALKOHOL) {
+			return IcModule.IC_ALCOHOL;
+		}
+		return IcModule.IC_FOOD;
 	}
 }

@@ -55,18 +55,14 @@ public class ChecklistController {
 		Authentication auth
 	) {
 		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-		int sectionCount = request.sections() != null ? request.sections().size() : 0;
-		int taskCount = request.sections() == null ? 0 : request.sections().stream()
-			.mapToInt(s -> s.items() != null ? s.items().size() : 0)
-			.sum();
+		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
-			"IC create checklist: orgId={} userId={} module={} period={} title='{}' sections={} tasks={}",
+			"IC create checklist: orgId={} userId={} module={} period={} title='{}' taskTemplates={}",
 			principal.getOrganizationId(),
 			principal.getUserId(),
 			request.module(),
 			request.period(),
 			request.title(),
-			sectionCount,
 			taskCount
 		);
 
@@ -103,18 +99,14 @@ public class ChecklistController {
 		Authentication auth
 	) {
 		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-		int sectionCount = request.sections() != null ? request.sections().size() : 0;
-		int taskCount = request.sections() == null ? 0 : request.sections().stream()
-			.mapToInt(s -> s.items() != null ? s.items().size() : 0)
-			.sum();
+		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
-			"IC update checklist: orgId={} userId={} checklistId={} period={} title='{}' sections={} tasks={}",
+			"IC update checklist: orgId={} userId={} checklistId={} period={} title='{}' taskTemplates={}",
 			principal.getOrganizationId(),
 			principal.getUserId(),
 			checklistId,
 			request.period(),
 			request.title(),
-			sectionCount,
 			taskCount
 		);
 		ChecklistCardResponse updated = checklistService.updateChecklist(checklistId, request, principal);
