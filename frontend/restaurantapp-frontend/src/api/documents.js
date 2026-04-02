@@ -10,7 +10,7 @@ export async function fetchDocuments({ category, module } = {}) {
 
 export async function uploadDocument(formData) {
   const { data } = await api.post('/api/documents', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': undefined },
   })
   return data
 }
