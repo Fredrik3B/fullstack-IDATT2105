@@ -88,6 +88,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
 		checklist.setComplianceArea(requireModule(request.module()).toComplianceArea());
 		checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
+		checklist.setRecurring(Boolean.TRUE.equals(request.recurring()));
 		checklist.setActive(true);
 		checklist.setOrganization(organization);
 		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
@@ -111,6 +112,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setName(requireText(request.title(), "title"));
 		checklist.setDescription(trimToNull(request.subtitle()));
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
+		checklist.setRecurring(request.recurring() == null || Boolean.TRUE.equals(request.recurring()));
 		if (!Objects.equals(previousFrequency, checklist.getFrequency())) {
 			checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
 			deactivateActiveTasks(checklist.getId());
@@ -310,6 +312,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			checklist.getId(),
 			PeriodKeyUtil.frequencyToPeriod(checklist.getFrequency()),
 			resolveActivePeriodKey(checklist),
+			checklist.isRecurring(),
 			checklist.getName(),
 			checklist.getDescription() != null ? checklist.getDescription() : "",
 			null,

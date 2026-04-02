@@ -6,6 +6,7 @@ public record ChecklistCardResponse(
 	Long id,
 	String period,
 	String activePeriodKey,
+	Boolean recurring,
 	String title,
 	String subtitle,
 	String moduleChip,
