@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
 import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
+import ManageTaskTemplatesModal from '../../../features/ic-checklists/ManageTaskTemplatesModal.vue'
 import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
 import { createChecklist, fetchChecklists, updateChecklist } from '../../../api/checklists'
 
@@ -33,28 +34,27 @@ onMounted(async () => {
 })
 
 const isCreateOpen = ref(false)
+const isTaskPoolOpen = ref(false)
 function handleCreate() {
   isCreateOpen.value = true
 }
+function handleManageTasks() {
+  isTaskPoolOpen.value = true
+}
 async function handleCreatedChecklist(newCard) {
-  const optimisticIndex = cards.value.length
-  cards.value.push(newCard)
-
   try {
     const created = await createChecklist({
       module: 'IC_ALCOHOL',
       period: newCard?.period,
       title: newCard?.title,
       subtitle: newCard?.subtitle,
-      sections: newCard?.sections
+      taskTemplateIds: newCard?.taskTemplateIds
     })
     if (created) {
-      created.moduleChip = created.moduleChip ?? newCard?.moduleChip
-      created.featured = created.featured ?? newCard?.featured
-      cards.value.splice(optimisticIndex, 1, created)
+      cards.value.push(created)
     }
   } catch (err) {
-    console.error('Failed to create checklist; keeping optimistic card', err)
+    console.error('Failed to create checklist', err)
   }
 }
 
@@ -66,8 +66,6 @@ const editingCard = computed(() =>
 
 async function handleUpdatedChecklist(updatedCard) {
   if (!Number.isInteger(editingCardIndex.value)) return
-  const previous = cards.value[editingCardIndex.value]
-  cards.value.splice(editingCardIndex.value, 1, updatedCard)
 
   try {
     const saved = await updateChecklist({
@@ -75,16 +73,13 @@ async function handleUpdatedChecklist(updatedCard) {
       period: updatedCard?.period,
       title: updatedCard?.title,
       subtitle: updatedCard?.subtitle,
-      sections: updatedCard?.sections
+      taskTemplateIds: updatedCard?.taskTemplateIds
     })
     if (saved) {
-      saved.moduleChip = saved.moduleChip ?? updatedCard?.moduleChip
-      saved.featured = saved.featured ?? updatedCard?.featured
       cards.value.splice(editingCardIndex.value, 1, saved)
     }
   } catch (err) {
-    console.error('Failed to update checklist; reverting optimistic update', err)
-    cards.value.splice(editingCardIndex.value, 1, previous)
+    console.error('Failed to update checklist', err)
   }
 }
 
@@ -111,6 +106,7 @@ function editChecklist({ cardIndex }) {
     v-model:activePeriod="activePeriod"
     :cards="displayCards"
     :temperature-latest-by-task-id="temperatureLatestByTaskId"
+    @manage-tasks="handleManageTasks"
     @create="handleCreate"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
@@ -120,8 +116,9 @@ function editChecklist({ cardIndex }) {
 
   <CreateChecklistModal
     v-model:open="isCreateOpen"
+    module="IC_ALCOHOL"
     module-label="IC-Alcohol"
-    module-chip="IC-Alcohol"
+    @manage-tasks="handleManageTasks"
     @created="handleCreatedChecklist"
   />
 
@@ -129,9 +126,16 @@ function editChecklist({ cardIndex }) {
     v-model:open="isEditOpen"
     mode="edit"
     :initial-card="editingCard"
+    module="IC_ALCOHOL"
     module-label="IC-Alcohol"
-    module-chip="IC-Alcohol"
+    @manage-tasks="handleManageTasks"
     @close="editingCardIndex = null"
     @updated="handleUpdatedChecklist"
+  />
+
+  <ManageTaskTemplatesModal
+    v-model:open="isTaskPoolOpen"
+    module="IC_ALCOHOL"
+    module-label="IC-Alcohol"
   />
 </template>

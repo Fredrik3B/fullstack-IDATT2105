@@ -7,7 +7,9 @@
       :periods="periods"
       :active-period="activePeriod"
       :create-label="createLabel"
+      :manage-label="manageLabel"
       @update:activePeriod="emit('update:activePeriod', $event)"
+      @manage-tasks="emit('manage-tasks')"
       @create="emit('create')"
     />
 
@@ -60,6 +62,10 @@ defineProps({
     type: String,
     default: '+ New checklist'
   },
+  manageLabel: {
+    type: String,
+    default: 'Task pool'
+  },
   cards: {
     type: Array,
     required: true
@@ -70,7 +76,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'log-temperature', 'update:activePeriod', 'create'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'log-temperature', 'update:activePeriod', 'create', 'manage-tasks'])
 
 </script>
 

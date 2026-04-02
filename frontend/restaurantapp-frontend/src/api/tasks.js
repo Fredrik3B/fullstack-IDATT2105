@@ -5,12 +5,11 @@ export async function fetchTasks({ module }) {
   return data
 }
 
-export async function createTask({ module, title, sectionType, unit, targetMin, targetMax }) {
+export async function createTask({ module, title, sectionType, targetMin, targetMax }) {
   const { data } = await api.post('/api/tasks', {
     module,
     title,
     sectionType,
-    unit,
     targetMin,
     targetMax
   })

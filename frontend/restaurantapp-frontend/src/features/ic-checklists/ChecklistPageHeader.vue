@@ -20,6 +20,7 @@
         </button>
       </div>
 
+      <button type="button" class="manage-button" @click="emit('manage-tasks')">{{ manageLabel }}</button>
       <button type="button" class="create-button" @click="emit('create')">{{ createLabel }}</button>
     </div>
   </section>
@@ -50,11 +51,15 @@ defineProps({
   createLabel: {
     type: String,
     default: '+ New checklist'
+  },
+  manageLabel: {
+    type: String,
+    default: 'Task pool'
   }
 })
 
 
-const emit = defineEmits(['update:activePeriod', 'create'])
+const emit = defineEmits(['update:activePeriod', 'create', 'manage-tasks'])
 
 
 function handlePeriodClick(option) {
@@ -109,6 +114,7 @@ p {
 }
 
 .period-button,
+.manage-button,
 .create-button {
   border: 0;
   font-family: inherit;
@@ -128,6 +134,17 @@ p {
   background: #ffffff;
   color: var(--color-text-primary);
   box-shadow: var(--shadow-sm);
+}
+
+.manage-button {
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
 }
 
 .create-button {
@@ -159,4 +176,3 @@ p {
   }
 }
 </style>
-

@@ -27,20 +27,17 @@
             </select>
           </label>
 
-          <label class="field">
-            <span class="label">Unit (optional)</span>
-            <input v-model.trim="unit" class="input" type="text" maxlength="10" placeholder="e.g. C" />
-          </label>
+          <template v-if="isTemperatureControl">
+            <label class="field">
+              <span class="label">Target min (optional)</span>
+              <input v-model.number="targetMin" class="input" type="number" step="0.1" />
+            </label>
 
-          <label class="field">
-            <span class="label">Target min (optional)</span>
-            <input v-model.number="targetMin" class="input" type="number" step="0.1" />
-          </label>
-
-          <label class="field">
-            <span class="label">Target max (optional)</span>
-            <input v-model.number="targetMax" class="input" type="number" step="0.1" />
-          </label>
+            <label class="field">
+              <span class="label">Target max (optional)</span>
+              <input v-model.number="targetMax" class="input" type="number" step="0.1" />
+            </label>
+          </template>
         </div>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -55,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
@@ -77,15 +74,14 @@ const emit = defineEmits(['update:open', 'created', 'close'])
 
 const title = ref('')
 const sectionType = ref('')
-const unit = ref('')
 const targetMin = ref(null)
 const targetMax = ref(null)
 const error = ref('')
+const isTemperatureControl = computed(() => sectionType.value === 'TEMPERATURE_CONTROL')
 
 function reset() {
   title.value = ''
   sectionType.value = ''
-  unit.value = ''
   targetMin.value = null
   targetMax.value = null
   error.value = ''
@@ -94,9 +90,16 @@ function reset() {
 watch(
   () => props.open,
   (isOpen) => {
-    if (isOpen) reset()
+  if (isOpen) reset()
   }
 )
+
+watch(isTemperatureControl, (enabled) => {
+  if (!enabled) {
+    targetMin.value = null
+    targetMax.value = null
+  }
+})
 
 function close() {
   emit('update:open', false)
@@ -122,9 +125,8 @@ function submit() {
     module: props.module,
     title: title.value.trim(),
     sectionType: sectionType.value,
-    unit: unit.value.trim() || null,
-    targetMin: Number.isFinite(Number(targetMin.value)) ? Number(targetMin.value) : null,
-    targetMax: Number.isFinite(Number(targetMax.value)) ? Number(targetMax.value) : null
+    targetMin: isTemperatureControl.value && Number.isFinite(Number(targetMin.value)) ? Number(targetMin.value) : null,
+    targetMax: isTemperatureControl.value && Number.isFinite(Number(targetMax.value)) ? Number(targetMax.value) : null
   })
   close()
 }

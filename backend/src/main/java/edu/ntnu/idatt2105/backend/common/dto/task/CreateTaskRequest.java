@@ -19,9 +19,6 @@ public record CreateTaskRequest(
 
 	SectionTypes sectionType,
 
-	@Size(max = 10)
-	String unit,
-
 	@DecimalMin("-999.99")
 	@DecimalMax("999.99")
 	BigDecimal targetMin,

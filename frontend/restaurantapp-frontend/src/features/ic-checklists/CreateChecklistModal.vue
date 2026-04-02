@@ -33,99 +33,36 @@
           </label>
         </div>
 
-        <div class="sections">
-          <div class="sections-header">
-            <h3>Sections</h3>
-            <button type="button" class="ghost-button" @click="addSection">+ Add section</button>
+        <section class="task-pool">
+          <div class="task-pool-header">
+            <div>
+              <h3>Task pool</h3>
+              <p>Select existing tasks for this checklist. Tasks are grouped and ordered automatically.</p>
+            </div>
           </div>
 
-          <div v-for="(section, idx) in sections" :key="section.id" class="section">
-            <div class="section-top">
-              <label class="field">
-                <span class="label">Section title</span>
-                <input v-model.trim="section.title" class="input" type="text" placeholder="e.g. Hygiene" required />
+          <div class="task-pool-linkbar">
+            <span>Need to add or remove company tasks first?</span>
+            <button type="button" class="link-button" @click="emit('manage-tasks')">Open task pool manager</button>
+          </div>
+
+          <div v-if="loadingTasks" class="tasks-state">Loading tasks...</div>
+          <div v-else-if="groupedTasks.length === 0" class="tasks-state">
+            No tasks in the pool yet. Create one first.
+          </div>
+          <div v-else class="task-groups">
+            <section v-for="group in groupedTasks" :key="group.sectionType" class="task-group">
+              <div class="task-group-title">{{ group.title }}</div>
+              <label v-for="task in group.items" :key="task.id" class="task-option">
+                <input v-model="selectedTaskIds" type="checkbox" :value="task.id" />
+                <div class="task-option-copy">
+                  <span class="task-option-title">{{ task.title }}</span>
+                  <span v-if="taskSummary(task)" class="task-option-meta">{{ taskSummary(task) }}</span>
+                </div>
               </label>
-
-              <button
-                v-if="sections.length > 1"
-                type="button"
-                class="danger-ghost"
-                @click="removeSection(idx)"
-              >
-                Remove
-              </button>
-            </div>
-
-            <div class="tasks">
-              <div class="tasks-header">
-                <div class="tasks-title">Tasks</div>
-                <div class="tasks-actions">
-                  <button type="button" class="ghost-button ghost-button--compact" @click="toggleAddTaskMenu(idx)">
-                    + Add task
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="section.isAddTaskMenuOpen" class="add-task-menu" role="group" aria-label="Choose task type">
-                <button type="button" class="ghost-button ghost-button--compact" @click="addTask(idx, 'standard')">
-                  Standard task
-                </button>
-                <button type="button" class="ghost-button ghost-button--compact" @click="addTask(idx, 'temperature')">
-                  Temperature point
-                </button>
-              </div>
-
-              <div v-if="section.tasks.length === 0" class="tasks-empty">No tasks yet.</div>
-
-              <div v-for="(task, taskIdx) in section.tasks" :key="task.id" class="task-editor">
-                <div class="task-editor-top">
-                  <label class="field field--inline">
-                    <span class="label">Type</span>
-                    <select v-model="task.kind" class="input input--compact">
-                      <option value="standard">Standard</option>
-                      <option value="temperature">Temperature</option>
-                    </select>
-                  </label>
-
-                  <button type="button" class="danger-ghost danger-ghost--compact" @click="removeTask(idx, taskIdx)">
-                    Remove
-                  </button>
-                </div>
-
-                <div class="task-grid">
-                  <label class="field full">
-                    <span class="label">Label</span>
-                    <input
-                      v-model.trim="task.label"
-                      class="input"
-                      type="text"
-                      :placeholder="task.kind === 'temperature' ? 'e.g. Cold room 1' : 'e.g. Wash hands'"
-                      required
-                    />
-                  </label>
-
-                  <template v-if="task.kind === 'standard'">
-                    <label class="field full">
-                      <span class="label">Meta (optional)</span>
-                      <input v-model.trim="task.meta" class="input" type="text" placeholder="e.g. 08:30" />
-                    </label>
-                  </template>
-
-                  <template v-else>
-                    <label class="field">
-                      <span class="label">Min (C)</span>
-                      <input v-model.number="task.targetMin" class="input" type="number" step="0.1" placeholder="e.g. 2" />
-                    </label>
-                    <label class="field">
-                      <span class="label">Max (C)</span>
-                      <input v-model.number="task.targetMax" class="input" type="number" step="0.1" placeholder="e.g. 4" />
-                    </label>
-                  </template>
-                </div>
-              </div>
-            </div>
+            </section>
           </div>
-        </div>
+        </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
 
@@ -135,11 +72,14 @@
         </footer>
       </form>
     </div>
+
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { fetchTasks } from '../../api/tasks'
+import { formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
   open: {
@@ -155,74 +95,73 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  moduleLabel: {
+  module: {
     type: String,
-    default: ''
+    required: true
   },
-  moduleChip: {
+  moduleLabel: {
     type: String,
     default: ''
   }
 })
 
-const emit = defineEmits(['update:open', 'close', 'created', 'updated'])
-
-function randomId(prefix = 'id') {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return `${prefix}-${crypto.randomUUID()}`
-  return `${prefix}-${Math.random().toString(16).slice(2)}-${Date.now()}`
-}
+const emit = defineEmits(['update:open', 'close', 'created', 'updated', 'manage-tasks'])
 
 const title = ref('')
 const subtitle = ref('')
 const period = ref('daily')
 const error = ref('')
+const poolTasks = ref([])
+const selectedTaskIds = ref([])
+const loadingTasks = ref(false)
 
 const isEditMode = computed(() => props.mode === 'edit')
 const modalTitle = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
 const modalSubtitle = computed(() =>
-  isEditMode.value ? 'Update the recurring checklist card.' : 'Build a new recurring checklist card.'
+  isEditMode.value
+    ? 'Choose which reusable tasks belong to this checklist.'
+    : 'Build a checklist by selecting tasks from the shared pool.'
 )
 const submitLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Create'))
 const dialogAriaLabel = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
 
-const sections = ref([
-  {
-    id: randomId('section'),
-    title: 'Tasks',
-    isAddTaskMenuOpen: false,
-    tasks: []
+const groupedTasks = computed(() => {
+  const groups = new Map()
+  for (const task of poolTasks.value) {
+    const key = task.sectionType || 'UNSORTED'
+    if (!groups.has(key)) {
+      groups.set(key, {
+        sectionType: key,
+        title: formatSectionType(key),
+        items: []
+      })
+    }
+    groups.get(key).items.push(task)
   }
-])
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      items: [...group.items].sort((a, b) => String(a.title).localeCompare(String(b.title)))
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title))
+})
 
 function resetForm() {
   title.value = ''
   subtitle.value = ''
   period.value = 'daily'
   error.value = ''
-  sections.value = [{ id: randomId('section'), title: 'Tasks', isAddTaskMenuOpen: false, tasks: [] }]
+  selectedTaskIds.value = []
 }
 
-function normalizeTaskForForm(task) {
-  const kind = task?.type === 'temperature' ? 'temperature' : 'standard'
-
-  if (kind === 'temperature') {
-    return {
-      id: task?.id ?? randomId('task'),
-      kind: 'temperature',
-      label: String(task?.label ?? '').trim(),
-      meta: String(task?.meta ?? ''),
-      unit: String(task?.unit ?? 'C'),
-      targetMin: Number.isFinite(task?.targetMin) ? task.targetMin : null,
-      targetMax: Number.isFinite(task?.targetMax) ? task.targetMax : null
-    }
+function taskSummary(task) {
+  const fragments = []
+  if (task.unit) fragments.push(`Unit: ${task.unit}`)
+  if (task.targetMin != null || task.targetMax != null) {
+    fragments.push(`Range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)
   }
-
-  return {
-    id: task?.id ?? randomId('task'),
-    kind: 'standard',
-    label: String(task?.label ?? '').trim(),
-    meta: String(task?.meta ?? '')
-  }
+  return fragments.join(' · ')
 }
 
 function initFromCard(card) {
@@ -230,104 +169,51 @@ function initFromCard(card) {
     resetForm()
     return
   }
-
   title.value = String(card.title ?? '').trim()
   subtitle.value = String(card.subtitle ?? '').trim()
   period.value = String(card.period ?? 'daily')
   error.value = ''
 
-  const sourceSections = Array.isArray(card.sections) ? card.sections : []
-  if (sourceSections.length === 0) {
-    sections.value = [{ id: randomId('section'), title: 'Tasks', isAddTaskMenuOpen: false, tasks: [] }]
-    return
-  }
-
-  sections.value = sourceSections.map((section) => {
+  const ids = []
+  const sections = Array.isArray(card.sections) ? card.sections : []
+  sections.forEach((section) => {
     const items = Array.isArray(section.items) ? section.items : []
-    return {
-      id: randomId('section'),
-      title: String(section.title ?? 'Tasks').trim() || 'Tasks',
-      isAddTaskMenuOpen: false,
-      tasks: items.map(normalizeTaskForForm)
-    }
+    items.forEach((item) => {
+      if (item?.templateId != null) ids.push(item.templateId)
+    })
   })
+  selectedTaskIds.value = [...new Set(ids)]
+}
+
+async function loadTasks() {
+  loadingTasks.value = true
+  try {
+    const data = await fetchTasks({ module: props.module })
+    poolTasks.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Failed to fetch task pool', err)
+    error.value = 'Could not load task pool.'
+  } finally {
+    loadingTasks.value = false
+  }
 }
 
 watch(
   () => props.open,
-  (isOpen) => {
+  async (isOpen) => {
     if (!isOpen) return
+    resetForm()
     if (isEditMode.value) initFromCard(props.initialCard)
-    else resetForm()
+    await loadTasks()
   }
 )
 
 watch(
   () => props.initialCard,
   (nextCard) => {
-    if (!props.open) return
-    if (!isEditMode.value) return
-    initFromCard(nextCard)
+    if (props.open && isEditMode.value) initFromCard(nextCard)
   }
 )
-
-function addSection() {
-  sections.value.push({
-    id: randomId('section'),
-    title: `Section ${sections.value.length + 1}`,
-    isAddTaskMenuOpen: false,
-    tasks: []
-  })
-}
-
-function removeSection(index) {
-  sections.value.splice(index, 1)
-}
-
-function toggleAddTaskMenu(sectionIndex) {
-  const section = sections.value[sectionIndex]
-  if (!section) return
-  section.isAddTaskMenuOpen = !section.isAddTaskMenuOpen
-}
-
-function addTask(sectionIndex, kind) {
-  const section = sections.value[sectionIndex]
-  if (!section) return
-
-  if (kind === 'temperature') {
-    section.tasks.push({
-      id: randomId('task'),
-      kind: 'temperature',
-      label: '',
-      meta: '',
-      unit: 'C',
-      targetMin: null,
-      targetMax: null
-    })
-    section.isAddTaskMenuOpen = false
-    return
-  }
-
-  section.tasks.push({
-    id: randomId('task'),
-    kind: 'standard',
-    label: '',
-    meta: ''
-  })
-  section.isAddTaskMenuOpen = false
-}
-
-function removeTask(sectionIndex, taskIndex) {
-  const section = sections.value[sectionIndex]
-  if (!section) return
-  section.tasks.splice(taskIndex, 1)
-}
-
-function periodLabel(value) {
-  if (value === 'weekly') return 'Weekly'
-  if (value === 'monthly') return 'Monthly'
-  return 'Daily'
-}
 
 function handleClose() {
   emit('update:open', false)
@@ -337,124 +223,25 @@ function handleClose() {
 function handleSubmit() {
   error.value = ''
 
-  const previousCard = isEditMode.value ? props.initialCard : null
-  const previousSections = previousCard && Array.isArray(previousCard.sections) ? previousCard.sections : []
-  const previousTasksById = new Map()
-  previousSections.forEach((section) => {
-    const items = Array.isArray(section.items) ? section.items : []
-    items.forEach((task) => {
-      if (task?.id) previousTasksById.set(task.id, task)
-    })
-  })
-
-  const sectionPayload = sections.value
-    .map((section) => {
-      const safeTasks = Array.isArray(section.tasks) ? section.tasks : []
-      const missingLabels = safeTasks.some((task) => !String(task?.label ?? '').trim())
-      if (missingLabels) return { __error: 'Fill in all task labels or remove empty tasks.' }
-
-      const items = safeTasks
-        .map((formTask) => {
-          const taskId = formTask?.id ?? randomId('task')
-          const previousTask = previousTasksById.get(taskId) ?? null
-          const label = String(formTask?.label ?? '').trim()
-
-          if (formTask?.kind === 'temperature') {
-            const base = previousTask ? { ...previousTask } : { id: taskId, meta: '', state: 'todo' }
-            return {
-              ...base,
-              id: taskId,
-              label,
-              type: 'temperature',
-              unit: 'C',
-              targetMin: Number.isFinite(Number(formTask?.targetMin)) ? Number(formTask.targetMin) : null,
-              targetMax: Number.isFinite(Number(formTask?.targetMax)) ? Number(formTask.targetMax) : null
-            }
-          }
-
-          const base = previousTask ? { ...previousTask } : { id: taskId, meta: '', state: 'todo' }
-          const candidate = {
-            ...base,
-            id: taskId,
-            label,
-            meta: String(formTask?.meta ?? base.meta ?? '')
-          }
-          // Remove temperature-only fields if the user changed type back to standard.
-          // This ensures the checklist stays declarative and measurements remain linked to `taskId`.
-          // Backend should treat `taskId` as stable, and measurements should always reference that id.
-          // eslint-disable-next-line no-unused-vars
-          const { type, unit, targetMin, targetMax, ...clean } = candidate
-          return clean
-        })
-        .filter((task) => Boolean(task?.label))
-
-      return {
-        title: String(section.title || 'Tasks').trim(),
-        items
-      }
-    })
-    .filter((section) => section && !section.__error && section.items.length > 0)
-
-  const firstSectionError = sections.value
-    .map((section) => {
-      const safeTasks = Array.isArray(section.tasks) ? section.tasks : []
-      const missingLabels = safeTasks.some((task) => !String(task?.label ?? '').trim())
-      return missingLabels ? 'Fill in all task labels or remove empty tasks.' : null
-    })
-    .find(Boolean)
-
-  if (firstSectionError) {
-    error.value = firstSectionError
-    return
-  }
-
   if (!title.value.trim()) {
     error.value = 'Title is required.'
     return
   }
-
-  if (sectionPayload.length === 0) {
-    error.value = 'Add at least one task.'
+  if (selectedTaskIds.value.length === 0) {
+    error.value = 'Select at least one task from the pool.'
     return
   }
 
-  const defaultSubtitle = `${periodLabel(period.value)} checklist`
+  const payload = {
+    id: isEditMode.value ? props.initialCard?.id ?? null : null,
+    period: period.value,
+    title: title.value.trim(),
+    subtitle: subtitle.value.trim(),
+    taskTemplateIds: [...selectedTaskIds.value]
+  }
 
-  const resolvedModuleChip = props.moduleChip || props.moduleLabel
-
-  const nextCard = isEditMode.value
-    ? {
-        ...(previousCard ?? {}),
-        id: previousCard?.id ?? randomId('checklist'),
-        period: period.value,
-        title: title.value.trim(),
-        subtitle: subtitle.value.trim(),
-        moduleChip: previousCard?.moduleChip ?? resolvedModuleChip,
-        sections: sectionPayload
-      }
-    : {
-        id: randomId('checklist'),
-        period: period.value,
-        title: title.value.trim(),
-        subtitle: subtitle.value.trim() || defaultSubtitle,
-        statusLabel: '',
-        statusTone: 'muted',
-        progress: null,
-        featured: false,
-        moduleChip: resolvedModuleChip,
-        sections: sectionPayload
-      }
-
-  // Backend TODO:
-  // Call POST/PUT /api/checklists here (or from the parent) and use the returned ids.
-  //
-  // IMPORTANT for temperature measurements:
-  // - The backend must treat `task.id` as a stable identifier.
-  // - Temperature measurements should reference { module, checklistId, taskId }.
-  // - Renaming/reordering tasks must NOT create new task ids unless the task is actually deleted.
-  // See: `frontend/restaurantapp-frontend/src/api/checklists.js`
-  if (isEditMode.value) emit('updated', nextCard)
-  else emit('created', nextCard)
+  if (isEditMode.value) emit('updated', payload)
+  else emit('created', payload)
   handleClose()
 }
 </script>
@@ -518,243 +305,189 @@ h2 {
   border: 0;
   background: rgba(255, 255, 255, 0.9);
   color: var(--color-text-primary);
-  font: inherit;
-  font-weight: var(--font-weight-bold);
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  font-size: 28px;
+  line-height: 1;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
 }
 
 .modal-body {
-  flex: 1 1 auto;
-  padding: 18px 20px 20px;
+  padding: 20px;
   overflow: auto;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: 1fr 220px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  gap: 8px;
 }
 
-.field.full {
+.full {
   grid-column: 1 / -1;
 }
 
 .label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
+  font-size: 13px;
+  font-weight: 700;
   color: var(--color-text-secondary);
 }
 
-.input,
-.textarea {
-  border-radius: 14px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-  padding: 12px 14px;
-  font: inherit;
-}
-
-.input--compact {
+.input {
+  width: 100%;
+  min-height: 44px;
   padding: 10px 12px;
-}
-
-.textarea {
-  resize: vertical;
-}
-
-.sections {
-  margin-top: 18px;
-  display: grid;
-  gap: 12px;
-}
-
-.sections-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-h3 {
-  margin: 0;
-  font-size: 16px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.section {
-  padding: 14px;
+  border-radius: 12px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: 18px;
-  background: rgba(242, 243, 250, 0.5);
+  background: white;
 }
 
-.section-top {
+.task-pool {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.task-pool-header {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
 }
 
-.tasks {
-  display: grid;
-  gap: 10px;
+.task-pool-header h3 {
+  margin: 0;
+  font-size: 18px;
 }
 
-.tasks-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.tasks-title {
-  font-size: 13px;
-  font-weight: var(--font-weight-bold);
+.task-pool-header p {
+  margin: 6px 0 0;
   color: var(--color-text-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
-.tasks-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.add-task-menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.tasks-empty {
+.task-pool-linkbar {
+  margin-bottom: 16px;
   padding: 12px 14px;
   border-radius: 14px;
-  border: 1px dashed var(--color-border-subtle);
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-bold);
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.task-editor {
-  padding: 12px 12px 10px;
-  border-radius: 16px;
-  border: 1px solid var(--color-border-subtle);
-  background: rgba(255, 255, 255, 0.75);
-}
-
-.task-editor-top {
+  background: rgba(246, 247, 252, 0.85);
+  border: 1px solid rgba(222, 226, 239, 0.9);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  color: var(--color-text-muted);
+  font-size: 14px;
 }
 
-.task-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.field--inline {
-  margin: 0;
-}
-
-.ghost-button--compact,
-.danger-ghost--compact {
-  padding: 10px 12px;
-}
-
-.danger-ghost--compact {
-  border-color: rgba(190, 40, 40, 0.22);
-}
-
-.task-grid .full {
-  grid-column: 1 / -1;
-}
-
-.ghost-button,
-.danger-ghost {
-  border: 1px solid rgba(45, 43, 85, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
+.link-button {
+  border: 0;
+  background: transparent;
   color: var(--color-text-primary);
-  padding: 10px 14px;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.danger-ghost {
-  border-color: rgba(190, 40, 40, 0.25);
-  color: rgba(190, 40, 40, 0.95);
+.tasks-state {
+  padding: 18px 0;
+  color: var(--color-text-muted);
+}
+
+.task-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.task-group {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(246, 247, 252, 0.85);
+  border: 1px solid rgba(222, 226, 239, 0.9);
+}
+
+.task-group-title {
+  margin-bottom: 12px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.task-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 0;
+}
+
+.task-option + .task-option {
+  border-top: 1px solid rgba(210, 213, 230, 0.65);
+}
+
+.task-option-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.task-option-title {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.task-option-meta {
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .error {
-  margin: 12px 0 0;
-  color: rgba(190, 40, 40, 0.95);
-  font-weight: var(--font-weight-bold);
+  margin-top: 14px;
+  color: #a11d2d;
 }
 
 .modal-footer {
+  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 12px;
 }
 
 .primary,
 .secondary {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
   border: 0;
-  border-radius: 14px;
-  padding: 12px 16px;
-  font: inherit;
-  font-weight: var(--font-weight-bold);
   cursor: pointer;
 }
 
 .primary {
-  background: var(--color-dark-secondary);
-  color: var(--color-accent);
-  box-shadow: var(--shadow-md);
+  background: var(--color-text-primary);
+  color: white;
 }
 
 .secondary {
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(0, 0, 0, 0.06);
   color: var(--color-text-primary);
-  border: 1px solid rgba(45, 43, 85, 0.14);
-  box-shadow: var(--shadow-sm);
 }
 
-@media (max-width: 700px) {
-  .overlay {
-    padding-top: 24px;
-    padding-bottom: 16px;
-  }
-
+@media (max-width: 720px) {
   .grid {
     grid-template-columns: 1fr;
   }
 
-  .task-grid {
-    grid-template-columns: 1fr;
+  .task-pool-header {
+    flex-direction: column;
+  }
+
+  .task-pool-linkbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

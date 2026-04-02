@@ -24,14 +24,15 @@ public class TaskServiceImpl implements TaskService {
 	public TaskResponse createTask(CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
+		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
 
 		TaskTemplate template = new TaskTemplate();
 		template.setTitle(request.title().trim());
 		template.setSectionType(request.sectionType());
 		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
-		template.setUnit(trimToNull(request.unit()));
-		template.setTargetMin(request.targetMin());
-		template.setTargetMax(request.targetMax());
+		template.setUnit(isTemperatureControl ? "C" : null);
+		template.setTargetMin(isTemperatureControl ? request.targetMin() : null);
+		template.setTargetMax(isTemperatureControl ? request.targetMax() : null);
 		template.setOrganisationId(safePrincipal.getOrganizationId());
 
 		return toResponse(taskTemplateRepository.save(template));
@@ -98,6 +99,10 @@ public class TaskServiceImpl implements TaskService {
 		if (!hasText(request.title())) throw new IllegalArgumentException("Task title is required.");
 		if (request.module() == null) throw new IllegalArgumentException("module is required.");
 		if (request.sectionType() == null) throw new IllegalArgumentException("sectionType is required.");
+		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
+		if (!isTemperatureControl && (request.targetMin() != null || request.targetMax() != null)) {
+			throw new IllegalArgumentException("targetMin and targetMax are only allowed for TEMPERATURE_CONTROL.");
+		}
 		if (request.targetMin() != null && request.targetMax() != null
 			&& request.targetMin().compareTo(request.targetMax()) > 0) {
 			throw new IllegalArgumentException("targetMin cannot be greater than targetMax.");
@@ -106,10 +111,6 @@ public class TaskServiceImpl implements TaskService {
 
 	private boolean hasText(String value) {
 		return value != null && !value.trim().isEmpty();
-	}
-
-	private String trimToNull(String value) {
-		return hasText(value) ? value.trim() : null;
 	}
 
 	private IcModule toModule(ComplianceArea complianceArea) {
