@@ -27,6 +27,23 @@
             </select>
           </label>
 
+          <label class="field full toggle-field">
+            <span class="label">Workbench behavior</span>
+            <button type="button" class="toggle-card" :class="{ active: recurring }" @click="recurring = !recurring">
+              <span class="toggle-copy">
+                <span class="toggle-title">{{ recurring ? 'Recurring on workbench' : 'Library only' }}</span>
+                <span class="toggle-text">
+                  {{ recurring
+                    ? 'This checklist stays on the workbench and repeats by its selected period.'
+                    : 'This checklist is saved in the library and only appears when someone loads it manually.' }}
+                </span>
+              </span>
+              <span class="toggle-pill" :class="{ active: recurring }">
+                <span class="toggle-knob"></span>
+              </span>
+            </button>
+          </label>
+
           <label class="field full">
             <span class="label">Subtitle (optional)</span>
             <input v-model.trim="subtitle" class="input" type="text" placeholder="e.g. Daily - opening" />
@@ -110,6 +127,7 @@ const emit = defineEmits(['update:open', 'close', 'created', 'updated', 'manage-
 const title = ref('')
 const subtitle = ref('')
 const period = ref('daily')
+const recurring = ref(true)
 const error = ref('')
 const poolTasks = ref([])
 const selectedTaskIds = ref([])
@@ -151,6 +169,7 @@ function resetForm() {
   title.value = ''
   subtitle.value = ''
   period.value = 'daily'
+  recurring.value = true
   error.value = ''
   selectedTaskIds.value = []
 }
@@ -172,6 +191,7 @@ function initFromCard(card) {
   title.value = String(card.title ?? '').trim()
   subtitle.value = String(card.subtitle ?? '').trim()
   period.value = String(card.period ?? 'daily')
+  recurring.value = card.recurring !== false
   error.value = ''
 
   const ids = []
@@ -237,6 +257,7 @@ function handleSubmit() {
     period: period.value,
     title: title.value.trim(),
     subtitle: subtitle.value.trim(),
+    recurring: recurring.value,
     taskTemplateIds: [...selectedTaskIds.value]
   }
 
@@ -346,6 +367,71 @@ h2 {
   border-radius: 12px;
   border: 1px solid var(--color-border-subtle);
   background: white;
+}
+
+.toggle-field {
+  margin-top: 2px;
+}
+
+.toggle-card {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid rgba(214, 219, 235, 0.95);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248, 249, 253, 0.98) 0%, rgba(242, 244, 250, 0.98) 100%);
+  cursor: pointer;
+  text-align: left;
+}
+
+.toggle-card.active {
+  border-color: rgba(83, 122, 28, 0.34);
+  background: linear-gradient(180deg, rgba(244, 249, 231, 0.98) 0%, rgba(235, 245, 212, 0.98) 100%);
+}
+
+.toggle-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.toggle-title {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 800;
+}
+
+.toggle-text {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.toggle-pill {
+  flex-shrink: 0;
+  width: 54px;
+  height: 30px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(45, 43, 85, 0.18);
+  display: inline-flex;
+  align-items: center;
+  transition: background 140ms ease;
+}
+
+.toggle-pill.active {
+  justify-content: flex-end;
+  background: var(--color-success-border);
+}
+
+.toggle-knob {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 4px 12px rgba(18, 22, 34, 0.14);
 }
 
 .task-pool {
