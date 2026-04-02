@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { useToast } from '@/composables/useToast'
 
 // Backend integration toggle:
 // - Keep this `false` until the backend endpoints described in `src/api/temperatureMeasurements.js` exist.
@@ -29,10 +30,10 @@ function normalizeMeasurement(raw) {
   if (!Number.isFinite(valueC)) return null
 
   return {
-    id: raw.id ?? `${raw.taskId ?? 'task'}-${raw.measuredAt ?? Date.now()}`,
+    id: raw.id != null ? String(raw.id) : `${raw.taskId ?? 'task'}-${raw.measuredAt ?? Date.now()}`,
     module: raw.module ?? null,
-    checklistId: raw.checklistId ?? null,
-    taskId: raw.taskId ?? null,
+    checklistId: raw.checklistId != null ? String(raw.checklistId) : null,
+    taskId: raw.taskId != null ? String(raw.taskId) : null,
     valueC,
     measuredAt: raw.measuredAt ?? new Date().toISOString(),
     periodKey: raw.periodKey ?? null
@@ -40,6 +41,7 @@ function normalizeMeasurement(raw) {
 }
 
 export function useTemperatureLog({ module }) {
+  const toast = useToast()
   const measurements = ref([])
 
   if (USE_BACKEND) {
@@ -51,8 +53,8 @@ export function useTemperatureLog({ module }) {
         measurements.value = parsed
       })
       .catch((err) => {
-    
         console.error('Failed to fetch temperature measurements', err)
+        toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not load temperature readings.')
         measurements.value = []
       })
   } else {
@@ -95,12 +97,13 @@ export function useTemperatureLog({ module }) {
         const normalized = normalizeMeasurement(created)
         if (normalized) {
           measurements.value = [normalized, ...measurements.value.filter((m) => m.id !== entry.id)].slice(0, 250)
+          toast.success('Temperature reading saved.')
           return normalized
         }
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error('Failed to persist temperature measurement', err)
         measurements.value = measurements.value.filter((m) => m.id !== entry.id)
+        toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not save temperature reading.')
         return null
       }
       return entry

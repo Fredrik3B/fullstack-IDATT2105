@@ -262,8 +262,8 @@ function getLatestMeasurement(task) {
 
   const container = props.temperatureLatestByTaskId
   if (!container) return null
-  if (typeof container.get === 'function') return container.get(id) ?? null
-  return container[id] ?? null
+  if (typeof container.get === 'function') return container.get(id) ?? container.get(String(id)) ?? null
+  return container[id] ?? container[String(id)] ?? null
 }
 
 function canSaveTemperature(task) {
