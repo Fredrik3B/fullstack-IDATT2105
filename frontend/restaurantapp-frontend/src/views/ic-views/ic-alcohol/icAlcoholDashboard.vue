@@ -40,6 +40,12 @@ const isCreateOpen = ref(false)
 const isLibraryOpen = ref(false)
 const isTaskPoolOpen = ref(false)
 const highlightedChecklistId = ref(null)
+const manuallyLoadedChecklistIds = ref([])
+
+const workbenchCards = computed(() =>
+  displayCards.value.filter((card) => card?.recurring !== false || manuallyLoadedChecklistIds.value.includes(card?.id))
+)
+const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
 function handleCreate() {
   isCreateOpen.value = true
 }
@@ -56,6 +62,7 @@ async function handleCreatedChecklist(newCard) {
       period: newCard?.period,
       title: newCard?.title,
       subtitle: newCard?.subtitle,
+      recurring: newCard?.recurring,
       taskTemplateIds: newCard?.taskTemplateIds
     })
     if (created) {
@@ -81,6 +88,7 @@ async function handleUpdatedChecklist(updatedCard) {
       period: updatedCard?.period,
       title: updatedCard?.title,
       subtitle: updatedCard?.subtitle,
+      recurring: updatedCard?.recurring,
       taskTemplateIds: updatedCard?.taskTemplateIds
     })
     if (saved) {
@@ -108,6 +116,9 @@ function editChecklist({ cardIndex }) {
 async function openChecklistOnWorkbench(card) {
   if (!card?.id) return
   isLibraryOpen.value = false
+  if (!manuallyLoadedChecklistIds.value.includes(card.id)) {
+    manuallyLoadedChecklistIds.value = [...manuallyLoadedChecklistIds.value, card.id]
+  }
   activePeriod.value = periodEnumToLabel(card.period)
   highlightedChecklistId.value = card.id
   await nextTick()
@@ -126,7 +137,7 @@ async function openChecklistOnWorkbench(card) {
     title="Checklists"
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
-    :cards="displayCards"
+    :cards="workbenchCards"
     :highlighted-checklist-id="highlightedChecklistId"
     :now="now"
     :temperature-latest-by-task-id="temperatureLatestByTaskId"
@@ -163,7 +174,7 @@ async function openChecklistOnWorkbench(card) {
     v-model:open="isLibraryOpen"
     module-label="IC-Alcohol"
     :cards="cards"
-    :loaded-checklist-ids="displayCards.map((card) => card.id)"
+    :loaded-checklist-ids="loadedChecklistIds"
     @open-checklist="openChecklistOnWorkbench"
   />
 

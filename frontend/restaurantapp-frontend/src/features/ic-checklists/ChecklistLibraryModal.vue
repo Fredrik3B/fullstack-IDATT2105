@@ -22,7 +22,12 @@
                 <div class="library-title">{{ card.title }}</div>
                 <p class="library-subtitle">{{ card.subtitle || 'Reusable checklist ready for the workbench.' }}</p>
               </div>
-              <span class="period-pill">{{ formatPeriod(card.period) }}</span>
+              <div class="pill-stack">
+                <span class="period-pill">{{ formatPeriod(card.period) }}</span>
+                <span class="mode-pill" :class="{ recurring: card.recurring !== false }">
+                  {{ card.recurring !== false ? 'Recurring' : 'Library only' }}
+                </span>
+              </div>
             </div>
 
             <div class="library-meta">
@@ -188,6 +193,12 @@ h2 {
   gap: 14px;
 }
 
+.pill-stack {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
 .library-title {
   font-size: 20px;
   font-weight: 800;
@@ -213,6 +224,25 @@ h2 {
   font-size: 12px;
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
+}
+
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(45, 43, 85, 0.08);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.mode-pill.recurring {
+  background: rgba(152, 197, 74, 0.16);
+  color: rgba(49, 79, 8, 0.92);
 }
 
 .library-meta {
