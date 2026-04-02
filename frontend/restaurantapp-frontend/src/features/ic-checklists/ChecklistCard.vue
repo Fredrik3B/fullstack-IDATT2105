@@ -1,5 +1,5 @@
 <template>
-  <article class="checklist-card" :class="{ featured: featured }">
+  <article :id="`checklist-card-${id}`" class="checklist-card" :class="{ featured: featured, 'on-workbench': highlightedWorkbench }">
     <header class="card-header">
       <div>
         <div class="title-row">
@@ -177,6 +177,10 @@ const props = defineProps({
     type: String,
     default: 'IC-Food'
   },
+  highlightedWorkbench: {
+    type: Boolean,
+    default: false
+  },
   temperatureLatestByTaskId: {
     type: Object,
     default: null
@@ -327,6 +331,11 @@ function closeConfirmDialog() {
 .checklist-card.featured {
   border-width: 2px;
   border-color: rgba(45, 43, 85, 0.55);
+}
+
+.checklist-card.on-workbench {
+  border-color: rgba(83, 122, 28, 0.52);
+  box-shadow: 0 0 0 4px rgba(152, 197, 74, 0.14), 0 22px 52px rgba(26, 26, 46, 0.12);
 }
 
 .card-header {

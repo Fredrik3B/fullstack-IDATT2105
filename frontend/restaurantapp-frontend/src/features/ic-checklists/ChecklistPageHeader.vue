@@ -21,12 +21,29 @@
       </div>
 
       <button type="button" class="manage-button" @click="emit('manage-tasks')">{{ manageLabel }}</button>
-      <button type="button" class="create-button" @click="emit('create')">{{ createLabel }}</button>
+      <div class="menu-shell">
+        <button type="button" class="create-button" @click="menuOpen = !menuOpen">
+          {{ createLabel }}
+          <span class="menu-caret" :class="{ open: menuOpen }">▾</span>
+        </button>
+        <div v-if="menuOpen" class="menu-panel">
+          <button type="button" class="menu-item" @click="handleMenuAction('create')">
+            <span class="menu-item__title">New checklist</span>
+            <span class="menu-item__hint">Start a fresh checklist template.</span>
+          </button>
+          <button type="button" class="menu-item" @click="handleMenuAction('library')">
+            <span class="menu-item__title">Checklist library</span>
+            <span class="menu-item__hint">Browse saved checklists and open one on the workbench.</span>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
 defineProps({
   moduleLabel: {
     type: String,
@@ -50,7 +67,7 @@ defineProps({
   },
   createLabel: {
     type: String,
-    default: '+ New checklist'
+    default: 'Checklists'
   },
   manageLabel: {
     type: String,
@@ -59,11 +76,21 @@ defineProps({
 })
 
 
-const emit = defineEmits(['update:activePeriod', 'create', 'manage-tasks'])
+const emit = defineEmits(['update:activePeriod', 'create', 'open-library', 'manage-tasks'])
+const menuOpen = ref(false)
 
 
 function handlePeriodClick(option) {
   emit('update:activePeriod', option)
+}
+
+function handleMenuAction(action) {
+  menuOpen.value = false
+  if (action === 'create') {
+    emit('create')
+    return
+  }
+  emit('open-library')
 }
 </script>
 
@@ -104,6 +131,10 @@ p {
   gap: var(--space-3);
 }
 
+.menu-shell {
+  position: relative;
+}
+
 .period-switcher {
   display: inline-flex;
   padding: 4px;
@@ -115,7 +146,8 @@ p {
 
 .period-button,
 .manage-button,
-.create-button {
+.create-button,
+.menu-item {
   border: 0;
   font-family: inherit;
 }
@@ -148,6 +180,9 @@ p {
 }
 
 .create-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   padding: 14px 20px;
   border-radius: 14px;
   background: var(--color-dark-secondary);
@@ -156,6 +191,59 @@ p {
   font-weight: var(--font-weight-bold);
   box-shadow: var(--shadow-md);
   cursor: pointer;
+}
+
+.menu-caret {
+  transition: transform 140ms ease;
+}
+
+.menu-caret.open {
+  transform: rotate(180deg);
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+  width: min(320px, 92vw);
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(214, 219, 235, 0.95);
+  box-shadow: 0 22px 52px rgba(18, 22, 34, 0.16);
+}
+
+.menu-item {
+  width: 100%;
+  display: block;
+  text-align: left;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: rgba(245, 246, 251, 0.95);
+}
+
+.menu-item + .menu-item {
+  margin-top: 4px;
+}
+
+.menu-item__title {
+  display: block;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.menu-item__hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 13px;
 }
 
 @media (max-width: 900px) {
@@ -173,6 +261,12 @@ p {
     width: fit-content;
     max-width: 100%;
     overflow-x: auto;
+  }
+
+  .menu-panel {
+    left: 0;
+    right: auto;
+    width: 100%;
   }
 }
 </style>

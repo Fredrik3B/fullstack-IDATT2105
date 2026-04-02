@@ -1,10 +1,12 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
 import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
+import ChecklistLibraryModal from '../../../features/ic-checklists/ChecklistLibraryModal.vue'
 import ManageTaskTemplatesModal from '../../../features/ic-checklists/ManageTaskTemplatesModal.vue'
 import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
 import { createChecklist, fetchChecklists, updateChecklist } from '../../../api/checklists'
+import { periodEnumToLabel } from '../../../features/ic-checklists/recurrence'
 
 // Backend-only mode: keep empty so missing backend wiring is visible.
 const initialCards = []
@@ -35,9 +37,14 @@ onMounted(async () => {
 })
 
 const isCreateOpen = ref(false)
+const isLibraryOpen = ref(false)
 const isTaskPoolOpen = ref(false)
+const highlightedChecklistId = ref(null)
 function handleCreate() {
   isCreateOpen.value = true
+}
+function handleOpenLibrary() {
+  isLibraryOpen.value = true
 }
 function handleManageTasks() {
   isTaskPoolOpen.value = true
@@ -98,6 +105,20 @@ function editChecklist({ cardIndex }) {
   editingCardIndex.value = cardIndex
   isEditOpen.value = true
 }
+
+async function openChecklistOnWorkbench(card) {
+  if (!card?.id) return
+  isLibraryOpen.value = false
+  activePeriod.value = periodEnumToLabel(card.period)
+  highlightedChecklistId.value = card.id
+  await nextTick()
+  document.getElementById(`checklist-card-${card.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  window.setTimeout(() => {
+    if (String(highlightedChecklistId.value) === String(card.id)) {
+      highlightedChecklistId.value = null
+    }
+  }, 2200)
+}
 </script>
 
 <template>
@@ -107,8 +128,10 @@ function editChecklist({ cardIndex }) {
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
     :cards="displayCards"
+    :highlighted-checklist-id="highlightedChecklistId"
     :now="now"
     :temperature-latest-by-task-id="temperatureLatestByTaskId"
+    @open-library="handleOpenLibrary"
     @manage-tasks="handleManageTasks"
     @create="handleCreate"
     @toggle-task="toggleTask"
@@ -135,6 +158,14 @@ function editChecklist({ cardIndex }) {
     @manage-tasks="handleManageTasks"
     @close="editingCardIndex = null"
     @updated="handleUpdatedChecklist"
+  />
+
+  <ChecklistLibraryModal
+    v-model:open="isLibraryOpen"
+    module-label="IC-Food"
+    :cards="cards"
+    :loaded-checklist-ids="displayCards.map((card) => card.id)"
+    @open-checklist="openChecklistOnWorkbench"
   />
 
   <ManageTaskTemplatesModal

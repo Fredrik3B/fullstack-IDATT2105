@@ -9,6 +9,7 @@
       :create-label="createLabel"
       :manage-label="manageLabel"
       @update:activePeriod="emit('update:activePeriod', $event)"
+      @open-library="emit('open-library')"
       @manage-tasks="emit('manage-tasks')"
       @create="emit('create')"
     />
@@ -19,6 +20,7 @@
         :key="card.id ?? card.title"
         v-bind="card"
         :now="now"
+        :highlighted-workbench="String(highlightedChecklistId ?? '') === String(card.id ?? '')"
         :temperature-latest-by-task-id="temperatureLatestByTaskId"
         @toggle-task="emit('toggle-task', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @toggle-pending="emit('toggle-pending', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
@@ -62,7 +64,7 @@ defineProps({
   },
   createLabel: {
     type: String,
-    default: '+ New checklist'
+    default: 'Checklists'
   },
   manageLabel: {
     type: String,
@@ -79,10 +81,14 @@ defineProps({
   now: {
     type: [Date, String, Number],
     default: null
+  },
+  highlightedChecklistId: {
+    type: [String, Number],
+    default: null
   }
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'submit-checklist', 'log-temperature', 'update:activePeriod', 'create', 'manage-tasks'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'submit-checklist', 'log-temperature', 'update:activePeriod', 'create', 'open-library', 'manage-tasks'])
 
 </script>
 
