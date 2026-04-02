@@ -26,7 +26,14 @@
                 <div class="task-title">{{ task.title }}</div>
                 <div v-if="taskSummary(task)" class="task-meta">{{ taskSummary(task) }}</div>
               </div>
-              <button type="button" class="danger" @click="removeTask(task)">Delete</button>
+              <button
+                type="button"
+                class="danger"
+                :disabled="deletingTaskId === task.id"
+                @click="removeTask(task)"
+              >
+                {{ deletingTaskId === task.id ? 'Deleting...' : 'Delete' }}
+              </button>
             </article>
           </section>
         </div>
@@ -44,6 +51,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { useToast } from '@/composables/useToast'
 import { createTask, deleteTask, fetchTasks } from '../../api/tasks'
 import CreateTaskTemplateModal from './CreateTaskTemplateModal.vue'
 import { formatSectionType } from './taskTemplateOptions'
@@ -65,10 +73,12 @@ const props = defineProps({
 
 const emit = defineEmits(['update:open', 'close', 'changed'])
 
+const toast = useToast()
 const tasks = ref([])
 const loading = ref(false)
 const error = ref('')
 const isCreateOpen = ref(false)
+const deletingTaskId = ref(null)
 
 const groupedTasks = computed(() => {
   const groups = new Map()
@@ -136,13 +146,24 @@ async function handleCreatedTask(payload) {
 }
 
 async function removeTask(task) {
+  const confirmed = window.confirm(
+    `Delete "${task.title}" from the task pool?\n\nThis will also remove it from any checklist that uses it.`
+  )
+  if (!confirmed) return
+
+  deletingTaskId.value = task.id
+  error.value = ''
   try {
     await deleteTask(task.id)
     tasks.value = tasks.value.filter((entry) => entry.id !== task.id)
+    toast.success(`Deleted "${task.title}".`)
     emit('changed')
   } catch (err) {
     console.error('Failed to delete task', err)
-    error.value = 'Could not delete task.'
+    error.value = err?.response?.data?.message ?? 'Could not delete task.'
+    toast.error(error.value)
+  } finally {
+    deletingTaskId.value = null
   }
 }
 </script>
