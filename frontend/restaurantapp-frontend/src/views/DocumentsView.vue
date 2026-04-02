@@ -41,10 +41,112 @@
               </option>
             </select>
           </div>
-          <button v-if="isAdminOrManager" class="btn-upload" type="button">
+          <button v-if="isAdminOrManager" class="btn-upload" type="button" @click="showUploadModal = true">
             + Upload document
           </button>
         </div>
+
+        <!-- Upload modal -->
+        <Teleport to="body">
+          <div v-if="showUploadModal" class="modal-backdrop" @click.self="closeModal">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+              <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">Upload document</h2>
+                <button class="modal-close" type="button" @click="closeModal" aria-label="Close">✕</button>
+              </div>
+
+              <form class="modal-body" @submit.prevent="handleUpload">
+
+                <!-- Drop zone -->
+                <div
+                  :class="['drop-zone', { 'drop-zone--active': isDragging, 'drop-zone--filled': uploadForm.file }]"
+                  @dragover.prevent="isDragging = true"
+                  @dragleave.prevent="isDragging = false"
+                  @drop.prevent="onDrop"
+                  @click="$refs.fileInput.click()"
+                >
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    class="file-input-hidden"
+                    @change="onFileChange"
+                  />
+                  <template v-if="uploadForm.file">
+                    <span class="drop-zone-filename">{{ uploadForm.file.name }}</span>
+                    <span class="drop-zone-size">{{ formatSize(uploadForm.file.size) }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="drop-zone-hint">Drag & drop a file here, or click to browse</span>
+                  </template>
+                </div>
+
+                <!-- Name -->
+                <div class="form-group">
+                  <label class="form-label" for="upload-name">Document name <span class="required">*</span></label>
+                  <input
+                    id="upload-name"
+                    v-model="uploadForm.name"
+                    class="form-input"
+                    type="text"
+                    placeholder="e.g. Hygiene policy 2026"
+                    required
+                  />
+                </div>
+
+                <!-- Category + Module row -->
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="upload-category">Category <span class="required">*</span></label>
+                    <select id="upload-category" v-model="uploadForm.category" class="form-select" required>
+                      <option value="" disabled>Select category</option>
+                      <option v-for="cat in CATEGORIES" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="upload-module">Module <span class="required">*</span></label>
+                    <select id="upload-module" v-model="uploadForm.module" class="form-select" required>
+                      <option value="" disabled>Select module</option>
+                      <option v-for="mod in MODULES" :key="mod.value" :value="mod.value">{{ mod.label }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Expiry date (certificates only) -->
+                <div v-if="uploadForm.category === 'CERTIFICATE'" class="form-group">
+                  <label class="form-label" for="upload-expiry">Expiry date</label>
+                  <input
+                    id="upload-expiry"
+                    v-model="uploadForm.expiryDate"
+                    class="form-input"
+                    type="date"
+                  />
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                  <label class="form-label" for="upload-desc">Description <span class="optional">(optional)</span></label>
+                  <textarea
+                    id="upload-desc"
+                    v-model="uploadForm.description"
+                    class="form-textarea"
+                    rows="2"
+                    placeholder="Short description of this document"
+                  />
+                </div>
+
+                <!-- Upload error -->
+                <p v-if="uploadError" class="upload-error">{{ uploadError }}</p>
+
+                <div class="modal-actions">
+                  <button type="button" class="btn-cancel" @click="closeModal">Cancel</button>
+                  <button type="submit" class="btn-submit" :disabled="uploading || !uploadForm.file">
+                    {{ uploading ? 'Uploading…' : 'Upload' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </Teleport>
 
         <!-- Loading state -->
         <div v-if="loading" class="loading-state">Loading documents...</div>
@@ -120,7 +222,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { fetchDocuments, downloadDocument, deleteDocument } from '@/api/documents'
+import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
 
 const auth = useAuthStore()
 const isAdminOrManager = computed(() => auth.isAdminOrManager)
@@ -133,6 +235,23 @@ const error = ref(null)
 const searchQuery = ref('')
 const activeCategory = ref('')
 const activeModule = ref('')
+
+// ── Upload modal state ─────────────────────────────────────────────────────
+
+const showUploadModal = ref(false)
+const uploading = ref(false)
+const uploadError = ref(null)
+const isDragging = ref(false)
+const fileInput = ref(null)
+
+const uploadForm = ref({
+  file: null,
+  name: '',
+  description: '',
+  category: '',
+  module: '',
+  expiryDate: '',
+})
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -191,6 +310,48 @@ const visibleCategories = computed(() => {
 
 function documentsForCategory(category) {
   return filteredDocuments.value.filter(d => d.category === category)
+}
+
+// ── Upload modal actions ───────────────────────────────────────────────────
+
+function closeModal() {
+  showUploadModal.value = false
+  uploadError.value = null
+  uploadForm.value = { file: null, name: '', description: '', category: '', module: '', expiryDate: '' }
+}
+
+function onFileChange(event) {
+  const file = event.target.files[0]
+  if (file) uploadForm.value.file = file
+}
+
+function onDrop(event) {
+  isDragging.value = false
+  const file = event.dataTransfer.files[0]
+  if (file) uploadForm.value.file = file
+}
+
+async function handleUpload() {
+  if (!uploadForm.value.file) return
+  uploading.value = true
+  uploadError.value = null
+  try {
+    const formData = new FormData()
+    formData.append('file', uploadForm.value.file)
+    formData.append('name', uploadForm.value.name)
+    formData.append('category', uploadForm.value.category)
+    formData.append('module', uploadForm.value.module)
+    if (uploadForm.value.description) formData.append('description', uploadForm.value.description)
+    if (uploadForm.value.expiryDate) formData.append('expiryDate', uploadForm.value.expiryDate)
+
+    const newDoc = await uploadDocument(formData)
+    documents.value.unshift(newDoc)
+    closeModal()
+  } catch {
+    uploadError.value = 'Upload failed. Please try again.'
+  } finally {
+    uploading.value = false
+  }
 }
 
 // ── Actions ────────────────────────────────────────────────────────────────
@@ -620,5 +781,208 @@ function expiryLabel(expiryDate) {
   .btn-upload {
     margin-left: 0;
   }
+}
+
+/* ── Upload modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-6);
+}
+
+.modal {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  line-height: 1;
+  padding: var(--space-1);
+}
+
+.modal-close:hover {
+  color: var(--color-text-primary);
+}
+
+.modal-body {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Drop zone ── */
+.drop-zone {
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.drop-zone:hover,
+.drop-zone--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.drop-zone--filled {
+  border-style: solid;
+  border-color: var(--color-accent);
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+.drop-zone-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.drop-zone-filename {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.drop-zone-size {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+
+/* ── Form fields ── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.form-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.required { color: var(--color-danger); }
+.optional  { font-weight: normal; color: var(--color-text-muted); }
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--color-dark-secondary);
+}
+
+.form-textarea {
+  resize: vertical;
+}
+
+/* ── Modal actions ── */
+.upload-error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.btn-cancel {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-cancel:hover {
+  border-color: var(--color-dark-primary);
+  color: var(--color-dark-primary);
+}
+
+.btn-submit {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-dark-primary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-submit:not(:disabled):hover {
+  opacity: 0.85;
 }
 </style>
