@@ -39,6 +39,9 @@ public class ChecklistModel extends AuditableEntity {
 	@Column(name = "active_period_key", nullable = false, length = 16)
 	private String activePeriodKey;
 
+	@Column(name = "recurring", nullable = false)
+	private boolean recurring = true;
+
 	@Column(nullable = false)
 	private boolean active = true;
 
@@ -92,6 +95,14 @@ public class ChecklistModel extends AuditableEntity {
 
 	public void setActivePeriodKey(String activePeriodKey) {
 		this.activePeriodKey = activePeriodKey;
+	}
+
+	public boolean isRecurring() {
+		return recurring;
+	}
+
+	public void setRecurring(boolean recurring) {
+		this.recurring = recurring;
 	}
 
 	public boolean isActive() {

@@ -18,6 +18,9 @@ public record CreateChecklistCardRequest(
 
 	String subtitle,
 
+	@NotNull
+	Boolean recurring,
+
 	@NotEmpty
 	List<Long> taskTemplateIds
 ) {

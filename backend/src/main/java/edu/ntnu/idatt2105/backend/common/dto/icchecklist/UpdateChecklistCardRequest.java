@@ -13,6 +13,8 @@ public record UpdateChecklistCardRequest(
 
 	String subtitle,
 
+	Boolean recurring,
+
 	@NotEmpty
 	List<Long> taskTemplateIds
 ) {
