@@ -1,7 +1,5 @@
 package edu.ntnu.idatt2105.backend.common.model;
 
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
-import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -13,29 +11,27 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "task_logs")
-public class TaskLogModel extends AuditableEntity {
+@Table(name = "activated_tasks")
+public class TasksModel extends AuditableEntity {
 
 	@Column(nullable = false)
 	private boolean completed;
 
-	@Column(length = 100)
-	private String notes;
+	@Column(nullable=false)
+	private boolean flag;
+
+	@Column(nullable = false)
+	private boolean active;
+
+	@Column(length = 255)
+	private String meta;
 
 	@Column(name = "completed_at", nullable = false)
 	private LocalDateTime completedAt;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "organization_id", nullable = false)
-	private OrganizationModel organization;
-
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "task_id", nullable = false)
-	private TaskModel task;
-
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "completed_by_user_id", nullable = false)
-	private UserModel completedBy;
+	private TasksModel task;
 
 	@PrePersist
 	public void setDefaultCompletedAt() {
@@ -52,12 +48,20 @@ public class TaskLogModel extends AuditableEntity {
 		this.completed = completed;
 	}
 
-	public String getNotes() {
-		return notes;
+	public boolean isFlagged() {
+		return flag;
 	}
 
-	public void setNotes(String notes) {
-		this.notes = notes;
+	public void setFlag (boolean flag) {
+		this.flag = flag;
+	}
+		
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
 	}
 
 	public LocalDateTime getCompletedAt() {
@@ -68,27 +72,20 @@ public class TaskLogModel extends AuditableEntity {
 		this.completedAt = completedAt;
 	}
 
-	public OrganizationModel getOrganization() {
-		return organization;
-	}
-
-	public void setOrganization(OrganizationModel organization) {
-		this.organization = organization;
-	}
-
-	public TaskModel getTask() {
+	public TasksModel getTask() {
 		return task;
 	}
 
-	public void setTask(TaskModel task) {
+	public void setTask(TasksModel task) {
 		this.task = task;
 	}
 
-	public UserModel getCompletedBy() {
-		return completedBy;
+	public String getMeta() {
+		return meta;
 	}
 
-	public void setCompletedBy(UserModel completedBy) {
-		this.completedBy = completedBy;
+	public void setMeta(String meta) {
+		this.meta = meta;
 	}
+
 }
