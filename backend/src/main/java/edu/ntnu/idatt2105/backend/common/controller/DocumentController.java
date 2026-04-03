@@ -50,10 +50,11 @@ public class DocumentController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @Operation(summary = "Upload a document")
-    @ApiResponse(responseCode = "201", description = "Document uploaded")
+    @Operation(summary = "Upload a document or add a link to an external document")
+    @ApiResponse(responseCode = "201", description = "Document created")
     public DocumentDTO uploadDocument(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "externalUrl", required = false) String externalUrl,
             @RequestParam("name") String name,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("category") DocumentCategory category,
@@ -63,9 +64,9 @@ public class DocumentController {
             Authentication auth
     ) {
         JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-        LOGGER.info("Document upload request: orgId={} userId={} name='{}' category={} module={}",
-                principal.getOrganizationId(), principal.getUserId(), name, category, module);
-        return documentService.uploadDocument(file, name, description, category, module, expiryDate, principal);
+        LOGGER.info("Document create request: orgId={} userId={} name='{}' category={} module={} isLink={}",
+                principal.getOrganizationId(), principal.getUserId(), name, category, module, externalUrl != null);
+        return documentService.uploadDocument(file, externalUrl, name, description, category, module, expiryDate, principal);
     }
 
     @GetMapping

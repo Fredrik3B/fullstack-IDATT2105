@@ -56,6 +56,7 @@ public class DocumentServiceImpl implements DocumentService {
     @Override
     public DocumentDTO uploadDocument(
             MultipartFile file,
+            String externalUrl,
             String name,
             String description,
             DocumentCategory category,
@@ -63,6 +64,10 @@ public class DocumentServiceImpl implements DocumentService {
             LocalDate expiryDate,
             JwtAuthenticatedPrincipal principal
     ) {
+        if (file == null && (externalUrl == null || externalUrl.isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either a file or an external URL must be provided");
+        }
+
         UUID userId = principal.getUserId();
         UUID orgId = principal.getOrganizationId();
 
@@ -71,25 +76,31 @@ public class DocumentServiceImpl implements DocumentService {
         OrganizationModel org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
 
-        String savedPath = saveFileToDisk(file, orgId);
-        LOGGER.info("Document upload: orgId={} userId={} name='{}' category={} file='{}'",
-                orgId, userId, name, category, file.getOriginalFilename());
-
         DocumentModel doc = new DocumentModel();
         doc.setName(name);
         doc.setDescription(description);
         doc.setCategory(category);
         doc.setModule(module);
-        doc.setOriginalFileName(file.getOriginalFilename());
-        doc.setFileType(file.getContentType());
-        doc.setFileSize(file.getSize());
-        doc.setStoragePath(savedPath);
         doc.setExpiryDate(expiryDate);
         doc.setUploadedBy(user);
         doc.setOrganization(org);
 
+        if (externalUrl != null && !externalUrl.isBlank()) {
+            doc.setExternalUrl(externalUrl);
+            LOGGER.info("Document link: orgId={} userId={} name='{}' category={} url='{}'",
+                    orgId, userId, name, category, externalUrl);
+        } else {
+            String savedPath = saveFileToDisk(file, orgId);
+            doc.setOriginalFileName(file.getOriginalFilename());
+            doc.setFileType(file.getContentType());
+            doc.setFileSize(file.getSize());
+            doc.setStoragePath(savedPath);
+            LOGGER.info("Document upload: orgId={} userId={} name='{}' category={} file='{}'",
+                    orgId, userId, name, category, file.getOriginalFilename());
+        }
+
         DocumentModel saved = documentRepository.save(doc);
-        LOGGER.info("Document upload: saved documentId={}", saved.getId());
+        LOGGER.info("Document saved: documentId={}", saved.getId());
         return toDTO(saved);
     }
 
@@ -189,6 +200,7 @@ public class DocumentServiceImpl implements DocumentService {
                 doc.getDescription(),
                 doc.getCategory(),
                 doc.getModule(),
+                doc.getExternalUrl(),
                 doc.getOriginalFileName(),
                 doc.getFileType(),
                 doc.getFileSize(),
