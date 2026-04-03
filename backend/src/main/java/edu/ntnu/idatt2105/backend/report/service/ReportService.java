@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.report.service;
 
 
+import edu.ntnu.idatt2105.backend.common.mapper.TaskMapper;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
@@ -30,6 +31,7 @@ public class ReportService {
   private final ChecklistRepository checklistRepository;
   private final UserRepository userRepository;
   private final OrganizationRepository organizationRepository;
+  private final TaskMapper taskMapper;
 
   private ComplianceStats buildStats(UUID orgId, LocalDate from, LocalDate to, ComplianceArea area) {
     int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
@@ -45,7 +47,9 @@ public class ReportService {
   }
 
   private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDate from, LocalDate to) {
-    tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to);
+    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+        .map(taskMapper::toUnresolvedDto)
+        .toList();
   }
 
 
@@ -59,16 +63,17 @@ public class ReportService {
   }
 
   public InspectionReport generateInspection(UUID orgId, LocalDate from, LocalDate to) {
-    OrganizationModel org = orgRepository.findById(orgId)
-        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-
-    return InspectionReport.builder()
-        .period(new ReportPeriod(from, to))
-        .organization(buildOrgSection(org))
-        .checklistEvidence(buildChecklistEvidence(orgId, from, to))
-        .temperatureLog(buildFullTemperatureLog(orgId, from, to))
-        .deviationRegister(buildDeviationRegister(orgId, from, to))
-        .generatedAt(LocalDateTime.now())
-        .build();
+//    OrganizationModel org = orgRepository.findById(orgId)
+//        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+//
+//    return InspectionReport.builder()
+//        .period(new ReportPeriod(from, to))
+//        .organization(buildOrgSection(org))
+//        .checklistEvidence(buildChecklistEvidence(orgId, from, to))
+//        .temperatureLog(buildFullTemperatureLog(orgId, from, to))
+//        .deviationRegister(buildDeviationRegister(orgId, from, to))
+//        .generatedAt(LocalDateTime.now())
+//        .build();
+    throw new RuntimeException("Not implemented");
   }
 }
