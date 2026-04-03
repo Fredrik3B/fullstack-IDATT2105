@@ -18,6 +18,7 @@ import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -104,7 +105,7 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 		model.setTask(task);
 		model.setPeriodKey(resolvedPeriodKey);
 		model.setValueC(request.valueC());
-		model.setMeasuredAt(request.measuredAt() != null ? request.measuredAt() : Instant.now());
+		model.setMeasuredAt(request.measuredAt() != null ? request.measuredAt() : LocalDateTime.now());
 
 		OrganizationModel org = organizationRepository.findById(orgId)
 			.orElseThrow(() -> new IllegalArgumentException("Organization not found."));
@@ -121,15 +122,15 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 	@Override
 	public List<TemperatureMeasurementResponse> fetchMeasurements(
 		IcModule module,
-		Instant from,
-		Instant to,
+		LocalDateTime from,
+		LocalDateTime to,
 		JwtAuthenticatedPrincipal principal
 	) {
 		requirePrincipal(principal);
 		IcModule safeModule = Objects.requireNonNull(module, "module is required.");
 
-		Instant fromInstant = from != null ? from : Instant.EPOCH;
-		Instant toInstant = to != null ? to : Instant.now();
+		LocalDateTime fromInstant = from != null ? from : LocalDateTime.MIN;
+		LocalDateTime toInstant = to != null ? to : LocalDateTime.now();
 		if (toInstant.isBefore(fromInstant)) {
 			throw new IllegalArgumentException("to must be after from.");
 		}

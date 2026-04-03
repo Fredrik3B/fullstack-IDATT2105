@@ -166,7 +166,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		if (state.equals("completed")) {
 			task.setCompleted(true);
 			task.setFlagged(false);
-			task.setCompletedAt(toLocalDateTime(request.completedAt()));
+			task.setCompletedAt(request.completedAt());
 		} else {
 			task.setCompleted(false);
 			task.setCompletedAt(null);
@@ -484,14 +484,14 @@ public class ChecklistServiceImpl implements ChecklistService {
 		String type = isTemperatureTemplate(template) ? "temperature" : null;
 		String state = "todo";
 		String completedForPeriodKey = null;
-		Instant completedAt = null;
+		LocalDateTime completedAt = null;
 		String pendingForPeriodKey = null;
 		Boolean highlighted = null;
 
 		if (task.isCompleted()) {
 			state = "completed";
 			completedForPeriodKey = task.getPeriodKey();
-			completedAt = toInstant(task.getCompletedAt());
+			completedAt = task.getCompletedAt();
 		} else if (task.isFlagged()) {
 			state = "pending";
 			pendingForPeriodKey = task.getPeriodKey();
@@ -593,20 +593,6 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 	private String normalizedState(String state) {
 		return String.valueOf(state == null ? "" : state).trim().toLowerCase();
-	}
-
-	private LocalDateTime toLocalDateTime(Instant instant) {
-		if (instant == null) {
-			return LocalDateTime.now();
-		}
-		return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
-	}
-
-	private Instant toInstant(LocalDateTime localDateTime) {
-		if (localDateTime == null) {
-			return null;
-		}
-		return localDateTime.atZone(ZoneId.systemDefault()).toInstant();
 	}
 
 	private JwtAuthenticatedPrincipal requirePrincipal(JwtAuthenticatedPrincipal principal) {
