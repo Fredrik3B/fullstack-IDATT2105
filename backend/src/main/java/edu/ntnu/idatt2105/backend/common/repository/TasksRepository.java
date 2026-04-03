@@ -35,28 +35,29 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 
 	@Query("SELECT COUNT(t) FROM TasksModel t " +
 			"WHERE t.checklist.organization.id = :orgId " +
-			"AND t.periodKey BETWEEN :from AND :to " +
+			"AND t.endedAt BETWEEN :from AND :to " +
 			"AND t.checklist.complianceArea = :area")
   int contTaskInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") String from, @Param("to") String to,
+			@Param("from") LocalDate from, @Param("to") LocalDate to,
 			@Param("area") ComplianceArea area);
 
 
 	@Query("SELECT COUNT(t) FROM TasksModel t " +
 			"WHERE t.checklist.organization.id = :orgId " +
 			"AND t.completed = true " +
-			"AND t.periodKey BETWEEN :from AND :to " +
+			"AND t.endedAt BETWEEN :from AND :to " +
 			"AND t.checklist.complianceArea = :area")
 	int countCompletedInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") String from, @Param("to") String to,
+			@Param("from") LocalDate from, @Param("to") LocalDate to,
 			@Param("area") ComplianceArea area);
 
 	@Query("SELECT COUNT(t) FROM TasksModel t " +
 			"WHERE t.checklist.organization.id = :orgId " +
-			"AND t.flagged = true " +
-			"AND t.periodKey BETWEEN :from AND :to " +
+			"AND t.completed = false " +
+			"AND t.active = false " +
+			"AND t.endedAt BETWEEN :from AND :to " +
 			"AND t.checklist.complianceArea = :area")
 	int countFlaggedInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") String from, @Param("to") String to,
+			@Param("from") LocalDate from, @Param("to") LocalDate to,
 			@Param("area") ComplianceArea area);
 }
