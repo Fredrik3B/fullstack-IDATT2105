@@ -18,5 +18,7 @@ public interface TemperatureMeasurementRepository extends JpaRepository<Temperat
 		Instant to
 	);
 
+	List<TemperatureMeasurementModel> findAllByTask_IdInOrderByMeasuredAtDesc(Collection<Long> taskIds);
+
 	void deleteAllByTaskIn(Collection<TasksModel> tasks);
 }

@@ -16,6 +16,7 @@ public record ChecklistTaskItemResponse(
 	Boolean highlighted,
 	String completedForPeriodKey,
 	Instant completedAt,
-	String pendingForPeriodKey
+	String pendingForPeriodKey,
+	TemperatureMeasurementSummaryResponse latestMeasurement
 ) {
 }

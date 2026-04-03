@@ -6,11 +6,13 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemRespon
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TemperatureMeasurementSummaryResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskFlagRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.UpdateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.common.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
@@ -149,6 +151,9 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		TasksModel task = tasksRepository.findByIdAndChecklist_Id(taskId, checklistId)
 			.orElseThrow(() -> new IllegalArgumentException("Activated task not found."));
+		if (!task.isActive()) {
+			throw new IllegalArgumentException("Task is not active for the current checklist period.");
+		}
 		if (!Objects.equals(task.getPeriodKey(), periodKey)) {
 			throw new IllegalArgumentException("Task does not belong to requested period.");
 		}
@@ -167,7 +172,8 @@ public class ChecklistServiceImpl implements ChecklistService {
 			task.setCompletedAt(null);
 		}
 
-		return toTaskItemResponse(tasksRepository.save(task));
+		TasksModel savedTask = tasksRepository.save(task);
+		return toTaskItemResponse(savedTask, latestMeasurementByTaskId(savedTask.getId()));
 	}
 
 	@Override
@@ -186,6 +192,9 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		TasksModel task = tasksRepository.findByIdAndChecklist_Id(taskId, checklistId)
 			.orElseThrow(() -> new IllegalArgumentException("Activated task not found."));
+		if (!task.isActive()) {
+			throw new IllegalArgumentException("Task is not active for the current checklist period.");
+		}
 		if (!Objects.equals(task.getPeriodKey(), periodKey)) {
 			throw new IllegalArgumentException("Task does not belong to requested period.");
 		}
@@ -203,7 +212,8 @@ public class ChecklistServiceImpl implements ChecklistService {
 			task.setFlagged(false);
 		}
 
-		return toTaskItemResponse(tasksRepository.save(task));
+		TasksModel savedTask = tasksRepository.save(task);
+		return toTaskItemResponse(savedTask, latestMeasurementByTaskId(savedTask.getId()));
 	}
 
 	@Override
@@ -342,12 +352,13 @@ public class ChecklistServiceImpl implements ChecklistService {
 		List<TasksModel> tasks = checklist.isDisplayedOnWorkbench()
 			? ensureTasksForActivePeriod(checklist)
 			: List.of();
+		Map<Long, TemperatureMeasurementModel> latestMeasurementsByTaskId = latestMeasurementsByTaskId(tasks);
 		int completedCount = (int) tasks.stream().filter(TasksModel::isCompleted).count();
 		int total = tasks.size();
 		Integer progress = total == 0 ? 0 : Math.toIntExact(Math.round((completedCount * 100.0) / total));
 		boolean completed = total > 0 && completedCount == total;
 		List<ChecklistSectionResponse> sections = checklist.isDisplayedOnWorkbench()
-			? toSectionResponses(tasks)
+			? toSectionResponses(tasks, latestMeasurementsByTaskId)
 			: toTemplateSectionResponses(checklist);
 
 		return new ChecklistCardResponse(
@@ -397,7 +408,38 @@ public class ChecklistServiceImpl implements ChecklistService {
 		tasksRepository.deleteAll(tasks);
 	}
 
-	private List<ChecklistSectionResponse> toSectionResponses(List<TasksModel> tasks) {
+	private Map<Long, TemperatureMeasurementModel> latestMeasurementsByTaskId(List<TasksModel> tasks) {
+		List<Long> taskIds = tasks.stream()
+			.map(TasksModel::getId)
+			.filter(Objects::nonNull)
+			.toList();
+		if (taskIds.isEmpty()) {
+			return Map.of();
+		}
+
+		Map<Long, TemperatureMeasurementModel> latestByTaskId = new LinkedHashMap<>();
+		for (TemperatureMeasurementModel measurement : temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(taskIds)) {
+			Long taskId = measurement.getTask() != null ? measurement.getTask().getId() : null;
+			if (taskId != null) {
+				latestByTaskId.putIfAbsent(taskId, measurement);
+			}
+		}
+		return latestByTaskId;
+	}
+
+	private TemperatureMeasurementModel latestMeasurementByTaskId(Long taskId) {
+		if (taskId == null) {
+			return null;
+		}
+		return temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(taskId)).stream()
+			.findFirst()
+			.orElse(null);
+	}
+
+	private List<ChecklistSectionResponse> toSectionResponses(
+		List<TasksModel> tasks,
+		Map<Long, TemperatureMeasurementModel> latestMeasurementsByTaskId
+	) {
 		Map<String, List<TasksModel>> grouped = new LinkedHashMap<>();
 		for (TasksModel task : tasks) {
 			String key = sectionLabel(task.getTaskTemplate().getSectionType());
@@ -409,7 +451,9 @@ public class ChecklistServiceImpl implements ChecklistService {
 			entry.getValue().sort(Comparator.comparing(task -> task.getTaskTemplate().getTitle(), String.CASE_INSENSITIVE_ORDER));
 			sections.add(new ChecklistSectionResponse(
 				entry.getKey(),
-				entry.getValue().stream().map(this::toTaskItemResponse).toList()
+				entry.getValue().stream()
+					.map(task -> toTaskItemResponse(task, latestMeasurementsByTaskId.get(task.getId())))
+					.toList()
 			));
 		}
 		sections.sort(Comparator.comparing(ChecklistSectionResponse::title, String.CASE_INSENSITIVE_ORDER));
@@ -435,7 +479,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		return sections;
 	}
 
-	private ChecklistTaskItemResponse toTaskItemResponse(TasksModel task) {
+	private ChecklistTaskItemResponse toTaskItemResponse(TasksModel task, TemperatureMeasurementModel latestMeasurement) {
 		TaskTemplate template = task.getTaskTemplate();
 		String type = isTemperatureTemplate(template) ? "temperature" : null;
 		String state = "todo";
@@ -467,7 +511,8 @@ public class ChecklistServiceImpl implements ChecklistService {
 			highlighted,
 			completedForPeriodKey,
 			completedAt,
-			pendingForPeriodKey
+			pendingForPeriodKey,
+			toMeasurementSummary(latestMeasurement)
 		);
 	}
 
@@ -485,8 +530,37 @@ public class ChecklistServiceImpl implements ChecklistService {
 			Boolean.FALSE,
 			null,
 			null,
+			null,
 			null
 		);
+	}
+
+	private TemperatureMeasurementSummaryResponse toMeasurementSummary(TemperatureMeasurementModel measurement) {
+		if (measurement == null) {
+			return null;
+		}
+		return new TemperatureMeasurementSummaryResponse(
+			measurement.getId(),
+			measurement.getValueC(),
+			measurement.getMeasuredAt(),
+			measurement.getPeriodKey(),
+			isTemperatureDeviation(measurement)
+		);
+	}
+
+	private boolean isTemperatureDeviation(TemperatureMeasurementModel measurement) {
+		if (measurement == null || measurement.getTask() == null || measurement.getTask().getTaskTemplate() == null) {
+			return false;
+		}
+
+		TaskTemplate template = measurement.getTask().getTaskTemplate();
+		if (template.getTargetMin() != null && measurement.getValueC().compareTo(template.getTargetMin()) < 0) {
+			return true;
+		}
+		if (template.getTargetMax() != null && measurement.getValueC().compareTo(template.getTargetMax()) > 0) {
+			return true;
+		}
+		return false;
 	}
 
 	private boolean isTemperatureTemplate(TaskTemplate template) {
