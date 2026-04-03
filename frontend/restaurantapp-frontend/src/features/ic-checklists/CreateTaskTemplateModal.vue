@@ -35,6 +35,17 @@
               />
             </label>
 
+            <label class="field full">
+              <span class="label">Meta (optional)</span>
+              <input
+                v-model.trim="meta"
+                class="input"
+                type="text"
+                maxlength="255"
+                placeholder="e.g. Record in cleaning log"
+              />
+            </label>
+
             <label class="field">
               <span class="label">Section</span>
               <select v-model="sectionType" class="input" required>
@@ -83,6 +94,7 @@ const props = defineProps({
 const emit = defineEmits(['update:open', 'created', 'close'])
 
 const title = ref('')
+const meta = ref('')
 const sectionType = ref('')
 const targetMin = ref(null)
 const targetMax = ref(null)
@@ -91,6 +103,7 @@ const isTemperatureControl = computed(() => sectionType.value === 'TEMPERATURE_C
 
 function reset() {
   title.value = ''
+  meta.value = ''
   sectionType.value = ''
   targetMin.value = null
   targetMax.value = null
@@ -138,6 +151,7 @@ function submit() {
   emit('created', {
     module: props.module,
     title: title.value.trim(),
+    meta: meta.value.trim(),
     sectionType: sectionType.value,
     targetMin:
       isTemperatureControl.value && Number.isFinite(Number(targetMin.value))
