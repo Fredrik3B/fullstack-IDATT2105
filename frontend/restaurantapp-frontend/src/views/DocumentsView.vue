@@ -57,8 +57,23 @@
 
               <form class="modal-body" @submit.prevent="handleUpload">
 
-                <!-- Drop zone -->
+                <!-- File / Link toggle -->
+                <div class="upload-type-toggle">
+                  <button
+                    type="button"
+                    :class="['toggle-btn', uploadMode === 'file' && 'toggle-btn--active']"
+                    @click="uploadMode = 'file'"
+                  >Upload file</button>
+                  <button
+                    type="button"
+                    :class="['toggle-btn', uploadMode === 'link' && 'toggle-btn--active']"
+                    @click="uploadMode = 'link'"
+                  >Link to URL</button>
+                </div>
+
+                <!-- Drop zone (file mode) -->
                 <div
+                  v-if="uploadMode === 'file'"
                   :class="['drop-zone', { 'drop-zone--active': isDragging, 'drop-zone--filled': uploadForm.file }]"
                   @dragover.prevent="isDragging = true"
                   @dragleave.prevent="isDragging = false"
@@ -78,6 +93,19 @@
                   <template v-else>
                     <span class="drop-zone-hint">Drag & drop a file here, or click to browse</span>
                   </template>
+                </div>
+
+                <!-- URL input (link mode) -->
+                <div v-if="uploadMode === 'link'" class="form-group">
+                  <label class="form-label" for="upload-url">URL <span class="required">*</span></label>
+                  <input
+                    id="upload-url"
+                    v-model="uploadForm.externalUrl"
+                    class="form-input"
+                    type="url"
+                    placeholder="https://lovdata.no/dokument/..."
+                    :required="uploadMode === 'link'"
+                  />
                 </div>
 
                 <!-- Name -->
@@ -236,10 +264,10 @@
                 class="doc-card"
                 @click="handlePreview(doc)"
               >
-                <div :class="['doc-card-thumb', fileIconClass(doc.fileType)]">
-                  <span class="doc-card-type">{{ fileIconLabel(doc.fileType) }}</span>
+                <div :class="['doc-card-thumb', doc.externalUrl ? 'doc-icon--link' : fileIconClass(doc.fileType)]">
+                  <span class="doc-card-type">{{ doc.externalUrl ? 'LINK' : fileIconLabel(doc.fileType) }}</span>
                   <div class="doc-card-overlay">
-                    <span class="doc-card-overlay-text">Click to preview</span>
+                    <span class="doc-card-overlay-text">{{ doc.externalUrl ? 'Open link' : 'Click to preview' }}</span>
                   </div>
                 </div>
                 <div class="doc-card-body" @click.stop>
@@ -251,7 +279,8 @@
                     <span v-if="doc.category === 'CERTIFICATE' && doc.expiryDate" :class="['cert-expiry', expiryClass(doc.expiryDate)]">{{ expiryLabel(doc.expiryDate) }}</span>
                   </div>
                   <div class="doc-card-actions">
-                    <button class="doc-btn" type="button" @click="handleDownload(doc)">Download</button>
+                    <a v-if="doc.externalUrl" :href="doc.externalUrl" target="_blank" rel="noopener noreferrer" class="doc-btn">Open</a>
+                    <button v-else class="doc-btn" type="button" @click="handleDownload(doc)">Download</button>
                     <button v-if="isAdminOrManager" class="doc-btn doc-btn--danger" type="button" @click="handleDelete(doc)">Delete</button>
                   </div>
                 </div>
@@ -315,9 +344,11 @@ const uploading = ref(false)
 const uploadError = ref(null)
 const isDragging = ref(false)
 const fileInput = ref(null)
+const uploadMode = ref('file')
 
 const uploadForm = ref({
   file: null,
+  externalUrl: '',
   name: '',
   description: '',
   category: '',
@@ -389,7 +420,8 @@ function documentsForCategory(category) {
 function closeModal() {
   showUploadModal.value = false
   uploadError.value = null
-  uploadForm.value = { file: null, name: '', description: '', category: '', module: '', expiryDate: '' }
+  uploadMode.value = 'file'
+  uploadForm.value = { file: null, externalUrl: '', name: '', description: '', category: '', module: '', expiryDate: '' }
 }
 
 function onFileChange(event) {
@@ -404,12 +436,17 @@ function onDrop(event) {
 }
 
 async function handleUpload() {
-  if (!uploadForm.value.file) return
   uploading.value = true
   uploadError.value = null
   try {
     const formData = new FormData()
-    formData.append('file', uploadForm.value.file)
+    if (uploadMode.value === 'file') {
+      if (!uploadForm.value.file) { uploadError.value = 'Please select a file.'; uploading.value = false; return }
+      formData.append('file', uploadForm.value.file)
+    } else {
+      if (!uploadForm.value.externalUrl) { uploadError.value = 'Please enter a URL.'; uploading.value = false; return }
+      formData.append('externalUrl', uploadForm.value.externalUrl)
+    }
     formData.append('name', uploadForm.value.name)
     formData.append('category', uploadForm.value.category)
     formData.append('module', uploadForm.value.module)
@@ -449,6 +486,10 @@ const previewLoading = ref(false)
 const previewError = ref(null)
 
 async function handlePreview(doc) {
+  if (doc.externalUrl) {
+    window.open(doc.externalUrl, '_blank', 'noopener,noreferrer')
+    return
+  }
   previewDoc.value = doc
   previewUrl.value = null
   previewLoading.value = true
@@ -848,6 +889,7 @@ function expiryLabel(expiryDate) {
 .doc-icon--img  { background: #f3e8ff;                  color: #7c3aed; }
 .doc-icon--xls  { background: #dcfce7;                  color: #15803d; }
 .doc-icon--file { background: var(--color-bg-subtle);   color: var(--color-text-muted); }
+.doc-icon--link { background: #e0f0ff;                  color: #1a6bbf; }
 
 .doc-card-body {
   padding: var(--space-3) var(--space-3) var(--space-3);
@@ -1177,6 +1219,35 @@ function expiryLabel(expiryDate) {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+}
+
+/* ── Upload type toggle ── */
+.upload-type-toggle {
+  display: flex;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggle-btn--active {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── Drop zone ── */

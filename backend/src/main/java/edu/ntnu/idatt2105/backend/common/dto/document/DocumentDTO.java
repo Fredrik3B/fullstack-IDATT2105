@@ -12,6 +12,7 @@ public record DocumentDTO(
         String description,
         DocumentCategory category,
         DocumentModule module,
+        String externalUrl,
         String originalFileName,
         String fileType,
         Long fileSize,

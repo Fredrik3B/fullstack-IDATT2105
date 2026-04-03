@@ -27,6 +27,8 @@ replay_pid*
 
 .env
 
+# Uploaded documents (stored on disk, not tracked in git)
+uploads/
 
 target/
 .mvn/wrapper/maven-wrapper.jar

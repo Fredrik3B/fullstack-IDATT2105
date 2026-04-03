@@ -36,16 +36,19 @@ public class DocumentModel extends AuditableEntity {
     @Column(nullable = false, length = 20)
     private DocumentModule module;
 
-    @Column(name = "original_file_name", nullable = false, length = 255)
+    @Column(name = "external_url", length = 2048)
+    private String externalUrl;
+
+    @Column(name = "original_file_name", length = 255)
     private String originalFileName;
 
-    @Column(name = "file_type", nullable = false, length = 100)
+    @Column(name = "file_type", length = 100)
     private String fileType;
 
-    @Column(name = "file_size", nullable = false)
+    @Column(name = "file_size")
     private Long fileSize;
 
-    @Column(name = "storage_path", nullable = false, length = 500)
+    @Column(name = "storage_path", length = 500)
     private String storagePath;
 
     @Column(name = "expiry_date")
@@ -99,6 +102,14 @@ public class DocumentModel extends AuditableEntity {
 
     public void setModule(DocumentModule module) {
         this.module = module;
+    }
+
+    public String getExternalUrl() {
+        return externalUrl;
+    }
+
+    public void setExternalUrl(String externalUrl) {
+        this.externalUrl = externalUrl;
     }
 
     public String getOriginalFileName() {

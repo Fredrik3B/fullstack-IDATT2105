@@ -14,6 +14,7 @@ public interface DocumentService {
 
     DocumentDTO uploadDocument(
             MultipartFile file,
+            String externalUrl,
             String name,
             String description,
             DocumentCategory category,
