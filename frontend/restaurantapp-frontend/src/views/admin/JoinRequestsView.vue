@@ -104,10 +104,14 @@
                     <option value="ADMIN">Admin</option>
                   </select>
                   <button
-                    class="action-btn action-btn--decline"
-                    :disabled="processing === member.userId"
+                    class="action-btn action-btn--remove"
+                    :disabled="processing === member.userId || !canRemoveMember(member)"
                     @click="confirmRemove(member)"
+                    :title="!canRemoveMember(member) ? 'Cannot remove the last admin' : 'Remove member'"
                   >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 0 1 1.334-1.334h2.666a1.333 1.333 0 0 1 1.334 1.334V4m2 0v9.333a1.333 1.333 0 0 1-1.334 1.334H4.667a1.333 1.333 0 0 1-1.334-1.334V4h9.334Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                     Remove
                   </button>
                 </div>
@@ -217,6 +221,10 @@ const confirmTarget = ref(null)
 
 const isAdmin = computed(() => auth.userRoles?.includes('ROLE_ADMIN'))
 
+const adminCount = computed(() => {
+  return members.value.filter(m => primaryRole(m.roles) === 'ADMIN').length
+})
+
 const memberSections = computed(() => {
   const sections = [
     { role: 'ADMIN', label: 'Administrators', members: [] },
@@ -252,6 +260,12 @@ function confirmRemove(member) {
   confirmTarget.value = member
 }
 
+function canRemoveMember(member) {
+  // Cannot remove the last admin
+  const isLastAdmin = primaryRole(member.roles) === 'ADMIN' && adminCount.value === 1
+  return !isLastAdmin
+}
+
 async function removeMember() {
   const member = confirmTarget.value
   confirmTarget.value = null
@@ -268,6 +282,14 @@ async function removeMember() {
 }
 
 async function changeRole(member, newRole) {
+  const currentRole = primaryRole(member.roles)
+  
+  // Prevent demoting the last admin
+  if (currentRole === 'ADMIN' && newRole !== 'ADMIN' && adminCount.value === 1) {
+    toast.error('Cannot change role of the last administrator.')
+    return
+  }
+  
   processing.value = member.userId
   try {
     await auth.updateMemberRoles(member.userId, [newRole])
@@ -805,6 +827,32 @@ onMounted(() => {
 
 .action-btn--decline:hover:not(:disabled) {
   background: rgba(220, 53, 69, 0.08);
+}
+
+.action-btn--remove {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: transparent;
+  color: var(--color-danger);
+  border-color: var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.action-btn--remove:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.08);
+  border-color: var(--color-danger);
+}
+
+.action-btn--remove svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.8;
+}
+
+.action-btn--remove:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .action-btn--ghost {
