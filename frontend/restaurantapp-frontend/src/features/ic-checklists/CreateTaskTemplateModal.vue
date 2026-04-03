@@ -228,6 +228,9 @@ function submit() {
 
 .modal {
   width: min(640px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-xl);
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -281,6 +284,7 @@ h2 {
 }
 
 .modal-body {
+  overflow: auto;
   display: grid;
   gap: var(--space-4);
 }
@@ -334,6 +338,24 @@ h2 {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-strong);
   background: white;
+  box-sizing: border-box;
+  font: inherit;
+  color: var(--color-text-primary);
+}
+
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 42px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.25 4.5L6 8.25L9.75 4.5' stroke='%2320203a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 12px;
+}
+
+select.input::-ms-expand {
+  display: none;
 }
 
 .error {
