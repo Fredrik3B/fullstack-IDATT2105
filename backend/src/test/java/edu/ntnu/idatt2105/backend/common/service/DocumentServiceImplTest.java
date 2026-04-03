@@ -12,6 +12,7 @@ import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -38,6 +39,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Document Service")
 class DocumentServiceImplTest {
 
     @InjectMocks
@@ -102,6 +104,7 @@ class DocumentServiceImplTest {
     // ── uploadDocument ────────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("uploadDocument - file upload: saves file to disk and returns DTO")
     void uploadDocument_withFile_savesFileAndReturnsDTO() throws IOException {
         MultipartFile file = mock(MultipartFile.class);
         when(file.getOriginalFilename()).thenReturn("test.pdf");
@@ -132,6 +135,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("uploadDocument - external URL: no file written to disk")
     void uploadDocument_withExternalUrl_doesNotWriteFileToDisk() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
@@ -149,6 +153,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("uploadDocument - no file and no URL: throws 400")
     void uploadDocument_neitherFileNorUrl_throws400() {
         assertThatThrownBy(() ->
                 service.uploadDocument(null, null, "name", null,
@@ -158,6 +163,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("uploadDocument - blank URL string: throws 400")
     void uploadDocument_blankUrl_throws400() {
         assertThatThrownBy(() ->
                 service.uploadDocument(null, "   ", "name", null,
@@ -167,6 +173,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("uploadDocument - user not found: throws 404")
     void uploadDocument_userNotFound_throws404() {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
@@ -178,6 +185,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("uploadDocument - organization not found: throws 404")
     void uploadDocument_orgNotFound_throws404() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(organizationRepository.findById(orgId)).thenReturn(Optional.empty());
@@ -192,6 +200,7 @@ class DocumentServiceImplTest {
     // ── getDocuments ──────────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("getDocuments - no filters: queries all org documents")
     void getDocuments_noFilters_callsFindAllByOrganizationId() {
         when(documentRepository.findAllByOrganizationId(orgId)).thenReturn(List.of());
 
@@ -202,6 +211,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("getDocuments - category filter only: queries by category")
     void getDocuments_categoryOnly_callsFindByCategory() {
         when(documentRepository.findAllByOrganizationIdAndCategory(orgId, DocumentCategory.GUIDELINES))
                 .thenReturn(List.of());
@@ -213,6 +223,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("getDocuments - module filter only: queries by module")
     void getDocuments_moduleOnly_callsFindByModule() {
         when(documentRepository.findAllByOrganizationIdAndModule(orgId, DocumentModule.SHARED))
                 .thenReturn(List.of());
@@ -224,6 +235,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("getDocuments - both filters: queries by category and module")
     void getDocuments_bothFilters_callsFindByCategoryAndModule() {
         when(documentRepository.findAllByOrganizationIdAndCategoryAndModule(
                 orgId, DocumentCategory.GUIDELINES, DocumentModule.SHARED))
@@ -237,6 +249,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("getDocuments - result includes uploadedByName from user entity")
     void getDocuments_mapsToDTOs() {
         DocumentModel doc = makeDoc(1L, orgId);
         when(documentRepository.findAllByOrganizationId(orgId)).thenReturn(List.of(doc));
@@ -251,6 +264,7 @@ class DocumentServiceImplTest {
     // ── downloadDocument ──────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("downloadDocument - own document: returns readable resource")
     void downloadDocument_success() throws IOException {
         Path file = tempDir.resolve("test.pdf");
         Files.writeString(file, "PDF content");
@@ -266,6 +280,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("downloadDocument - document belongs to another org: throws 403")
     void downloadDocument_wrongOrg_throws403() {
         DocumentModel doc = makeDoc(1L, UUID.randomUUID());
         when(documentRepository.findById(1L)).thenReturn(Optional.of(doc));
@@ -276,6 +291,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("downloadDocument - document not found: throws 404")
     void downloadDocument_notFound_throws404() {
         when(documentRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -287,6 +303,7 @@ class DocumentServiceImplTest {
     // ── deleteDocument ────────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("deleteDocument - own document: removes from DB and deletes file from disk")
     void deleteDocument_deletesFromRepoAndDisk() throws IOException {
         Path file = tempDir.resolve("todelete.pdf");
         Files.writeString(file, "content");
@@ -302,6 +319,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("deleteDocument - document belongs to another org: throws 403, repo not called")
     void deleteDocument_wrongOrg_throws403() {
         DocumentModel doc = makeDoc(1L, UUID.randomUUID());
         when(documentRepository.findById(1L)).thenReturn(Optional.of(doc));
@@ -313,6 +331,7 @@ class DocumentServiceImplTest {
     }
 
     @Test
+    @DisplayName("deleteDocument - document not found: throws 404")
     void deleteDocument_notFound_throws404() {
         when(documentRepository.findById(99L)).thenReturn(Optional.empty());
 

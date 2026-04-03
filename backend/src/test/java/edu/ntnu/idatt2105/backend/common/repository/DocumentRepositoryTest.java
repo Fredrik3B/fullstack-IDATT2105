@@ -8,6 +8,7 @@ import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
+@DisplayName("Document Repository")
 class DocumentRepositoryTest {
 
     @Autowired
@@ -66,6 +68,7 @@ class DocumentRepositoryTest {
     }
 
     @Test
+    @DisplayName("findAllByOrganizationId - returns only documents belonging to the given org")
     void findAllByOrganizationId_returnsOnlyOwnOrg() {
         createDoc(orgA, DocumentCategory.GUIDELINES, DocumentModule.SHARED);
         createDoc(orgA, DocumentCategory.TRAINING, DocumentModule.IC_FOOD);
@@ -78,6 +81,7 @@ class DocumentRepositoryTest {
     }
 
     @Test
+    @DisplayName("findAllByOrganizationId - org with no documents returns empty list")
     void findAllByOrganizationId_emptyOrg_returnsEmpty() {
         List<DocumentModel> result = repository.findAllByOrganizationId(orgB.getId());
 
@@ -85,6 +89,7 @@ class DocumentRepositoryTest {
     }
 
     @Test
+    @DisplayName("findAllByOrganizationIdAndCategory - returns only documents matching the category")
     void findAllByOrganizationIdAndCategory_filtersCategory() {
         createDoc(orgA, DocumentCategory.GUIDELINES, DocumentModule.SHARED);
         createDoc(orgA, DocumentCategory.TRAINING, DocumentModule.SHARED);
@@ -97,6 +102,7 @@ class DocumentRepositoryTest {
     }
 
     @Test
+    @DisplayName("findAllByOrganizationIdAndModule - returns only documents matching the module")
     void findAllByOrganizationIdAndModule_filtersModule() {
         createDoc(orgA, DocumentCategory.GUIDELINES, DocumentModule.SHARED);
         createDoc(orgA, DocumentCategory.GUIDELINES, DocumentModule.IC_FOOD);
@@ -109,6 +115,7 @@ class DocumentRepositoryTest {
     }
 
     @Test
+    @DisplayName("findAllByOrganizationIdAndCategoryAndModule - returns only exact category+module match")
     void findAllByOrganizationIdAndCategoryAndModule_filtersBoth() {
         createDoc(orgA, DocumentCategory.GUIDELINES, DocumentModule.SHARED);
         createDoc(orgA, DocumentCategory.GUIDELINES, DocumentModule.IC_FOOD);
@@ -123,6 +130,7 @@ class DocumentRepositoryTest {
     }
 
     @Test
+    @DisplayName("findAllByOrganizationIdAndCategory - does not return documents from other orgs")
     void findAllByOrganizationIdAndCategory_doesNotReturnOtherOrg() {
         createDoc(orgA, DocumentCategory.GUIDELINES, DocumentModule.SHARED);
         createDoc(orgB, DocumentCategory.GUIDELINES, DocumentModule.SHARED);

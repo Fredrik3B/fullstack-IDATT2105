@@ -6,6 +6,7 @@ import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
 import edu.ntnu.idatt2105.backend.common.service.DocumentService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,6 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@DisplayName("Document Controller")
 class DocumentControllerTest {
 
     @Autowired
@@ -79,6 +81,7 @@ class DocumentControllerTest {
     // ── POST /documents ───────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("POST /api/documents - admin gets 201")
     void uploadDocument_asAdmin_returns201() throws Exception {
         when(documentService.uploadDocument(any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(sampleDTO());
@@ -93,6 +96,7 @@ class DocumentControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/documents - unauthenticated gets 401")
     void uploadDocument_unauthenticated_returns401() throws Exception {
         mockMvc.perform(multipart("/api/documents")
                         .file(new MockMultipartFile("file", "test.pdf", "application/pdf", "content".getBytes()))
@@ -103,6 +107,7 @@ class DocumentControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/documents - member (no ADMIN/MANAGER role) gets 403")
     void uploadDocument_asMember_returns403() throws Exception {
         mockMvc.perform(multipart("/api/documents")
                         .file(new MockMultipartFile("file", "test.pdf", "application/pdf", "content".getBytes()))
@@ -116,6 +121,7 @@ class DocumentControllerTest {
     // ── GET /api/documents ────────────────────────────────────────────────────
 
     @Test
+    @DisplayName("GET /api/documents - authenticated returns 200 with list")
     void getDocuments_authenticated_returns200WithList() throws Exception {
         when(documentService.getDocuments(any(), any(), any())).thenReturn(List.of(sampleDTO()));
 
@@ -127,12 +133,14 @@ class DocumentControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/documents - unauthenticated gets 401")
     void getDocuments_unauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/documents"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
+    @DisplayName("GET /api/documents - category filter is passed to service")
     void getDocuments_withCategoryFilter_passesFilterToService() throws Exception {
         when(documentService.getDocuments(any(), any(), any())).thenReturn(List.of());
 
@@ -150,6 +158,7 @@ class DocumentControllerTest {
     // ── GET /api/documents/{id}/download ──────────────────────────────────────
 
     @Test
+    @DisplayName("GET /api/documents/{id}/download - returns 200 with Content-Disposition header")
     void downloadDocument_authenticated_returns200WithContentDisposition() throws Exception {
         org.springframework.core.io.ByteArrayResource resource =
                 new org.springframework.core.io.ByteArrayResource("file content".getBytes());
@@ -164,6 +173,7 @@ class DocumentControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/documents/{id}/download - unauthenticated gets 401")
     void downloadDocument_unauthenticated_returns401() throws Exception {
         mockMvc.perform(get("/api/documents/1/download"))
                 .andExpect(status().isUnauthorized());
@@ -172,6 +182,7 @@ class DocumentControllerTest {
     // ── DELETE /api/documents/{id} ────────────────────────────────────────────
 
     @Test
+    @DisplayName("DELETE /api/documents/{id} - admin gets 204 and service is called")
     void deleteDocument_asAdmin_returns204() throws Exception {
         mockMvc.perform(delete("/api/documents/1")
                         .with(authentication(adminAuth())))
@@ -181,12 +192,14 @@ class DocumentControllerTest {
     }
 
     @Test
+    @DisplayName("DELETE /api/documents/{id} - unauthenticated gets 401")
     void deleteDocument_unauthenticated_returns401() throws Exception {
         mockMvc.perform(delete("/api/documents/1"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
+    @DisplayName("DELETE /api/documents/{id} - member (no ADMIN/MANAGER role) gets 403")
     void deleteDocument_asMember_returns403() throws Exception {
         mockMvc.perform(delete("/api/documents/1")
                         .with(authentication(memberAuth())))
