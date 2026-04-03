@@ -1,10 +1,12 @@
 package edu.ntnu.idatt2105.backend.common.model;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import edu.ntnu.idatt2105.backend.common.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,9 +16,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "documents")
