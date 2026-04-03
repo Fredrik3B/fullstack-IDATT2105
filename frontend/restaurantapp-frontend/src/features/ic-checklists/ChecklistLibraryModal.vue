@@ -24,8 +24,11 @@
               </div>
               <div class="pill-stack">
                 <span class="period-pill">{{ formatPeriod(card.period) }}</span>
+                <span class="mode-pill" :class="{ workbench: card.displayedOnWorkbench !== false }">
+                  {{ card.displayedOnWorkbench !== false ? 'On workbench' : 'In library' }}
+                </span>
                 <span class="mode-pill" :class="{ recurring: card.recurring !== false }">
-                  {{ card.recurring !== false ? 'Recurring' : 'Library only' }}
+                  {{ card.recurring !== false ? 'Repeats after submit' : 'Returns to library' }}
                 </span>
               </div>
             </div>
@@ -238,6 +241,11 @@ h2 {
   font-size: 12px;
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
+}
+
+.mode-pill.workbench {
+  background: rgba(88, 133, 216, 0.14);
+  color: rgba(30, 69, 143, 0.92);
 }
 
 .mode-pill.recurring {

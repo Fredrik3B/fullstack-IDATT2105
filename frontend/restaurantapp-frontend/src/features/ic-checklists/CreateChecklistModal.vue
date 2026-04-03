@@ -29,13 +29,30 @@
 
           <label class="field full toggle-field">
             <span class="label">Workbench behavior</span>
+            <button type="button" class="toggle-card" :class="{ active: displayedOnWorkbench }" @click="displayedOnWorkbench = !displayedOnWorkbench">
+              <span class="toggle-copy">
+                <span class="toggle-title">{{ displayedOnWorkbench ? 'Shown on workbench' : 'Saved in library' }}</span>
+                <span class="toggle-text">
+                  {{ displayedOnWorkbench
+                    ? 'This checklist is visible on the current workbench right away.'
+                    : 'This checklist is hidden from the workbench until someone loads it from the library.' }}
+                </span>
+              </span>
+              <span class="toggle-pill" :class="{ active: displayedOnWorkbench }">
+                <span class="toggle-knob"></span>
+              </span>
+            </button>
+          </label>
+
+          <label class="field full toggle-field">
+            <span class="label">After submit</span>
             <button type="button" class="toggle-card" :class="{ active: recurring }" @click="recurring = !recurring">
               <span class="toggle-copy">
                 <span class="toggle-title">{{ recurring ? 'Recurring on workbench' : 'Library only' }}</span>
                 <span class="toggle-text">
                   {{ recurring
-                    ? 'This checklist stays on the workbench and repeats by its selected period.'
-                    : 'This checklist is saved in the library and only appears when someone loads it manually.' }}
+                    ? 'After a submit, this checklist stays on the workbench for its next daily, weekly, or monthly run.'
+                    : 'After a submit, this checklist moves back to the library instead of staying on the workbench.' }}
                 </span>
               </span>
               <span class="toggle-pill" :class="{ active: recurring }">
@@ -128,6 +145,7 @@ const title = ref('')
 const subtitle = ref('')
 const period = ref('daily')
 const recurring = ref(true)
+const displayedOnWorkbench = ref(true)
 const error = ref('')
 const poolTasks = ref([])
 const selectedTaskIds = ref([])
@@ -170,6 +188,7 @@ function resetForm() {
   subtitle.value = ''
   period.value = 'daily'
   recurring.value = true
+  displayedOnWorkbench.value = true
   error.value = ''
   selectedTaskIds.value = []
 }
@@ -192,6 +211,7 @@ function initFromCard(card) {
   subtitle.value = String(card.subtitle ?? '').trim()
   period.value = String(card.period ?? 'daily')
   recurring.value = card.recurring !== false
+  displayedOnWorkbench.value = card.displayedOnWorkbench !== false
   error.value = ''
 
   const ids = []
@@ -258,6 +278,7 @@ function handleSubmit() {
     title: title.value.trim(),
     subtitle: subtitle.value.trim(),
     recurring: recurring.value,
+    displayedOnWorkbench: displayedOnWorkbench.value,
     taskTemplateIds: [...selectedTaskIds.value]
   }
 

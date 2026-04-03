@@ -5,7 +5,7 @@ import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklis
 import ChecklistLibraryModal from '../../../features/ic-checklists/ChecklistLibraryModal.vue'
 import ManageTaskTemplatesModal from '../../../features/ic-checklists/ManageTaskTemplatesModal.vue'
 import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
-import { createChecklist, fetchChecklists, updateChecklist } from '../../../api/checklists'
+import { createChecklist, fetchChecklists, setChecklistWorkbenchState, updateChecklist } from '../../../api/checklists'
 import { periodEnumToLabel } from '../../../features/ic-checklists/recurrence'
 
 // Backend-only mode: keep empty so missing backend wiring is visible.
@@ -40,11 +40,8 @@ const isCreateOpen = ref(false)
 const isLibraryOpen = ref(false)
 const isTaskPoolOpen = ref(false)
 const highlightedChecklistId = ref(null)
-const manuallyLoadedChecklistIds = ref([])
 
-const workbenchCards = computed(() =>
-  displayCards.value.filter((card) => card?.recurring !== false || manuallyLoadedChecklistIds.value.includes(card?.id))
-)
+const workbenchCards = computed(() => displayCards.value.filter((card) => card?.displayedOnWorkbench !== false))
 const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
 function handleCreate() {
   isCreateOpen.value = true
@@ -63,6 +60,7 @@ async function handleCreatedChecklist(newCard) {
       title: newCard?.title,
       subtitle: newCard?.subtitle,
       recurring: newCard?.recurring,
+      displayedOnWorkbench: newCard?.displayedOnWorkbench,
       taskTemplateIds: newCard?.taskTemplateIds
     })
     if (created) {
@@ -89,6 +87,7 @@ async function handleUpdatedChecklist(updatedCard) {
       title: updatedCard?.title,
       subtitle: updatedCard?.subtitle,
       recurring: updatedCard?.recurring,
+      displayedOnWorkbench: updatedCard?.displayedOnWorkbench,
       taskTemplateIds: updatedCard?.taskTemplateIds
     })
     if (saved) {
@@ -116,19 +115,25 @@ function editChecklist({ cardIndex }) {
 
 async function openChecklistOnWorkbench(card) {
   if (!card?.id) return
-  isLibraryOpen.value = false
-  if (!manuallyLoadedChecklistIds.value.includes(card.id)) {
-    manuallyLoadedChecklistIds.value = [...manuallyLoadedChecklistIds.value, card.id]
-  }
-  activePeriod.value = periodEnumToLabel(card.period)
-  highlightedChecklistId.value = card.id
-  await nextTick()
-  document.getElementById(`checklist-card-${card.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  window.setTimeout(() => {
-    if (String(highlightedChecklistId.value) === String(card.id)) {
-      highlightedChecklistId.value = null
+  try {
+    const saved = await setChecklistWorkbenchState({ checklistId: card.id, displayedOnWorkbench: true })
+    const index = cards.value.findIndex((entry) => String(entry?.id) === String(card.id))
+    if (index >= 0 && saved) {
+      cards.value.splice(index, 1, saved)
     }
-  }, 2200)
+    isLibraryOpen.value = false
+    activePeriod.value = periodEnumToLabel((saved ?? card).period)
+    highlightedChecklistId.value = card.id
+    await nextTick()
+    document.getElementById(`checklist-card-${card.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.setTimeout(() => {
+      if (String(highlightedChecklistId.value) === String(card.id)) {
+        highlightedChecklistId.value = null
+      }
+    }, 2200)
+  } catch (err) {
+    console.error('Failed to load checklist onto workbench', err)
+  }
 }
 </script>
 
