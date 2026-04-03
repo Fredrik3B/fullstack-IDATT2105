@@ -11,46 +11,53 @@
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
           <h2>Create task</h2>
-          <p class="subtitle">Add a reusable task template to the shared pool for this module.</p>
+          <p class="subtitle">Add a reusable task to the shared module task pool.</p>
         </div>
         <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <form class="modal-body" @submit.prevent="submit">
-        <div class="grid">
-          <label class="field full">
-            <span class="label">Task title</span>
-            <input
-              v-model.trim="title"
-              class="input"
-              type="text"
-              placeholder="e.g. Check Fridge 1"
-              required
-            />
-          </label>
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Task details</h3>
+            <p>Use clear titles so the task is easy to reuse across checklists.</p>
+          </div>
 
-          <label class="field">
-            <span class="label">Section</span>
-            <select v-model="sectionType" class="input" required>
-              <option disabled value="">Choose section</option>
-              <option v-for="option in SECTION_TYPE_OPTIONS" :key="option" :value="option">
-                {{ formatSectionType(option) }}
-              </option>
-            </select>
-          </label>
-
-          <template v-if="isTemperatureControl">
-            <label class="field">
-              <span class="label">Target min (optional)</span>
-              <input v-model.number="targetMin" class="input" type="number" step="0.1" />
+          <div class="grid">
+            <label class="field full">
+              <span class="label">Task title</span>
+              <input
+                v-model.trim="title"
+                class="input"
+                type="text"
+                placeholder="e.g. Check fridge 1"
+                required
+              />
             </label>
 
             <label class="field">
-              <span class="label">Target max (optional)</span>
-              <input v-model.number="targetMax" class="input" type="number" step="0.1" />
+              <span class="label">Section</span>
+              <select v-model="sectionType" class="input" required>
+                <option disabled value="">Choose section</option>
+                <option v-for="option in SECTION_TYPE_OPTIONS" :key="option" :value="option">
+                  {{ formatSectionType(option) }}
+                </option>
+              </select>
             </label>
-          </template>
-        </div>
+
+            <template v-if="isTemperatureControl">
+              <label class="field">
+                <span class="label">Target min (optional)</span>
+                <input v-model.number="targetMin" class="input" type="number" step="0.1" />
+              </label>
+
+              <label class="field">
+                <span class="label">Target max (optional)</span>
+                <input v-model.number="targetMax" class="input" type="number" step="0.1" />
+              </label>
+            </template>
+          </div>
+        </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
 
@@ -68,18 +75,9 @@ import { computed, ref, watch } from 'vue'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
-  open: {
-    type: Boolean,
-    default: false,
-  },
-  module: {
-    type: String,
-    required: true,
-  },
-  moduleLabel: {
-    type: String,
-    default: '',
-  },
+  open: { type: Boolean, default: false },
+  module: { type: String, required: true },
+  moduleLabel: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:open', 'created', 'close'])
@@ -178,7 +176,7 @@ function submit() {
 
 .modal-header,
 .modal-body {
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .modal-header {
@@ -221,6 +219,32 @@ h2 {
   cursor: pointer;
 }
 
+.modal-body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.section-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+}
+
+.section-heading h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.section-heading p {
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -252,12 +276,11 @@ h2 {
 }
 
 .error {
-  margin: 14px 0 0;
+  margin: 0;
   color: #a11d2d;
 }
 
 .modal-footer {
-  margin-top: 20px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;

@@ -5,53 +5,59 @@
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
           <h2>Checklist library</h2>
-          <p class="subtitle">
-            Browse your saved checklists and open one directly on the workbench.
-          </p>
+          <p class="subtitle">Browse saved checklists and place them back on the workbench.</p>
         </div>
         <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <div class="modal-body">
+        <section class="summary-strip">
+          <div class="summary-item">
+            <span class="summary-label">Saved checklists</span>
+            <strong class="summary-value">{{ sortedCards.length }}</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Already on workbench</span>
+            <strong class="summary-value">{{ loadedChecklistIds.length }}</strong>
+          </div>
+        </section>
+
         <div v-if="sortedCards.length === 0" class="state">
-          No checklists yet. Create your first one from the menu.
+          <p class="state-title">No checklists yet</p>
+          <p class="state-copy">Create your first checklist from the workbench menu.</p>
         </div>
 
-        <div v-else class="library-grid">
-          <article v-for="card in sortedCards" :key="card.id" class="library-card">
-            <div class="library-top">
-              <div>
-                <div class="library-title">{{ card.title }}</div>
-                <p class="library-subtitle">
-                  {{ card.subtitle || 'Reusable checklist ready for the workbench.' }}
-                </p>
-              </div>
-
-              <div class="pill-stack">
-                <span class="period-pill">{{ formatPeriod(card.period) }}</span>
-                <span class="mode-pill" :class="{ workbench: card.displayedOnWorkbench !== false }">
-                  {{ card.displayedOnWorkbench !== false ? 'On workbench' : 'In library' }}
-                </span>
-                <span class="mode-pill" :class="{ recurring: card.recurring !== false }">
-                  {{ card.recurring !== false ? 'Repeats after submit' : 'Returns to library' }}
-                </span>
+        <div v-else class="library-list">
+          <article v-for="card in sortedCards" :key="card.id" class="library-row">
+            <div class="row-main">
+              <div class="library-title">{{ card.title }}</div>
+              <p class="library-subtitle">
+                {{ card.subtitle || 'Reusable checklist ready for the workbench.' }}
+              </p>
+              <div class="library-meta">
+                <span>{{ formatPeriod(card.period) }}</span>
+                <span>{{ countTasks(card) }} tasks</span>
+                <span>{{ card.progress ?? 0 }}% done in current run</span>
               </div>
             </div>
 
-            <div class="library-meta">
-              <span>{{ countTasks(card) }} tasks</span>
-              <span>{{ card.progress ?? 0 }}% done in current run</span>
+            <div class="row-side">
+              <span class="mode-pill" :class="{ workbench: card.displayedOnWorkbench !== false }">
+                {{ card.displayedOnWorkbench !== false ? 'On workbench' : 'In library' }}
+              </span>
+              <span class="mode-pill" :class="{ recurring: card.recurring !== false }">
+                {{ card.recurring !== false ? 'Repeats after submit' : 'Returns to library' }}
+              </span>
+              <button
+                type="button"
+                class="open-button"
+                :class="{ disabled: isLoaded(card) }"
+                :disabled="isLoaded(card)"
+                @click="emit('open-checklist', card)"
+              >
+                {{ isLoaded(card) ? 'Already loaded' : 'Open on workbench' }}
+              </button>
             </div>
-
-            <button
-              type="button"
-              class="open-button"
-              :class="{ disabled: isLoaded(card) }"
-              :disabled="isLoaded(card)"
-              @click="emit('open-checklist', card)"
-            >
-              {{ isLoaded(card) ? 'Already on workbench' : 'Open on workbench' }}
-            </button>
           </article>
         </div>
       </div>
@@ -63,22 +69,10 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  open: {
-    type: Boolean,
-    default: false,
-  },
-  moduleLabel: {
-    type: String,
-    default: '',
-  },
-  cards: {
-    type: Array,
-    default: () => [],
-  },
-  loadedChecklistIds: {
-    type: Array,
-    default: () => [],
-  },
+  open: { type: Boolean, default: false },
+  moduleLabel: { type: String, default: '' },
+  cards: { type: Array, default: () => [] },
+  loadedChecklistIds: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update:open', 'close', 'open-checklist'])
@@ -129,7 +123,7 @@ function isLoaded(card) {
 }
 
 .modal {
-  width: min(940px, 100%);
+  width: min(900px, 100%);
   border-radius: var(--radius-xl);
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -139,7 +133,7 @@ function isLoaded(card) {
 
 .modal-header,
 .modal-body {
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .modal-header {
@@ -161,6 +155,7 @@ function isLoaded(card) {
 h2 {
   margin: 0;
   font-size: 26px;
+  color: var(--color-text-primary);
 }
 
 .subtitle {
@@ -179,36 +174,77 @@ h2 {
   cursor: pointer;
 }
 
-.state {
-  color: var(--color-text-muted);
-  padding: 24px 4px;
+.modal-body {
+  display: grid;
+  gap: var(--space-4);
 }
 
-.library-grid {
+.summary-strip {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-3);
 }
 
-.library-card {
+.summary-item {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.summary-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.summary-value {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+}
+
+.state {
+  padding: var(--space-8) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  text-align: center;
+}
+
+.state-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.state-copy {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.library-list {
   display: grid;
-  gap: 14px;
+  gap: var(--space-3);
+}
+
+.library-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
   padding: var(--space-5);
   border-radius: var(--radius-lg);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
 }
 
-.library-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.pill-stack {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
+.row-main {
+  min-width: 0;
 }
 
 .library-title {
@@ -223,26 +259,34 @@ h2 {
   font-size: var(--font-size-sm);
 }
 
-.period-pill,
+.library-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.row-side {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: var(--space-2);
+}
+
 .mode-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 28px;
   padding: 0 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: var(--color-bg-primary);
   font-size: 12px;
   font-weight: var(--font-weight-bold);
-  white-space: nowrap;
-}
-
-.period-pill {
-  color: var(--color-text-primary);
-}
-
-.mode-pill {
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .mode-pill.workbench {
@@ -255,20 +299,11 @@ h2 {
   color: var(--color-success-text);
 }
 
-.library-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
 .open-button {
-  justify-self: start;
-  border: 0;
-  border-radius: var(--radius-md);
   min-height: 40px;
   padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
   background: var(--color-dark-secondary);
   color: #ffffff;
   font: inherit;
@@ -284,15 +319,12 @@ h2 {
 }
 
 @media (max-width: 820px) {
-  .library-grid {
+  .summary-strip,
+  .library-row {
     grid-template-columns: 1fr;
   }
 
-  .library-top {
-    flex-direction: column;
-  }
-
-  .pill-stack {
+  .row-side {
     justify-items: start;
   }
 }

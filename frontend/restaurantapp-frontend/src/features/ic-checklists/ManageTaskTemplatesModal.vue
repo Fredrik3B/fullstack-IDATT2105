@@ -5,19 +5,26 @@
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
           <h2>Task pool</h2>
-          <p class="subtitle">Create, review, and delete reusable company tasks for this module.</p>
+          <p class="subtitle">Create, review, and remove reusable tasks for this module.</p>
         </div>
         <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <div class="modal-body">
-        <div class="toolbar">
-          <button type="button" class="primary" @click="isCreateOpen = true">+ New task</button>
-        </div>
+        <section class="toolbar-panel">
+          <div>
+            <span class="panel-label">Shared tasks</span>
+            <p class="panel-copy">These tasks can be reused across checklists in this module.</p>
+          </div>
+          <button type="button" class="primary" @click="isCreateOpen = true">New task</button>
+        </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
         <div v-if="loading" class="state">Loading tasks...</div>
-        <div v-else-if="groupedTasks.length === 0" class="state">No tasks yet for this module.</div>
+        <div v-else-if="groupedTasks.length === 0" class="state">
+          <p class="state-title">No tasks yet</p>
+          <p class="state-copy">Create the first shared task for this module.</p>
+        </div>
         <div v-else class="groups">
           <section v-for="group in groupedTasks" :key="group.sectionType" class="group">
             <div class="group-title">{{ group.title }}</div>
@@ -57,18 +64,9 @@ import CreateTaskTemplateModal from './CreateTaskTemplateModal.vue'
 import { formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
-  open: {
-    type: Boolean,
-    default: false,
-  },
-  module: {
-    type: String,
-    required: true,
-  },
-  moduleLabel: {
-    type: String,
-    default: '',
-  },
+  open: { type: Boolean, default: false },
+  module: { type: String, required: true },
+  moduleLabel: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:open', 'close', 'changed'])
@@ -192,7 +190,7 @@ async function removeTask(task) {
 
 .modal-header,
 .modal-body {
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .modal-header {
@@ -232,19 +230,46 @@ h2 {
   cursor: pointer;
 }
 
-.toolbar {
+.modal-body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.toolbar-panel {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.panel-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.panel-copy {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
 }
 
 .primary,
 .danger {
-  border: 1px solid transparent;
-  cursor: pointer;
-  border-radius: var(--radius-md);
   min-height: 40px;
   padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
 }
 
 .primary {
@@ -262,25 +287,50 @@ h2 {
   color: var(--color-text-muted);
 }
 
+.state {
+  padding: var(--space-8) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  text-align: center;
+}
+
+.state-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.state-copy {
+  margin: var(--space-2) 0 0;
+}
+
 .error {
   color: #a11d2d;
 }
 
 .groups {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .group {
-  padding: 16px;
+  padding: 0;
   border-radius: var(--radius-lg);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
+  overflow: hidden;
 }
 
 .group-title {
-  margin-bottom: 12px;
+  margin: 0;
+  padding: 12px 14px;
   font-weight: 800;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .task-row {
@@ -288,7 +338,8 @@ h2 {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 10px 0;
+  padding: 12px 14px;
+  background: var(--color-bg-secondary);
 }
 
 .task-row + .task-row {
@@ -302,6 +353,7 @@ h2 {
 
 .task-title {
   font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .task-meta {
@@ -310,6 +362,7 @@ h2 {
 }
 
 @media (max-width: 720px) {
+  .toolbar-panel,
   .task-row {
     flex-direction: column;
     align-items: flex-start;
