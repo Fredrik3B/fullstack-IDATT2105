@@ -12,122 +12,286 @@
     <main class="page-main">
       <div class="page-content">
 
-        <!-- Summary row -->
-        <div class="summary-grid">
-          <div class="summary-card">
-            <span class="summary-label">Total documents</span>
-            <span class="summary-value">0</span>
-            <span class="summary-hint">No documents uploaded</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Guidelines</span>
-            <span class="summary-value summary-value--accent">0</span>
-            <span class="summary-hint">Policies and procedures</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Training material</span>
-            <span class="summary-value">0</span>
-            <span class="summary-hint">Courses and instructions</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Certificates</span>
-            <span class="summary-value summary-value--warning">0</span>
-            <span class="summary-hint">Expiring soon: none</span>
-          </div>
-        </div>
-
         <!-- Action bar -->
         <div class="action-bar">
           <div class="search-wrap">
-            <span class="search-icon">&#128269;</span>
-            <input class="search-input" type="search" placeholder="Search documents..." />
+            <Search class="search-icon" :size="16" />
+            <input
+              v-model="searchQuery"
+              class="search-input"
+              type="search"
+              placeholder="Search documents..."
+            />
           </div>
           <div class="filter-group">
             <label class="filter-label" for="filter-cat">Category</label>
-            <select class="filter-select" id="filter-cat">
+            <select v-model="activeCategory" class="filter-select" id="filter-cat">
               <option value="">All categories</option>
-              <option value="policy">Guidelines</option>
-              <option value="training">Training material</option>
-              <option value="cert">Certificates</option>
+              <option v-for="cat in CATEGORIES" :key="cat.value" :value="cat.value">
+                {{ cat.label }}
+              </option>
             </select>
           </div>
           <div class="filter-group">
             <label class="filter-label" for="filter-module">Module</label>
-            <select class="filter-select" id="filter-module">
+            <select v-model="activeModule" class="filter-select" id="filter-module">
               <option value="">All modules</option>
-              <option value="shared">Shared</option>
-              <option value="food">IC-Food</option>
-              <option value="alcohol">IC-Alcohol</option>
+              <option v-for="mod in MODULES" :key="mod.value" :value="mod.value">
+                {{ mod.label }}
+              </option>
             </select>
           </div>
-          <button class="btn-upload" type="button">+ Upload document</button>
+          <button v-if="isAdminOrManager" class="btn-upload" type="button" @click="showUploadModal = true">
+            + Upload document
+          </button>
         </div>
 
-        <!-- Category sections -->
-        <section>
-          <div class="category-header">
-            <h2 class="section-heading">Guidelines</h2>
-            <span class="category-count">0 documents</span>
-          </div>
-          <div class="doc-list">
-            <div class="empty-state">
-              <p class="empty-title">No guidelines uploaded</p>
-              <p class="empty-sub">Upload company policies and procedures for hygiene and alcohol handling.</p>
-            </div>
-            <!-- Document row structure (will be v-for rendered later) -->
-            <div class="doc-row" style="display: none;" aria-hidden="true">
-              <div class="doc-icon doc-icon--pdf">PDF</div>
-              <div class="doc-info">
-                <span class="doc-name">Hygiene policy 2026.pdf</span>
-                <span class="doc-meta">Uploaded 15 Jan 2026 · 1.2 MB</span>
+        <!-- Upload modal -->
+        <Teleport to="body">
+          <div v-if="showUploadModal" class="modal-backdrop" @click.self="closeModal">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+              <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">Upload document</h2>
+                <button class="modal-close" type="button" @click="closeModal" aria-label="Close">✕</button>
               </div>
-              <span class="doc-badge doc-badge--shared">Shared</span>
-              <div class="doc-actions">
-                <button class="doc-btn" type="button">Download</button>
-                <button class="doc-btn doc-btn--danger" type="button">Delete</button>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section>
-          <div class="category-header">
-            <h2 class="section-heading">Training material</h2>
-            <span class="category-count">0 documents</span>
-          </div>
-          <div class="doc-list">
-            <div class="empty-state">
-              <p class="empty-title">No training material uploaded</p>
-              <p class="empty-sub">Add course material, instructions, and training documents for employees.</p>
-            </div>
-          </div>
-        </section>
+              <form class="modal-body" @submit.prevent="handleUpload">
 
-        <section>
-          <div class="category-header">
-            <h2 class="section-heading">Certificates</h2>
-            <span class="category-count">0 certificates</span>
-          </div>
-          <div class="doc-list">
-            <div class="empty-state">
-              <p class="empty-title">No certificates registered</p>
-              <p class="empty-sub">Add employee certificates, e.g. serving license and food safety course.</p>
+                <!-- File / Link toggle -->
+                <div class="upload-type-toggle">
+                  <button
+                    type="button"
+                    :class="['toggle-btn', uploadMode === 'file' && 'toggle-btn--active']"
+                    @click="uploadMode = 'file'"
+                  >Upload file</button>
+                  <button
+                    type="button"
+                    :class="['toggle-btn', uploadMode === 'link' && 'toggle-btn--active']"
+                    @click="uploadMode = 'link'"
+                  >Link to URL</button>
+                </div>
+
+                <!-- Drop zone (file mode) -->
+                <div
+                  v-if="uploadMode === 'file'"
+                  :class="['drop-zone', { 'drop-zone--active': isDragging, 'drop-zone--filled': uploadForm.file }]"
+                  @dragover.prevent="isDragging = true"
+                  @dragleave.prevent="isDragging = false"
+                  @drop.prevent="onDrop"
+                  @click="$refs.fileInput.click()"
+                >
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    class="file-input-hidden"
+                    @change="onFileChange"
+                  />
+                  <template v-if="uploadForm.file">
+                    <span class="drop-zone-filename">{{ uploadForm.file.name }}</span>
+                    <span class="drop-zone-size">{{ formatSize(uploadForm.file.size) }}</span>
+                  </template>
+                  <template v-else>
+                    <span class="drop-zone-hint">Drag & drop a file here, or click to browse</span>
+                  </template>
+                </div>
+
+                <!-- URL input (link mode) -->
+                <div v-if="uploadMode === 'link'" class="form-group">
+                  <label class="form-label" for="upload-url">URL <span class="required">*</span></label>
+                  <input
+                    id="upload-url"
+                    v-model="uploadForm.externalUrl"
+                    class="form-input"
+                    type="url"
+                    placeholder="https://lovdata.no/dokument/..."
+                    :required="uploadMode === 'link'"
+                  />
+                </div>
+
+                <!-- Name -->
+                <div class="form-group">
+                  <label class="form-label" for="upload-name">Document name <span class="required">*</span></label>
+                  <input
+                    id="upload-name"
+                    v-model="uploadForm.name"
+                    class="form-input"
+                    type="text"
+                    placeholder="e.g. Hygiene policy 2026"
+                    required
+                  />
+                </div>
+
+                <!-- Category + Module row -->
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="upload-category">Category <span class="required">*</span></label>
+                    <select id="upload-category" v-model="uploadForm.category" class="form-select" required>
+                      <option value="" disabled>Select category</option>
+                      <option v-for="cat in CATEGORIES" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="upload-module">Module <span class="required">*</span></label>
+                    <select id="upload-module" v-model="uploadForm.module" class="form-select" required>
+                      <option value="" disabled>Select module</option>
+                      <option v-for="mod in MODULES" :key="mod.value" :value="mod.value">{{ mod.label }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Expiry date (certificates only) -->
+                <div v-if="uploadForm.category === 'CERTIFICATE'" class="form-group">
+                  <label class="form-label" for="upload-expiry">Expiry date</label>
+                  <input
+                    id="upload-expiry"
+                    v-model="uploadForm.expiryDate"
+                    class="form-input"
+                    type="date"
+                  />
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                  <label class="form-label" for="upload-desc">Description <span class="optional">(optional)</span></label>
+                  <textarea
+                    id="upload-desc"
+                    v-model="uploadForm.description"
+                    class="form-textarea"
+                    rows="2"
+                    placeholder="Short description of this document"
+                  />
+                </div>
+
+                <!-- Upload error -->
+                <p v-if="uploadError" class="upload-error">{{ uploadError }}</p>
+
+                <div class="modal-actions">
+                  <button type="button" class="btn-cancel" @click="closeModal">Cancel</button>
+                  <button type="submit" class="btn-submit" :disabled="uploading || !uploadForm.file">
+                    {{ uploading ? 'Uploading…' : 'Upload' }}
+                  </button>
+                </div>
+              </form>
             </div>
-            <!-- Certificate row structure (will be v-for rendered later) -->
-            <div class="cert-row" style="display: none;" aria-hidden="true">
-              <div class="doc-icon doc-icon--cert">CERT</div>
-              <div class="doc-info">
-                <span class="doc-name">Serving license course - Jane Doe</span>
-                <span class="doc-meta">Issued 10 Jan 2025 · Expires 10 Jan 2027</span>
+          </div>
+        </Teleport>
+
+        <!-- Preview modal -->
+        <Teleport to="body">
+          <div v-if="previewDoc" class="modal-backdrop" @click.self="closePreview">
+            <div class="preview-modal" role="dialog" aria-modal="true">
+              <div class="modal-header">
+                <h2 class="modal-title">{{ previewDoc.name }}</h2>
+                <div class="preview-header-actions">
+                  <button class="doc-btn" type="button" @click="handleDownload(previewDoc)">Download</button>
+                  <button class="modal-close" type="button" @click="closePreview" aria-label="Close">✕</button>
+                </div>
               </div>
-              <span class="cert-expiry cert-expiry--ok">Valid</span>
-              <div class="doc-actions">
-                <button class="doc-btn" type="button">Download</button>
-                <button class="doc-btn doc-btn--danger" type="button">Delete</button>
+              <div class="preview-body">
+                <div v-if="previewLoading" class="loading-state">Loading preview...</div>
+                <div v-else-if="previewError" class="error-state">{{ previewError }}</div>
+                <img
+                  v-else-if="previewUrl && previewDoc.fileType && previewDoc.fileType.includes('image')"
+                  :src="previewUrl"
+                  class="preview-img"
+                  :alt="previewDoc.name"
+                />
+                <object
+                  v-else-if="previewUrl && previewDoc.fileType && previewDoc.fileType.includes('pdf')"
+                  :data="previewUrl"
+                  type="application/pdf"
+                  class="preview-pdf"
+                >
+                  <p class="preview-fallback">PDF could not be displayed. <button class="doc-btn" type="button" @click="handleDownload(previewDoc)">Download instead</button></p>
+                </object>
+                <div v-else class="preview-unsupported">
+                  <div :class="['doc-icon-large', fileIconClass(previewDoc.fileType)]">{{ fileIconLabel(previewDoc.fileType) }}</div>
+                  <p class="preview-unsupported-text">Preview not available for this file type.</p>
+                  <button class="doc-btn" type="button" @click="handleDownload(previewDoc)">Download to view</button>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </Teleport>
+
+        <!-- Certificate expiry alert -->
+        <div v-if="expiryAlerts.length > 0 && !expiryBannerDismissed" class="expiry-banner">
+          <AlertTriangle :size="15" class="expiry-icon" />
+          <span class="expiry-banner-title">Certificate alerts</span>
+          <div class="expiry-chips">
+            <button
+              v-for="alert in expiryAlerts"
+              :key="alert.id"
+              :class="['expiry-chip', alert.expired ? 'expiry-chip--expired' : 'expiry-chip--warning']"
+              type="button"
+              @click="scrollToDoc(alert.id)"
+            >
+              <span class="expiry-chip-name">{{ alert.name }}</span>
+              <span class="expiry-chip-status">{{ alert.label }}</span>
+            </button>
+          </div>
+          <button class="expiry-banner-close" type="button" @click="expiryBannerDismissed = true" aria-label="Dismiss">✕</button>
+        </div>
+
+        <!-- Loading state -->
+        <div v-if="loading" class="loading-state">Loading documents...</div>
+
+        <!-- Error state -->
+        <div v-else-if="error" class="error-state">{{ error }}</div>
+
+        <!-- Document sections -->
+        <template v-else>
+          <section
+            v-for="cat in visibleCategories"
+            :key="cat.value"
+          >
+            <div class="category-header" @click="toggleCategory(cat.value)">
+              <h2 class="section-heading">{{ cat.label }}</h2>
+              <span class="category-count">
+                {{ documentsForCategory(cat.value).length }}
+                {{ cat.value === 'CERTIFICATE' ? 'certificates' : 'documents' }}
+              </span>
+              <ChevronDown
+                :size="18"
+                :class="['category-chevron', { 'category-chevron--collapsed': collapsedCategories.has(cat.value) }]"
+              />
+            </div>
+            <div v-if="documentsForCategory(cat.value).length === 0 && !collapsedCategories.has(cat.value)" class="empty-state">
+              <p class="empty-title">No {{ cat.label.toLowerCase() }} uploaded</p>
+              <p class="empty-sub">{{ cat.emptyHint }}</p>
+            </div>
+            <div v-else-if="!collapsedCategories.has(cat.value)" class="doc-grid">
+              <div
+                v-for="doc in documentsForCategory(cat.value)"
+                :key="doc.id"
+                :id="`doc-${doc.id}`"
+                class="doc-card"
+                @click="handlePreview(doc)"
+              >
+                <div :class="['doc-card-thumb', doc.externalUrl ? 'doc-icon--link' : fileIconClass(doc.fileType)]">
+                  <span class="doc-card-type">{{ doc.externalUrl ? 'LINK' : fileIconLabel(doc.fileType) }}</span>
+                  <div class="doc-card-overlay">
+                    <span class="doc-card-overlay-text">{{ doc.externalUrl ? 'Open link' : 'Click to preview' }}</span>
+                  </div>
+                </div>
+                <div class="doc-card-body" @click.stop>
+                  <span class="doc-name">{{ doc.name }}</span>
+                  <span class="doc-meta">{{ formatDate(doc.uploadedAt) }} · {{ formatSize(doc.fileSize) }}</span>
+                  <span class="doc-meta">{{ doc.uploadedByName }}</span>
+                  <div class="doc-card-tags">
+                    <span :class="['doc-badge', moduleBadgeClass(doc.module)]">{{ moduleLabel(doc.module) }}</span>
+                    <span v-if="doc.category === 'CERTIFICATE' && doc.expiryDate" :class="['cert-expiry', expiryClass(doc.expiryDate)]">{{ expiryLabel(doc.expiryDate) }}</span>
+                  </div>
+                  <div class="doc-card-actions">
+                    <a v-if="doc.externalUrl" :href="doc.externalUrl" target="_blank" rel="noopener noreferrer" class="doc-btn">Open</a>
+                    <button v-else class="doc-btn" type="button" @click="handleDownload(doc)">Download</button>
+                    <button v-if="isAdminOrManager" class="doc-btn doc-btn--danger" type="button" @click="handleDelete(doc)">Delete</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </template>
 
       </div>
     </main>
@@ -135,6 +299,318 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
+import { Search, AlertTriangle, ChevronDown } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
+import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
+
+const auth = useAuthStore()
+const isAdminOrManager = computed(() => auth.isAdminOrManager)
+
+// ── State ──────────────────────────────────────────────────────────────────
+
+const documents = ref([])
+const loading = ref(false)
+const error = ref(null)
+const searchQuery = ref('')
+const activeCategory = ref('')
+const activeModule = ref('')
+const expiryBannerDismissed = ref(false)
+const collapsedCategories = ref(new Set())
+
+// ── Certificate expiry alerts ──────────────────────────────────────────────
+
+const expiryAlerts = computed(() => {
+  const today = new Date()
+  return documents.value
+    .filter(doc => doc.category === 'CERTIFICATE' && doc.expiryDate)
+    .flatMap(doc => {
+      const expiry = new Date(doc.expiryDate)
+      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+      if (daysLeft > 30) return []
+      return [{
+        id: doc.id,
+        name: doc.name,
+        expired: daysLeft < 0,
+        label: daysLeft < 0
+          ? `Expired ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} ago`
+          : daysLeft === 0
+            ? 'Expires today'
+            : `Expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`,
+      }]
+    })
+    .sort((a, b) => a.expired === b.expired ? 0 : a.expired ? -1 : 1)
+})
+
+// ── Upload modal state ─────────────────────────────────────────────────────
+
+const showUploadModal = ref(false)
+const uploading = ref(false)
+const uploadError = ref(null)
+const isDragging = ref(false)
+const fileInput = ref(null)
+const uploadMode = ref('file')
+
+const uploadForm = ref({
+  file: null,
+  externalUrl: '',
+  name: '',
+  description: '',
+  category: '',
+  module: '',
+  expiryDate: '',
+})
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  { value: 'GUIDELINES',   label: 'Guidelines',        emptyHint: 'Upload company policies and procedures for hygiene and alcohol handling.' },
+  { value: 'TRAINING',     label: 'Training material',  emptyHint: 'Add course material, instructions, and training documents for employees.' },
+  { value: 'CERTIFICATE',  label: 'Certificates',       emptyHint: 'Add employee certificates, e.g. serving license and food safety course.' },
+  { value: 'AUDIT_REPORT', label: 'Audit & inspection', emptyHint: 'Store results from external food authority inspections.' },
+  { value: 'HACCP',        label: 'HACCP / Risk',       emptyHint: 'Upload food safety hazard analysis and risk assessment documents.' },
+  { value: 'EMERGENCY',    label: 'Emergency procedures', emptyHint: 'Add fire evacuation, first aid, and other emergency plans.' },
+]
+
+const MODULES = [
+  { value: 'SHARED',     label: 'Shared' },
+  { value: 'IC_FOOD',    label: 'IC-Food' },
+  { value: 'IC_ALCOHOL', label: 'IC-Alcohol' },
+]
+
+// ── Data fetching ──────────────────────────────────────────────────────────
+
+async function loadDocuments() {
+  loading.value = true
+  error.value = null
+  try {
+    documents.value = await fetchDocuments()
+  } catch {
+    error.value = 'Failed to load documents. Please try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadDocuments)
+
+// ── Filtering ──────────────────────────────────────────────────────────────
+
+const filteredDocuments = computed(() => {
+  return documents.value.filter(doc => {
+    if (activeCategory.value && doc.category !== activeCategory.value) return false
+    if (activeModule.value && doc.module !== activeModule.value) return false
+    if (searchQuery.value) {
+      const q = searchQuery.value.toLowerCase()
+      if (!doc.name.toLowerCase().includes(q) && !doc.originalFileName.toLowerCase().includes(q)) return false
+    }
+    return true
+  })
+})
+
+// Only show categories that have documents when a filter is active, or always show all when no filter
+const visibleCategories = computed(() => {
+  if (activeCategory.value) {
+    return CATEGORIES.filter(c => c.value === activeCategory.value)
+  }
+  return CATEGORIES
+})
+
+function documentsForCategory(category) {
+  return filteredDocuments.value.filter(d => d.category === category)
+}
+
+function toggleCategory(value) {
+  const s = collapsedCategories.value
+  if (s.has(value)) s.delete(value)
+  else s.add(value)
+  collapsedCategories.value = new Set(s) // trigger reactivity
+}
+
+// ── Upload modal actions ───────────────────────────────────────────────────
+
+function closeModal() {
+  showUploadModal.value = false
+  uploadError.value = null
+  uploadMode.value = 'file'
+  uploadForm.value = { file: null, externalUrl: '', name: '', description: '', category: '', module: '', expiryDate: '' }
+}
+
+function onFileChange(event) {
+  const file = event.target.files[0]
+  if (file) uploadForm.value.file = file
+}
+
+function onDrop(event) {
+  isDragging.value = false
+  const file = event.dataTransfer.files[0]
+  if (file) uploadForm.value.file = file
+}
+
+async function handleUpload() {
+  uploading.value = true
+  uploadError.value = null
+  try {
+    const formData = new FormData()
+    if (uploadMode.value === 'file') {
+      if (!uploadForm.value.file) { uploadError.value = 'Please select a file.'; uploading.value = false; return }
+      formData.append('file', uploadForm.value.file)
+    } else {
+      if (!uploadForm.value.externalUrl) { uploadError.value = 'Please enter a URL.'; uploading.value = false; return }
+      formData.append('externalUrl', uploadForm.value.externalUrl)
+    }
+    formData.append('name', uploadForm.value.name)
+    formData.append('category', uploadForm.value.category)
+    formData.append('module', uploadForm.value.module)
+    if (uploadForm.value.description) formData.append('description', uploadForm.value.description)
+    if (uploadForm.value.expiryDate) formData.append('expiryDate', uploadForm.value.expiryDate)
+
+    const newDoc = await uploadDocument(formData)
+    documents.value.unshift(newDoc)
+    closeModal()
+  } catch {
+    uploadError.value = 'Upload failed. Please try again.'
+  } finally {
+    uploading.value = false
+  }
+}
+
+// ── Expiry banner ──────────────────────────────────────────────────────────
+
+function scrollToDoc(id) {
+  const el = document.getElementById(`doc-${id}`)
+  if (!el) return
+  // Clear category filter so the card is visible
+  activeCategory.value = ''
+  activeModule.value = ''
+  setTimeout(() => {
+    document.getElementById(`doc-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.add('doc-card--highlight')
+    setTimeout(() => el.classList.remove('doc-card--highlight'), 1800)
+  }, 50)
+}
+
+// ── Preview modal ──────────────────────────────────────────────────────────
+
+const previewDoc = ref(null)
+const previewUrl = ref(null)
+const previewLoading = ref(false)
+const previewError = ref(null)
+
+async function handlePreview(doc) {
+  if (doc.externalUrl) {
+    window.open(doc.externalUrl, '_blank', 'noopener,noreferrer')
+    return
+  }
+  previewDoc.value = doc
+  previewUrl.value = null
+  previewLoading.value = true
+  previewError.value = null
+  try {
+    const response = await downloadDocument(doc.id)
+    previewUrl.value = URL.createObjectURL(response.data)
+  } catch {
+    previewError.value = 'Failed to load preview.'
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+function closePreview() {
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  previewDoc.value = null
+  previewUrl.value = null
+  previewError.value = null
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+
+async function handleDownload(doc) {
+  try {
+    const response = await downloadDocument(doc.id)
+    const url = URL.createObjectURL(response.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = doc.originalFileName
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    alert('Failed to download file.')
+  }
+}
+
+async function handleDelete(doc) {
+  if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return
+  try {
+    await deleteDocument(doc.id)
+    documents.value = documents.value.filter(d => d.id !== doc.id)
+  } catch {
+    alert('Failed to delete document.')
+  }
+}
+
+// ── Display helpers ────────────────────────────────────────────────────────
+
+function fileIconLabel(fileType) {
+  if (!fileType) return 'FILE'
+  if (fileType.includes('pdf')) return 'PDF'
+  if (fileType.includes('word') || fileType.includes('document')) return 'DOC'
+  if (fileType.includes('image')) return 'IMG'
+  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'XLS'
+  return 'FILE'
+}
+
+function fileIconClass(fileType) {
+  if (!fileType) return 'doc-icon--file'
+  if (fileType.includes('pdf')) return 'doc-icon--pdf'
+  if (fileType.includes('word') || fileType.includes('document')) return 'doc-icon--doc'
+  if (fileType.includes('image')) return 'doc-icon--img'
+  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'doc-icon--xls'
+  return 'doc-icon--file'
+}
+
+function moduleBadgeClass(module) {
+  if (module === 'IC_FOOD') return 'doc-badge--food'
+  if (module === 'IC_ALCOHOL') return 'doc-badge--alcohol'
+  return 'doc-badge--shared'
+}
+
+function moduleLabel(module) {
+  if (module === 'IC_FOOD') return 'IC-Food'
+  if (module === 'IC_ALCOHOL') return 'IC-Alcohol'
+  return 'Shared'
+}
+
+function formatDate(isoString) {
+  if (!isoString) return ''
+  return new Date(isoString).toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatSize(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function expiryClass(expiryDate) {
+  const today = new Date()
+  const expiry = new Date(expiryDate)
+  const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+  if (daysLeft < 0) return 'cert-expiry--expired'
+  if (daysLeft <= 30) return 'cert-expiry--warning'
+  return 'cert-expiry--ok'
+}
+
+function expiryLabel(expiryDate) {
+  const today = new Date()
+  const expiry = new Date(expiryDate)
+  const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+  if (daysLeft < 0) return 'Expired'
+  if (daysLeft === 0) return 'Expires today'
+  if (daysLeft <= 30) return `Expires in ${daysLeft}d`
+  return 'Valid'
+}
 </script>
 
 <style scoped>
@@ -202,42 +678,17 @@
   gap: var(--space-8);
 }
 
-/* ── Summary ── */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-}
-
-.summary-card {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  box-shadow: var(--shadow-sm);
-}
-
-.summary-label {
+/* ── Loading / Error ── */
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: var(--space-10);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
 }
 
-.summary-value {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.summary-value--accent  { color: var(--color-accent-text); }
-.summary-value--warning { color: var(--color-warning); }
-
-.summary-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-hint);
+.error-state {
+  color: var(--color-danger);
 }
 
 /* ── Action bar ── */
@@ -264,7 +715,7 @@
   left: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
-  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
   pointer-events: none;
 }
 
@@ -339,9 +790,33 @@
 /* ── Category header ── */
 .category-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+  cursor: pointer;
+  user-select: none;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.category-header:hover {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-border-strong);
+}
+
+.category-chevron {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.category-chevron--collapsed {
+  transform: rotate(-90deg);
 }
 
 .section-heading {
@@ -356,19 +831,13 @@
   color: var(--color-text-hint);
 }
 
-/* ── Document list ── */
-.doc-list {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
 /* ── Empty state ── */
 .empty-state {
   padding: var(--space-10) var(--space-6);
   text-align: center;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .empty-title {
@@ -386,105 +855,141 @@
   margin-inline: auto;
 }
 
-/* ── Document row ── */
-.doc-row,
-.cert-row {
-  display: flex;
-  align-items: center;
+/* ── Document grid ── */
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--color-border-subtle);
 }
 
-.doc-row:last-child,
-.cert-row:last-child {
-  border-bottom: none;
+/* ── Document card ── */
+.doc-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: box-shadow 0.18s, transform 0.18s;
+  display: flex;
+  flex-direction: column;
 }
 
-.doc-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+.doc-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.doc-card-thumb {
+  height: 110px;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.doc-card-type {
+  font-size: 1.6rem;
+  font-weight: var(--font-weight-bold);
+  opacity: 0.55;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.doc-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.doc-card:hover .doc-card-overlay {
+  opacity: 1;
+}
+
+.doc-card-overlay-text {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  flex-shrink: 0;
+  color: #fff;
+  letter-spacing: 0.04em;
 }
 
-.doc-icon--pdf {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
+/* File type thumb colors — same palette as old icons */
+.doc-icon--pdf  { background: #fde8e0;                  color: #c0392b; }
+.doc-icon--doc  { background: #dbeafe;                  color: #1d4ed8; }
+.doc-icon--img  { background: #f3e8ff;                  color: #7c3aed; }
+.doc-icon--xls  { background: #dcfce7;                  color: #15803d; }
+.doc-icon--file { background: var(--color-bg-subtle);   color: var(--color-text-muted); }
+.doc-icon--link { background: #e0f0ff;                  color: #1a6bbf; }
 
-.doc-icon--cert {
-  background: var(--color-accent-light);
-  color: var(--color-accent-text);
-}
-
-.doc-info {
-  flex: 1;
+.doc-card-body {
+  padding: var(--space-3) var(--space-3) var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  min-width: 0;
+  flex: 1;
 }
 
 .doc-name {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
 }
 
 .doc-meta {
   font-size: var(--font-size-xs);
   color: var(--color-text-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
 }
 
 .doc-badge {
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   font-weight: var(--font-weight-bold);
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
   white-space: nowrap;
 }
 
-.doc-badge--shared {
-  background: var(--color-bg-subtle);
-  color: var(--color-dark-tertiary);
-}
+.doc-badge--shared  { background: var(--color-bg-subtle);   color: var(--color-dark-tertiary); }
+.doc-badge--food    { background: #dcfce7;                   color: #15803d; }
+.doc-badge--alcohol { background: #fef3c7;                   color: #92400e; }
 
 .cert-expiry {
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   font-weight: var(--font-weight-bold);
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
   white-space: nowrap;
 }
 
-.cert-expiry--ok {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
+.cert-expiry--ok      { background: var(--color-success-bg);  color: var(--color-success-text); }
+.cert-expiry--warning { background: var(--color-warning-bg);  color: var(--color-warning-text); }
+.cert-expiry--expired { background: var(--color-danger-bg);   color: var(--color-danger-text); }
 
-.cert-expiry--warning {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-
-.cert-expiry--expired {
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
-.doc-actions {
+.doc-card-actions {
   display: flex;
   gap: var(--space-2);
-  flex-shrink: 0;
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .doc-btn {
@@ -505,21 +1010,87 @@
   color: var(--color-dark-primary);
 }
 
-.doc-btn--danger {
-  color: var(--color-danger);
-  border-color: var(--color-danger-border);
+.doc-btn--danger { color: var(--color-danger); border-color: var(--color-danger-border); }
+.doc-btn--danger:hover { background: var(--color-danger-bg); border-color: var(--color-danger); }
+
+/* ── Preview modal ── */
+.preview-modal {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.doc-btn--danger:hover {
-  background: var(--color-danger-bg);
-  border-color: var(--color-danger);
+.preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.preview-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.preview-img {
+  max-width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  margin: auto;
+  display: block;
+  padding: var(--space-4);
+}
+
+.preview-pdf {
+  width: 100%;
+  min-height: 70vh;
+  border: none;
+}
+
+.preview-unsupported {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-10);
+  flex: 1;
+}
+
+.doc-icon-large {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.preview-unsupported-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.preview-fallback {
+  padding: var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .action-bar {
     flex-direction: column;
     align-items: stretch;
@@ -527,5 +1098,335 @@
   .btn-upload {
     margin-left: 0;
   }
+}
+
+/* ── Expiry alert banner ── */
+.expiry-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-warning-text);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.expiry-icon {
+  color: var(--color-warning-text);
+  flex-shrink: 0;
+}
+
+.expiry-banner-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.expiry-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.expiry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  transition: filter 0.15s;
+}
+
+.expiry-chip:hover {
+  filter: brightness(0.93);
+}
+
+.expiry-chip--expired {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.expiry-chip--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.expiry-chip-name {
+  font-weight: var(--font-weight-medium);
+}
+
+.expiry-chip-status {
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.expiry-banner-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1;
+  padding: 0 var(--space-1);
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: color 0.15s;
+}
+
+.expiry-banner-close:hover {
+  color: var(--color-text-primary);
+}
+
+.doc-card--highlight {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  animation: card-flash 1.8s ease forwards;
+}
+
+@keyframes card-flash {
+  0%   { outline-color: var(--color-accent); }
+  70%  { outline-color: var(--color-accent); }
+  100% { outline-color: transparent; }
+}
+
+/* ── Upload modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-6);
+}
+
+.modal {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  line-height: 1;
+  padding: var(--space-1);
+}
+
+.modal-close:hover {
+  color: var(--color-text-primary);
+}
+
+.modal-body {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Upload type toggle ── */
+.upload-type-toggle {
+  display: flex;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggle-btn--active {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Drop zone ── */
+.drop-zone {
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.drop-zone:hover,
+.drop-zone--active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+}
+
+.drop-zone--filled {
+  border-style: solid;
+  border-color: var(--color-accent);
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+.drop-zone-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.drop-zone-filename {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.drop-zone-size {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+
+/* ── Form fields ── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.form-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.required { color: var(--color-danger); }
+.optional  { font-weight: normal; color: var(--color-text-muted); }
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--color-dark-secondary);
+}
+
+.form-textarea {
+  resize: vertical;
+}
+
+/* ── Modal actions ── */
+.upload-error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.btn-cancel {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-cancel:hover {
+  border-color: var(--color-dark-primary);
+  color: var(--color-dark-primary);
+}
+
+.btn-submit {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-dark-primary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-submit:not(:disabled):hover {
+  opacity: 0.85;
 }
 </style>
