@@ -7,7 +7,7 @@
           <h2>Task pool</h2>
           <p class="subtitle">Create, review, and delete reusable company tasks for this module.</p>
         </div>
-        <button type="button" class="icon-button" aria-label="Close" @click="close">×</button>
+        <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <div class="modal-body">
@@ -59,16 +59,16 @@ import { formatSectionType } from './taskTemplateOptions'
 const props = defineProps({
   open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   module: {
     type: String,
-    required: true
+    required: true,
   },
   moduleLabel: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:open', 'close', 'changed'])
@@ -92,7 +92,7 @@ const groupedTasks = computed(() => {
   return Array.from(groups.values())
     .map((group) => ({
       ...group,
-      items: [...group.items].sort((a, b) => String(a.title).localeCompare(String(b.title)))
+      items: [...group.items].sort((a, b) => String(a.title).localeCompare(String(b.title))),
     }))
     .sort((a, b) => a.title.localeCompare(b.title))
 })
@@ -122,7 +122,7 @@ watch(
   () => props.open,
   async (isOpen) => {
     if (isOpen) await loadTasks()
-  }
+  },
 )
 
 function close() {
@@ -133,11 +133,11 @@ function close() {
 async function handleCreatedTask(payload) {
   try {
     const created = await createTask(payload)
-    tasks.value = [...tasks.value, created]
-      .sort((a, b) =>
+    tasks.value = [...tasks.value, created].sort(
+      (a, b) =>
         formatSectionType(a.sectionType).localeCompare(formatSectionType(b.sectionType)) ||
-        String(a.title).localeCompare(String(b.title))
-      )
+        String(a.title).localeCompare(String(b.title)),
+    )
     emit('changed')
   } catch (err) {
     console.error('Failed to create task', err)
@@ -147,7 +147,7 @@ async function handleCreatedTask(payload) {
 
 async function removeTask(task) {
   const confirmed = window.confirm(
-    `Delete "${task.title}" from the task pool?\n\nThis will also remove it from any checklist that uses it.`
+    `Delete "${task.title}" from the task pool?\n\nThis will also remove it from any checklist that uses it.`,
   )
   if (!confirmed) return
 
@@ -183,9 +183,9 @@ async function removeTask(task) {
 
 .modal {
   width: min(860px, 100%);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(210, 213, 230, 0.95);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
@@ -222,9 +222,12 @@ h2 {
 }
 
 .icon-button {
-  border: 0;
-  background: transparent;
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
@@ -237,15 +240,15 @@ h2 {
 
 .primary,
 .danger {
-  border: 0;
+  border: 1px solid transparent;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   min-height: 40px;
   padding: 0 14px;
 }
 
 .primary {
-  background: var(--color-text-primary);
+  background: var(--color-dark-secondary);
   color: white;
 }
 
@@ -270,9 +273,9 @@ h2 {
 
 .group {
   padding: 16px;
-  border-radius: 18px;
-  background: rgba(246, 247, 252, 0.85);
-  border: 1px solid rgba(222, 226, 239, 0.9);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .group-title {
@@ -289,7 +292,7 @@ h2 {
 }
 
 .task-row + .task-row {
-  border-top: 1px solid rgba(210, 213, 230, 0.65);
+  border-top: 1px solid var(--color-border);
 }
 
 .task-copy {

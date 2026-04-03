@@ -1,5 +1,11 @@
 <template>
-  <div v-if="open" class="overlay" role="dialog" aria-modal="true" aria-label="Create task template">
+  <div
+    v-if="open"
+    class="overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Create task template"
+  >
     <div class="modal">
       <header class="modal-header">
         <div>
@@ -7,14 +13,20 @@
           <h2>Create task</h2>
           <p class="subtitle">Add a reusable task template to the shared pool for this module.</p>
         </div>
-        <button type="button" class="icon-button" aria-label="Close" @click="close">×</button>
+        <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <form class="modal-body" @submit.prevent="submit">
         <div class="grid">
           <label class="field full">
             <span class="label">Task title</span>
-            <input v-model.trim="title" class="input" type="text" placeholder="e.g. Check Fridge 1" required />
+            <input
+              v-model.trim="title"
+              class="input"
+              type="text"
+              placeholder="e.g. Check Fridge 1"
+              required
+            />
           </label>
 
           <label class="field">
@@ -58,16 +70,16 @@ import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
 const props = defineProps({
   open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   module: {
     type: String,
-    required: true
+    required: true,
   },
   moduleLabel: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:open', 'created', 'close'])
@@ -90,8 +102,8 @@ function reset() {
 watch(
   () => props.open,
   (isOpen) => {
-  if (isOpen) reset()
-  }
+    if (isOpen) reset()
+  },
 )
 
 watch(isTemperatureControl, (enabled) => {
@@ -116,7 +128,11 @@ function submit() {
     error.value = 'Section type is required.'
     return
   }
-  if (Number.isFinite(targetMin.value) && Number.isFinite(targetMax.value) && Number(targetMin.value) > Number(targetMax.value)) {
+  if (
+    Number.isFinite(targetMin.value) &&
+    Number.isFinite(targetMax.value) &&
+    Number(targetMin.value) > Number(targetMax.value)
+  ) {
     error.value = 'Target min cannot be greater than target max.'
     return
   }
@@ -125,8 +141,14 @@ function submit() {
     module: props.module,
     title: title.value.trim(),
     sectionType: sectionType.value,
-    targetMin: isTemperatureControl.value && Number.isFinite(Number(targetMin.value)) ? Number(targetMin.value) : null,
-    targetMax: isTemperatureControl.value && Number.isFinite(Number(targetMax.value)) ? Number(targetMax.value) : null
+    targetMin:
+      isTemperatureControl.value && Number.isFinite(Number(targetMin.value))
+        ? Number(targetMin.value)
+        : null,
+    targetMax:
+      isTemperatureControl.value && Number.isFinite(Number(targetMax.value))
+        ? Number(targetMax.value)
+        : null,
   })
   close()
 }
@@ -147,9 +169,9 @@ function submit() {
 
 .modal {
   width: min(640px, 100%);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(210, 213, 230, 0.95);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
@@ -189,9 +211,12 @@ h2 {
 }
 
 .icon-button {
-  border: 0;
-  background: transparent;
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
@@ -221,8 +246,8 @@ h2 {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
   background: white;
 }
 
@@ -242,18 +267,19 @@ h2 {
 .secondary {
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 999px;
-  border: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   cursor: pointer;
 }
 
 .primary {
-  background: var(--color-text-primary);
+  background: var(--color-dark-secondary);
   color: white;
 }
 
 .secondary {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
   color: var(--color-text-primary);
 }
 

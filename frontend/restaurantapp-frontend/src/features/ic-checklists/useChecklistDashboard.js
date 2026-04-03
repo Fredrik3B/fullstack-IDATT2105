@@ -6,7 +6,11 @@ import { createTemperatureMeasurement } from '../../api/temperatureMeasurements'
 import { setTaskCompletion, setTaskFlag, submitChecklist } from '../../api/checklists'
 import { useToast } from '@/composables/useToast'
 
-export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Daily', module = null } = {}) {
+export function useChecklistDashboard({
+  initialCards,
+  defaultActivePeriod = 'Daily',
+  module = null,
+} = {}) {
   const toast = useToast()
   const cards = ref(Array.isArray(initialCards) ? initialCards : [])
   const activePeriod = ref(defaultActivePeriod)
@@ -46,6 +50,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     const section = Array.isArray(card.sections) ? card.sections[sectionIndex] : null
     const task = section && Array.isArray(section.items) ? section.items[taskIndex] : null
     if (!task) return
+    if (task.isSaving) return
 
     const currentPeriodKey = getCardPeriodKey(card)
     if (!currentPeriodKey) return
@@ -53,6 +58,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     const taskId = task.id
 
     const previous = { ...task }
+    task.isSaving = true
     if (task.state === 'completed') {
       task.state = 'todo'
       task.completedForPeriodKey = null
@@ -74,7 +80,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
         taskId,
         state: task.state === 'completed' ? 'completed' : 'todo',
         periodKey: currentPeriodKey,
-        completedAt: task.state === 'completed' ? task.completedAt : null
+        completedAt: task.state === 'completed' ? task.completedAt : null,
       })
       syncTaskWithResponse(task, resp)
       recalcCardProgress(card)
@@ -83,6 +89,8 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
       recalcCardProgress(card)
       // eslint-disable-next-line no-console
       console.error('Failed to persist task completion', err)
+    } finally {
+      task.isSaving = false
     }
   }
 
@@ -93,6 +101,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     const section = Array.isArray(card.sections) ? card.sections[sectionIndex] : null
     const task = section && Array.isArray(section.items) ? section.items[taskIndex] : null
     if (!task) return
+    if (task.isSaving) return
 
     const currentPeriodKey = getCardPeriodKey(card)
     if (!currentPeriodKey) return
@@ -100,6 +109,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     const taskId = task.id
 
     const previous = { ...task }
+    task.isSaving = true
     const isPending = task.state === 'pending'
     if (isPending) {
       task.state = 'todo'
@@ -119,7 +129,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
         checklistId,
         taskId,
         state: task.state === 'pending' ? 'pending' : 'todo',
-        periodKey: currentPeriodKey
+        periodKey: currentPeriodKey,
       })
       syncTaskWithResponse(task, resp)
       recalcCardProgress(card)
@@ -128,6 +138,8 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
       recalcCardProgress(card)
       // eslint-disable-next-line no-console
       console.error('Failed to persist task flag', err)
+    } finally {
+      task.isSaving = false
     }
   }
 
@@ -138,7 +150,13 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     const periodKey = card ? getCardPeriodKey(card) : null
 
     try {
-      const created = await createTemperatureMeasurement({ module, checklistId, taskId, valueC, periodKey })
+      const created = await createTemperatureMeasurement({
+        module,
+        checklistId,
+        taskId,
+        valueC,
+        periodKey,
+      })
       if (card) {
         for (const section of Array.isArray(card.sections) ? card.sections : []) {
           for (const task of Array.isArray(section.items) ? section.items : []) {
@@ -149,7 +167,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
                     valueC: created.valueC,
                     measuredAt: created.measuredAt,
                     periodKey: created.periodKey,
-                    deviation: Boolean(created.deviation)
+                    deviation: Boolean(created.deviation),
                   }
                 : task.latestMeasurement
               break
@@ -161,7 +179,11 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
       return created
     } catch (err) {
       console.error('Failed to persist temperature measurement', err)
-      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not save temperature reading.')
+      toast.error(
+        err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not save temperature reading.',
+      )
       return null
     }
   }
@@ -179,7 +201,11 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
       return refreshed
     } catch (err) {
       console.error('Failed to submit checklist', err)
-      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not submit checklist.')
+      toast.error(
+        err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not submit checklist.',
+      )
       throw err
     }
   }
@@ -192,6 +218,6 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     toggleTask,
     submitCard,
     logTemperatureMeasurement,
-    now
+    now,
   }
 }

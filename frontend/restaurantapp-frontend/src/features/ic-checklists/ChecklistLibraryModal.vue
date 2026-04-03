@@ -5,9 +5,11 @@
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
           <h2>Checklist library</h2>
-          <p class="subtitle">Browse your saved checklists and open one directly on the workbench.</p>
+          <p class="subtitle">
+            Browse your saved checklists and open one directly on the workbench.
+          </p>
         </div>
-        <button type="button" class="icon-button" aria-label="Close" @click="close">×</button>
+        <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <div class="modal-body">
@@ -20,8 +22,11 @@
             <div class="library-top">
               <div>
                 <div class="library-title">{{ card.title }}</div>
-                <p class="library-subtitle">{{ card.subtitle || 'Reusable checklist ready for the workbench.' }}</p>
+                <p class="library-subtitle">
+                  {{ card.subtitle || 'Reusable checklist ready for the workbench.' }}
+                </p>
               </div>
+
               <div class="pill-stack">
                 <span class="period-pill">{{ formatPeriod(card.period) }}</span>
                 <span class="mode-pill" :class="{ workbench: card.displayedOnWorkbench !== false }">
@@ -60,29 +65,30 @@ import { computed } from 'vue'
 const props = defineProps({
   open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   moduleLabel: {
     type: String,
-    default: ''
+    default: '',
   },
   cards: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   loadedChecklistIds: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:open', 'close', 'open-checklist'])
 
 const sortedCards = computed(() =>
-  [...props.cards].sort((a, b) =>
-    String(a?.title ?? '').localeCompare(String(b?.title ?? '')) ||
-    String(a?.period ?? '').localeCompare(String(b?.period ?? ''))
-  )
+  [...props.cards].sort(
+    (a, b) =>
+      String(a?.title ?? '').localeCompare(String(b?.title ?? '')) ||
+      String(a?.period ?? '').localeCompare(String(b?.period ?? '')),
+  ),
 )
 
 function close() {
@@ -124,9 +130,9 @@ function isLoaded(card) {
 
 .modal {
   width: min(940px, 100%);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(210, 213, 230, 0.95);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
@@ -163,9 +169,12 @@ h2 {
 }
 
 .icon-button {
-  border: 0;
-  background: transparent;
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
@@ -184,10 +193,10 @@ h2 {
 .library-card {
   display: grid;
   gap: 14px;
-  padding: 18px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(248, 249, 253, 0.98) 0%, rgba(242, 244, 250, 0.98) 100%);
-  border: 1px solid rgba(220, 224, 238, 0.95);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .library-top {
@@ -203,8 +212,8 @@ h2 {
 }
 
 .library-title {
-  font-size: 20px;
-  font-weight: 800;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 
@@ -214,21 +223,7 @@ h2 {
   font-size: var(--font-size-sm);
 }
 
-.period-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(45, 43, 85, 0.08);
-  color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: var(--font-weight-bold);
-  white-space: nowrap;
-}
-
+.period-pill,
 .mode-pill {
   display: inline-flex;
   align-items: center;
@@ -236,11 +231,18 @@ h2 {
   min-height: 28px;
   padding: 0 12px;
   border-radius: 999px;
-  background: rgba(45, 43, 85, 0.08);
-  color: var(--color-text-muted);
+  background: var(--color-bg-primary);
   font-size: 12px;
   font-weight: var(--font-weight-bold);
   white-space: nowrap;
+}
+
+.period-pill {
+  color: var(--color-text-primary);
+}
+
+.mode-pill {
+  color: var(--color-text-muted);
 }
 
 .mode-pill.workbench {
@@ -249,8 +251,8 @@ h2 {
 }
 
 .mode-pill.recurring {
-  background: rgba(152, 197, 74, 0.16);
-  color: rgba(49, 79, 8, 0.92);
+  background: rgba(212, 232, 53, 0.2);
+  color: var(--color-success-text);
 }
 
 .library-meta {
@@ -264,11 +266,11 @@ h2 {
 .open-button {
   justify-self: start;
   border: 0;
-  border-radius: 999px;
-  min-height: 42px;
-  padding: 0 16px;
+  border-radius: var(--radius-md);
+  min-height: 40px;
+  padding: 0 var(--space-4);
   background: var(--color-dark-secondary);
-  color: var(--color-accent);
+  color: #ffffff;
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
@@ -276,14 +278,22 @@ h2 {
 }
 
 .open-button.disabled {
-  background: rgba(45, 43, 85, 0.12);
-  color: rgba(45, 43, 85, 0.48);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
 @media (max-width: 820px) {
   .library-grid {
     grid-template-columns: 1fr;
+  }
+
+  .library-top {
+    flex-direction: column;
+  }
+
+  .pill-stack {
+    justify-items: start;
   }
 }
 </style>

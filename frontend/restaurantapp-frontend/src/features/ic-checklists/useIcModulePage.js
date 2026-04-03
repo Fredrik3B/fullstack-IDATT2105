@@ -1,6 +1,12 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useToast } from '@/composables/useToast'
-import { createChecklist, deleteChecklist, fetchChecklists, setChecklistWorkbenchState, updateChecklist } from '../../api/checklists'
+import {
+  createChecklist,
+  deleteChecklist,
+  fetchChecklists,
+  setChecklistWorkbenchState,
+  updateChecklist,
+} from '../../api/checklists'
 import { periodEnumToLabel } from './recurrence'
 import { useChecklistDashboard } from './useChecklistDashboard'
 
@@ -11,8 +17,14 @@ export function useIcModulePage({ module, moduleLabel }) {
   const isLibraryOpen = ref(false)
   const isTaskPoolOpen = ref(false)
   const isCreatingChecklist = ref(false)
+  const isLoading = ref(false)
+  const loadError = ref('')
   const editingCardIndex = ref(null)
   const highlightedChecklistId = ref(null)
+  const deleteDialog = ref({
+    open: false,
+    checklist: null,
+  })
 
   const {
     activePeriod,
@@ -22,39 +34,52 @@ export function useIcModulePage({ module, moduleLabel }) {
     toggleTask,
     submitCard,
     logTemperatureMeasurement,
-    now
+    now,
   } = useChecklistDashboard({
     initialCards: [],
     defaultActivePeriod: 'Daily',
-    module
+    module,
   })
 
-  const workbenchCards = computed(() => displayCards.value.filter((card) => card?.displayedOnWorkbench !== false))
+  const workbenchCards = computed(() =>
+    displayCards.value.filter((card) => card?.displayedOnWorkbench !== false),
+  )
   const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
   const editingCard = computed(() =>
-    Number.isInteger(editingCardIndex.value) ? cards.value[editingCardIndex.value] : null
+    Number.isInteger(editingCardIndex.value) ? cards.value[editingCardIndex.value] : null,
   )
   const dateLabel = computed(() =>
     new Intl.DateTimeFormat('en-US', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
-      year: 'numeric'
-    }).format(now.value)
+      year: 'numeric',
+    }).format(now.value),
   )
 
   function isChecklistMissing(err) {
-    const message = String(err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '')
+    const message = String(
+      err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '',
+    )
     return message.includes('Checklist not found')
   }
 
   async function reloadChecklists() {
+    isLoading.value = true
+    loadError.value = ''
+
     try {
       const data = await fetchChecklists({ module })
       cards.value = Array.isArray(data) ? data : []
     } catch (err) {
       console.error(`Failed to fetch ${moduleLabel} checklists`, err)
-      toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not refresh checklists.')
+      loadError.value =
+        err?.response?.data?.detail ??
+        err?.response?.data?.message ??
+        'Could not refresh checklists.'
+      toast.warning(loadError.value)
+    } finally {
+      isLoading.value = false
     }
   }
 
@@ -84,8 +109,23 @@ export function useIcModulePage({ module, moduleLabel }) {
     editingCardIndex.value = null
   }
 
+  function requestDeleteChecklist(checklist) {
+    deleteDialog.value = {
+      open: true,
+      checklist,
+    }
+  }
+
+  function closeDeleteDialog() {
+    deleteDialog.value = {
+      open: false,
+      checklist: null,
+    }
+  }
+
   async function handleCreatedChecklist(newCard) {
     if (isCreatingChecklist.value) return
+
     isCreatingChecklist.value = true
     try {
       await createChecklist({
@@ -95,13 +135,17 @@ export function useIcModulePage({ module, moduleLabel }) {
         subtitle: newCard?.subtitle,
         recurring: newCard?.recurring,
         displayedOnWorkbench: newCard?.displayedOnWorkbench,
-        taskTemplateIds: newCard?.taskTemplateIds
+        taskTemplateIds: newCard?.taskTemplateIds,
       })
       await reloadChecklists()
       isCreateOpen.value = false
     } catch (err) {
       console.error('Failed to create checklist', err)
-      toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not create checklist.')
+      toast.warning(
+        err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not create checklist.',
+      )
     } finally {
       isCreatingChecklist.value = false
     }
@@ -118,7 +162,7 @@ export function useIcModulePage({ module, moduleLabel }) {
         subtitle: updatedCard?.subtitle,
         recurring: updatedCard?.recurring,
         displayedOnWorkbench: updatedCard?.displayedOnWorkbench,
-        taskTemplateIds: updatedCard?.taskTemplateIds
+        taskTemplateIds: updatedCard?.taskTemplateIds,
       })
       await reloadChecklists()
       isEditOpen.value = false
@@ -130,7 +174,11 @@ export function useIcModulePage({ module, moduleLabel }) {
         isEditOpen.value = false
         editingCardIndex.value = null
       }
-      toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not update checklist.')
+      toast.warning(
+        err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not update checklist.',
+      )
     }
   }
 
@@ -138,14 +186,12 @@ export function useIcModulePage({ module, moduleLabel }) {
     const checklistId = checklist?.id
     if (!checklistId) return
 
-    const confirmed = window.confirm(`Delete "${checklist?.title || 'this checklist'}"? This cannot be undone.`)
-    if (!confirmed) return
-
     try {
       await deleteChecklist({ checklistId })
       await reloadChecklists()
       isEditOpen.value = false
       editingCardIndex.value = null
+      closeDeleteDialog()
       toast.success('Checklist deleted.')
     } catch (err) {
       console.error('Failed to delete checklist', err)
@@ -153,8 +199,13 @@ export function useIcModulePage({ module, moduleLabel }) {
         await reloadChecklists()
         isEditOpen.value = false
         editingCardIndex.value = null
+        closeDeleteDialog()
       }
-      toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not delete checklist.')
+      toast.warning(
+        err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not delete checklist.',
+      )
     }
   }
 
@@ -162,13 +213,18 @@ export function useIcModulePage({ module, moduleLabel }) {
     if (!card?.id) return
 
     try {
-      const saved = await setChecklistWorkbenchState({ checklistId: card.id, displayedOnWorkbench: true })
+      const saved = await setChecklistWorkbenchState({
+        checklistId: card.id,
+        displayedOnWorkbench: true,
+      })
       await reloadChecklists()
       isLibraryOpen.value = false
       activePeriod.value = periodEnumToLabel((saved ?? card).period)
       highlightedChecklistId.value = card.id
       await nextTick()
-      document.getElementById(`checklist-card-${card.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      document
+        .getElementById(`checklist-card-${card.id}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       window.setTimeout(() => {
         if (String(highlightedChecklistId.value) === String(card.id)) {
           highlightedChecklistId.value = null
@@ -180,7 +236,11 @@ export function useIcModulePage({ module, moduleLabel }) {
         await reloadChecklists()
         isLibraryOpen.value = false
       }
-      toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not load checklist onto workbench.')
+      toast.warning(
+        err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not load checklist onto workbench.',
+      )
     }
   }
 
@@ -192,23 +252,29 @@ export function useIcModulePage({ module, moduleLabel }) {
     highlightedChecklistId,
     now,
     dateLabel,
+    isLoading,
+    loadError,
     isCreateOpen,
     isEditOpen,
     isLibraryOpen,
     isTaskPoolOpen,
     editingCard,
+    deleteDialog,
     togglePending,
     toggleTask,
     submitCard,
     logTemperatureMeasurement,
+    reloadChecklists,
     openCreateModal,
     openLibraryModal,
     openTaskPoolModal,
     editChecklist,
     closeEditModal,
+    requestDeleteChecklist,
+    closeDeleteDialog,
     handleCreatedChecklist,
     handleUpdatedChecklist,
     handleDeleteChecklist,
-    openChecklistOnWorkbench
+    openChecklistOnWorkbench,
   }
 }
