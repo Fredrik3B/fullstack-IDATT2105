@@ -1,16 +1,24 @@
 <template>
   <div class="page-root">
-    <!-- Page banner -->
-    <section class="page-banner">
-      <div class="page-banner-inner">
-        <span class="page-tag">Documents</span>
-        <h1 class="page-heading">Document storage and <span class="page-accent">certificates</span></h1>
-        <p class="page-sub">Centralized storage of guidelines, training material, and certificates</p>
-      </div>
-    </section>
-
     <main class="page-main">
       <div class="page-content">
+
+        <!-- Page Header -->
+        <section class="page-header">
+          <div class="page-header__main">
+            <div class="eyebrow">Documents</div>
+            <h1>Document storage and certificates</h1>
+            <p class="page-description">Centralized storage of guidelines, training material, and certificates</p>
+          </div>
+
+          <div class="actions">
+            <div class="insight-card">
+              <span class="insight-label">Document Library</span>
+              <span class="insight-value">{{ filteredDocuments.length }}</span>
+              <span class="insight-text">{{ filteredDocuments.length === 1 ? 'document' : 'documents' }} available</span>
+            </div>
+          </div>
+        </section>
 
         <!-- Action bar -->
         <div class="action-bar">
@@ -292,7 +300,6 @@
             </div>
           </section>
         </template>
-
       </div>
     </main>
   </div>
@@ -303,9 +310,11 @@ import { ref, computed, onMounted } from 'vue'
 import { Search, AlertTriangle, ChevronDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
+import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
 const isAdminOrManager = computed(() => auth.isAdminOrManager)
+const toast = useToast()
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -472,6 +481,7 @@ async function handleUpload() {
     uploadError.value = 'Upload failed. Please try again.'
   } finally {
     uploading.value = false
+    toast.success('Document uploaded successfully.')
   }
 }
 
@@ -536,6 +546,7 @@ async function handleDownload(doc) {
     URL.revokeObjectURL(url)
   } catch {
     alert('Failed to download file.')
+    toast.error('Failed to download file. Please try again.')
   }
 }
 
@@ -544,8 +555,10 @@ async function handleDelete(doc) {
   try {
     await deleteDocument(doc.id)
     documents.value = documents.value.filter(d => d.id !== doc.id)
+    toast.success('Document deleted successfully.')
   } catch {
     alert('Failed to delete document.')
+    toast.error('Failed to delete document. Please try again.')
   }
 }
 
@@ -617,65 +630,123 @@ function expiryLabel(expiryDate) {
 .page-root {
   min-height: 100vh;
   background: var(--color-bg-secondary);
+  position: relative;
 }
 
-/* ── Page banner ── */
-.page-banner {
-  background: var(--color-dark-primary);
-  border-bottom: 1px solid var(--color-dark-secondary);
-  padding: var(--space-10) var(--space-6);
+.page-root::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(212, 232, 53, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(75, 74, 114, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-.page-banner-inner {
-  max-width: 960px;
-  margin: 0 auto;
+.page-root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Page Header (IC-style) ── */
+.page-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.9fr);
+  gap: var(--space-6);
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--color-dark-primary) 0%, #232248 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.page-header__main {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 
-.page-tag {
-  display: inline-block;
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(212, 232, 53, 0.32);
+  background: rgba(212, 232, 53, 0.08);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-accent);
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-full);
-  padding: 3px var(--space-3);
-  align-self: flex-start;
 }
 
-.page-heading {
+.page-header h1 {
   margin: 0;
-  font-size: var(--font-size-3xl);
+  font-size: clamp(32px, 4vw, 42px);
+  line-height: var(--line-height-tight);
+  color: #ffffff;
+}
+
+.page-description {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.actions {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.insight-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(200, 200, 216, 0.18);
+}
+
+.insight-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-dark-border);
+}
+
+.insight-value {
+  font-size: 22px;
   font-weight: var(--font-weight-bold);
   color: #ffffff;
-  line-height: var(--line-height-tight);
 }
 
-.page-accent {
-  color: var(--color-accent);
-}
-
-.page-sub {
-  margin: 0;
-  font-size: var(--font-size-md);
-  color: var(--color-dark-border);
+.insight-text {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: rgba(255, 255, 255, 0.76);
 }
 
 /* ── Main ── */
 .page-main {
-  padding: var(--space-10) var(--space-6);
+  padding: var(--space-8) var(--space-6);
 }
 
 .page-content {
-  max-width: 960px;
+  max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 /* ── Loading / Error ── */
@@ -693,15 +764,20 @@ function expiryLabel(expiryDate) {
 
 /* ── Action bar ── */
 .action-bar {
-  background: var(--color-bg-primary);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, rgba(255, 255, 255, 0.7) 100%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: var(--space-5) var(--space-6);
   display: flex;
   align-items: flex-end;
   gap: var(--space-4);
   flex-wrap: wrap;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.action-bar:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .search-wrap {
@@ -721,7 +797,7 @@ function expiryLabel(expiryDate) {
 
 .search-input {
   width: 100%;
-  height: 36px;
+  height: 38px;
   padding: 0 var(--space-3) 0 var(--space-8);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
@@ -731,10 +807,16 @@ function expiryLabel(expiryDate) {
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
-  transition: border-color var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .search-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(0, 200, 100, 0.1);
+  transform: translateY(-1px);
+}
+
+.search-input:hover {
   border-color: var(--color-dark-secondary);
 }
 
@@ -751,7 +833,7 @@ function expiryLabel(expiryDate) {
 }
 
 .filter-select {
-  height: 36px;
+  height: 38px;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
@@ -760,10 +842,16 @@ function expiryLabel(expiryDate) {
   background: var(--color-bg-primary);
   font-family: inherit;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .filter-select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(0, 200, 100, 0.1);
+}
+
+.filter-select:hover {
   border-color: var(--color-dark-secondary);
 }
 
@@ -779,12 +867,38 @@ function expiryLabel(expiryDate) {
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
-  transition: opacity var(--transition-fast);
+  transition: all 0.2s ease;
   margin-left: auto;
+  box-shadow: 0 2px 8px rgba(0, 200, 100, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-upload::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-upload:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .btn-upload:hover {
-  opacity: 0.85;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 200, 100, 0.3);
+}
+
+.btn-upload:active {
+  transform: translateY(0);
 }
 
 /* ── Category header ── */
@@ -795,24 +909,34 @@ function expiryLabel(expiryDate) {
   margin-bottom: var(--space-4);
   cursor: pointer;
   user-select: none;
-  background: var(--color-bg-primary);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, rgba(255, 255, 255, 0.5) 100%);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-5);
-  box-shadow: var(--shadow-sm);
-  transition: background 0.15s, border-color 0.15s;
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .category-header:hover {
-  background: var(--color-bg-subtle);
+  background: linear-gradient(135deg, var(--color-bg-subtle) 0%, rgba(255, 255, 255, 0.7) 100%);
   border-color: var(--color-border-strong);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.category-header:active {
+  transform: translateY(0);
 }
 
 .category-chevron {
   margin-left: auto;
   color: var(--color-text-muted);
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+}
+
+.category-header:hover .category-chevron {
+  color: var(--color-text-secondary);
 }
 
 .category-chevron--collapsed {
@@ -833,99 +957,212 @@ function expiryLabel(expiryDate) {
 
 /* ── Empty state ── */
 .empty-state {
-  padding: var(--space-10) var(--space-6);
+  padding: var(--space-12) var(--space-6);
   text-align: center;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-bg-primary) 0%, rgba(255, 255, 255, 0.5) 100%);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  position: relative;
+  overflow: hidden;
+}
+
+.empty-state::before {
+  content: '📄';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8rem;
+  opacity: 0.05;
+  pointer-events: none;
 }
 
 .empty-title {
   margin: 0 0 var(--space-2) 0;
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
+  position: relative;
+  z-index: 1;
 }
 
 .empty-sub {
   margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
   max-width: 420px;
   margin-inline: auto;
+  line-height: var(--line-height-normal);
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Document grid ── */
 .doc-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-5);
 }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.doc-grid > * {
+  animation: fadeInUp 0.4s ease-out backwards;
+}
+
+.doc-grid > *:nth-child(1) { animation-delay: 0.05s; }
+.doc-grid > *:nth-child(2) { animation-delay: 0.1s; }
+.doc-grid > *:nth-child(3) { animation-delay: 0.15s; }
+.doc-grid > *:nth-child(4) { animation-delay: 0.2s; }
+.doc-grid > *:nth-child(5) { animation-delay: 0.25s; }
+.doc-grid > *:nth-child(6) { animation-delay: 0.3s; }
+.doc-grid > *:nth-child(7) { animation-delay: 0.35s; }
+.doc-grid > *:nth-child(8) { animation-delay: 0.4s; }
+.doc-grid > *:nth-child(n+9) { animation-delay: 0.45s; }
 
 /* ── Document card ── */
 .doc-card {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  transition: box-shadow 0.18s, transform 0.18s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.doc-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  border-radius: var(--radius-xl);
 }
 
 .doc-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px) scale(1.02);
+  border-color: var(--color-border-strong);
+}
+
+.doc-card:hover::before {
+  opacity: 1;
+}
+
+.doc-card:active {
+  transform: translateY(-2px) scale(1.01);
 }
 
 .doc-card-thumb {
-  height: 110px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+  transition: transform 0.3s ease;
+}
+
+.doc-card:hover .doc-card-thumb {
+  transform: scale(1.05);
 }
 
 .doc-card-type {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: var(--font-weight-bold);
-  opacity: 0.55;
+  opacity: 0.65;
   letter-spacing: 0.02em;
   pointer-events: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.doc-card:hover .doc-card-type {
+  opacity: 0.8;
+  transform: scale(1.1);
 }
 
 .doc-card-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.32);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.3) 100%);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.25s ease, backdrop-filter 0.25s ease;
 }
 
 .doc-card:hover .doc-card-overlay {
   opacity: 1;
+  backdrop-filter: blur(4px);
 }
 
 .doc-card-overlay-text {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   color: #fff;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: gentlePulse 2s ease-in-out infinite;
 }
 
-/* File type thumb colors — same palette as old icons */
-.doc-icon--pdf  { background: #fde8e0;                  color: #c0392b; }
-.doc-icon--doc  { background: #dbeafe;                  color: #1d4ed8; }
-.doc-icon--img  { background: #f3e8ff;                  color: #7c3aed; }
-.doc-icon--xls  { background: #dcfce7;                  color: #15803d; }
-.doc-icon--file { background: var(--color-bg-subtle);   color: var(--color-text-muted); }
-.doc-icon--link { background: #e0f0ff;                  color: #1a6bbf; }
+@keyframes gentlePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* File type thumb colors — enhanced with gradients */
+.doc-icon--pdf  {
+  background: linear-gradient(135deg, #ffe5dc 0%, #fde8e0 100%);
+  color: #c0392b;
+  box-shadow: inset 0 1px 3px rgba(192, 57, 43, 0.1);
+}
+.doc-icon--doc  {
+  background: linear-gradient(135deg, #d0e7ff 0%, #dbeafe 100%);
+  color: #1d4ed8;
+  box-shadow: inset 0 1px 3px rgba(29, 78, 216, 0.1);
+}
+.doc-icon--img  {
+  background: linear-gradient(135deg, #ede0ff 0%, #f3e8ff 100%);
+  color: #7c3aed;
+  box-shadow: inset 0 1px 3px rgba(124, 58, 237, 0.1);
+}
+.doc-icon--xls  {
+  background: linear-gradient(135deg, #d1f7e0 0%, #dcfce7 100%);
+  color: #15803d;
+  box-shadow: inset 0 1px 3px rgba(21, 128, 61, 0.1);
+}
+.doc-icon--file {
+  background: linear-gradient(135deg, var(--color-bg-subtle) 0%, var(--color-bg-secondary) 100%);
+  color: var(--color-text-muted);
+}
+.doc-icon--link {
+  background: linear-gradient(135deg, #d4e8ff 0%, #e0f0ff 100%);
+  color: #1a6bbf;
+  box-shadow: inset 0 1px 3px rgba(26, 107, 191, 0.1);
+}
 
 .doc-card-body {
   padding: var(--space-3) var(--space-3) var(--space-3);
@@ -964,26 +1201,72 @@ function expiryLabel(expiryDate) {
 .doc-badge {
   font-size: 10px;
   font-weight: var(--font-weight-bold);
-  padding: 2px var(--space-2);
+  padding: 3px var(--space-2);
   border-radius: var(--radius-full);
   white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.doc-badge--shared  { background: var(--color-bg-subtle);   color: var(--color-dark-tertiary); }
-.doc-badge--food    { background: #dcfce7;                   color: #15803d; }
-.doc-badge--alcohol { background: #fef3c7;                   color: #92400e; }
+.doc-badge:hover {
+  transform: scale(1.05);
+}
+
+.doc-badge--shared  {
+  background: linear-gradient(135deg, var(--color-bg-subtle) 0%, rgba(240, 240, 240, 0.8) 100%);
+  color: var(--color-dark-tertiary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.doc-badge--food    {
+  background: linear-gradient(135deg, #d1f7e0 0%, #dcfce7 100%);
+  color: #15803d;
+  box-shadow: 0 1px 3px rgba(21, 128, 61, 0.1);
+}
+.doc-badge--alcohol {
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
+  color: #92400e;
+  box-shadow: 0 1px 3px rgba(146, 64, 14, 0.1);
+}
 
 .cert-expiry {
   font-size: 10px;
   font-weight: var(--font-weight-bold);
-  padding: 2px var(--space-2);
+  padding: 3px var(--space-2);
   border-radius: var(--radius-full);
   white-space: nowrap;
+  transition: transform 0.2s ease;
 }
 
-.cert-expiry--ok      { background: var(--color-success-bg);  color: var(--color-success-text); }
-.cert-expiry--warning { background: var(--color-warning-bg);  color: var(--color-warning-text); }
-.cert-expiry--expired { background: var(--color-danger-bg);   color: var(--color-danger-text); }
+.cert-expiry:hover {
+  transform: scale(1.05);
+}
+
+.cert-expiry--ok      {
+  background: linear-gradient(135deg, var(--color-success-bg) 0%, rgba(220, 252, 231, 0.8) 100%);
+  color: var(--color-success-text);
+  box-shadow: 0 1px 3px rgba(21, 128, 61, 0.1);
+}
+.cert-expiry--warning {
+  background: linear-gradient(135deg, var(--color-warning-bg) 0%, rgba(254, 249, 195, 0.9) 100%);
+  color: var(--color-warning-text);
+  box-shadow: 0 1px 3px rgba(202, 138, 4, 0.15);
+  animation: warningPulse 2s ease-in-out infinite;
+}
+.cert-expiry--expired {
+  background: linear-gradient(135deg, var(--color-danger-bg) 0%, rgba(254, 242, 242, 0.9) 100%);
+  color: var(--color-danger-text);
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.15);
+  animation: expiredPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes warningPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+@keyframes expiredPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 1px 3px rgba(220, 38, 38, 0.15); }
+  50% { opacity: 0.85; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25); }
+}
 
 .doc-card-actions {
   display: flex;
@@ -993,40 +1276,60 @@ function expiryLabel(expiryDate) {
 }
 
 .doc-btn {
-  padding: 4px var(--space-3);
+  padding: 6px var(--space-3);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--color-bg-primary);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-family: inherit;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.doc-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+}
+
+.doc-btn:hover::before {
+  width: 200px;
+  height: 200px;
 }
 
 .doc-btn:hover {
   border-color: var(--color-dark-primary);
   color: var(--color-dark-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.doc-btn--danger { color: var(--color-danger); border-color: var(--color-danger-border); }
-.doc-btn--danger:hover { background: var(--color-danger-bg); border-color: var(--color-danger); }
+.doc-btn:active {
+  transform: translateY(0);
+}
+
+.doc-btn--danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger-border);
+}
+.doc-btn--danger:hover {
+  background: var(--color-danger-bg);
+  border-color: var(--color-danger);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
+}
 
 /* ── Preview modal ── */
-.preview-modal {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 860px;
-  max-height: 90vh;
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
 .preview-header-actions {
   display: flex;
   align-items: center;
@@ -1089,34 +1392,41 @@ function expiryLabel(expiryDate) {
   color: var(--color-text-muted);
 }
 
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .action-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .btn-upload {
-    margin-left: 0;
-  }
-}
-
 /* ── Expiry alert banner ── */
 .expiry-banner {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   flex-wrap: wrap;
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-warning-bg) 100%);
+  border: 1px solid var(--color-warning-border);
   border-left: 4px solid var(--color-warning-text);
-  border-radius: var(--radius-lg);
-  padding: var(--space-3) var(--space-5);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.15);
+  animation: slideInDown 0.4s ease-out;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .expiry-icon {
   color: var(--color-warning-text);
   flex-shrink: 0;
+  animation: warningBounce 2s ease-in-out infinite;
+}
+
+@keyframes warningBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
 .expiry-banner-title {
@@ -1137,17 +1447,19 @@ function expiryLabel(expiryDate) {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
   font-family: inherit;
   font-size: var(--font-size-xs);
-  transition: filter 0.15s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .expiry-chip:hover {
-  filter: brightness(0.93);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
 }
 
 .expiry-chip--expired {
@@ -1203,22 +1515,61 @@ function expiryLabel(expiryDate) {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   padding: var(--space-6);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
 }
 
 .modal {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   width: 100%;
   max-width: 520px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
+  animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.preview-modal {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-header {
@@ -1428,5 +1779,26 @@ function expiryLabel(expiryDate) {
 
 .btn-submit:not(:disabled):hover {
   opacity: 0.85;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .page-header {
+    grid-template-columns: 1fr;
+    padding: var(--space-6);
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .action-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-upload {
+    margin-left: 0;
+  }
 }
 </style>
