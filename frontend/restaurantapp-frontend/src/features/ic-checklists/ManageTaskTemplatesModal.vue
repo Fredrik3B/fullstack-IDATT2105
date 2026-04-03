@@ -96,10 +96,14 @@ const groupedTasks = computed(() => {
 })
 
 function taskSummary(task) {
-  if (task.targetMin != null || task.targetMax != null) {
-    return `Celsius range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`
+  const fragments = []
+  if (task.meta) {
+    fragments.push(task.meta)
   }
-  return ''
+  if (task.targetMin != null || task.targetMax != null) {
+    fragments.push(`Celsius range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)
+  }
+  return fragments.join(' - ')
 }
 
 async function loadTasks() {

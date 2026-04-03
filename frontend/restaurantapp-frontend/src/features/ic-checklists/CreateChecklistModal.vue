@@ -222,6 +222,7 @@ function resetForm() {
 
 function taskSummary(task) {
   const fragments = []
+  if (task.meta) fragments.push(task.meta)
   if (task.unit) fragments.push(`Unit: ${task.unit}`)
   if (task.targetMin != null || task.targetMax != null) {
     fragments.push(`Range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)

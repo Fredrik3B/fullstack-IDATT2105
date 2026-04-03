@@ -45,6 +45,7 @@ public class TaskServiceImpl implements TaskService {
 
 		TaskTemplate template = new TaskTemplate();
 		template.setTitle(request.title().trim());
+		template.setMeta(trimToNull(request.meta()));
 		template.setSectionType(request.sectionType());
 		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
 		template.setUnit(isTemperatureControl ? "C" : null);
@@ -109,6 +110,7 @@ public class TaskServiceImpl implements TaskService {
 			template.getId(),
 			toModule(template.getComplianceArea()),
 			template.getTitle(),
+			template.getMeta(),
 			template.getSectionType(),
 			template.getUnit(),
 			template.getTargetMin(),
@@ -144,6 +146,14 @@ public class TaskServiceImpl implements TaskService {
 
 	private boolean hasText(String value) {
 		return value != null && !value.trim().isEmpty();
+	}
+
+	private String trimToNull(String value) {
+		if (value == null) {
+			return null;
+		}
+		String trimmed = value.trim();
+		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	private IcModule toModule(ComplianceArea complianceArea) {

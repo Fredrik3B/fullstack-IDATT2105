@@ -8,6 +8,7 @@ public record TaskResponse(
 	Long id,
 	IcModule module,
 	String title,
+	String meta,
 	SectionTypes sectionType,
 	String unit,
 	BigDecimal targetMin,

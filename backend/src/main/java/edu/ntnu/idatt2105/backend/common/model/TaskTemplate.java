@@ -29,6 +29,9 @@ public class TaskTemplate extends AuditableEntity {
 	@Column(length = 10)
 	private String unit;
 
+	@Column(length = 255)
+	private String meta;
+
 	@Column(name = "target_min", precision = 5, scale = 2)
 	private BigDecimal targetMin;
 
@@ -68,6 +71,14 @@ public class TaskTemplate extends AuditableEntity {
 
 	public void setUnit(String unit) {
 		this.unit = unit;
+	}
+
+	public String getMeta() {
+		return meta;
+	}
+
+	public void setMeta(String meta) {
+		this.meta = meta;
 	}
 
 	public BigDecimal getTargetMin() {

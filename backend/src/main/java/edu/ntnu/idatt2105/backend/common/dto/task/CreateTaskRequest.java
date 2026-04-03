@@ -17,6 +17,9 @@ public record CreateTaskRequest(
 	@Size(max = 120)
 	String title,
 
+	@Size(max = 255)
+	String meta,
+
 	SectionTypes sectionType,
 
 	@DecimalMin("-999.99")

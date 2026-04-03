@@ -322,6 +322,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 				TasksModel task = new TasksModel();
 				task.setChecklist(checklist);
 				task.setTaskTemplate(template);
+				task.setMeta(template.getMeta());
 				task.setPeriodKey(activePeriodKey);
 				task.setActive(true);
 				task.setCompleted(false);
@@ -521,7 +522,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			null,
 			template.getId(),
 			template.getTitle(),
-			null,
+			template.getMeta(),
 			isTemperatureTemplate(template) ? "temperature" : null,
 			template.getUnit(),
 			template.getTargetMin(),
