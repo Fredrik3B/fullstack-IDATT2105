@@ -3,7 +3,7 @@ package edu.ntnu.idatt2105.backend.common.repository;
 import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.report.dto.UnresolvedItemDto;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +40,7 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 			"AND t.endedAt BETWEEN :from AND :to " +
 			"AND t.checklist.complianceArea = :area")
   int contTaskInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") LocalDate from, @Param("to") LocalDate to,
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
 			@Param("area") ComplianceArea area);
 
 
@@ -50,7 +50,7 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 			"AND t.endedAt BETWEEN :from AND :to " +
 			"AND t.checklist.complianceArea = :area")
 	int countCompletedInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") LocalDate from, @Param("to") LocalDate to,
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
 			@Param("area") ComplianceArea area);
 
 	@Query("SELECT COUNT(t) FROM TasksModel t " +
@@ -60,7 +60,7 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 			"AND t.endedAt BETWEEN :from AND :to " +
 			"AND t.checklist.complianceArea = :area")
 	int countFlaggedInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") LocalDate from, @Param("to") LocalDate to,
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
 			@Param("area") ComplianceArea area);
 
 	@Query("SELECT t FROM TasksModel t " +
@@ -69,5 +69,5 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 			"AND t.active = false " +
 			"AND t.endedAt BETWEEN :from AND :to ")
 	List<TasksModel> findDeviatedTaskByOrgIdInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") LocalDate from, @Param("to") LocalDate to);
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

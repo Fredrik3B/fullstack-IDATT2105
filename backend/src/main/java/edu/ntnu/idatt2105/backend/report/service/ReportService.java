@@ -33,7 +33,7 @@ public class ReportService {
   private final OrganizationRepository organizationRepository;
   private final TaskMapper taskMapper;
 
-  private ComplianceStats buildStats(UUID orgId, LocalDate from, LocalDate to, ComplianceArea area) {
+  private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to, ComplianceArea area) {
     int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
     int completed = tasksRepository.countCompletedInPeriod(orgId, from, to, area);
     int flagged = tasksRepository.countFlaggedInPeriod(orgId, from, to, area);
@@ -46,14 +46,14 @@ public class ReportService {
         .build();
   }
 
-  private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDate from, LocalDate to) {
+  private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDateTime from, LocalDateTime to) {
     return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
         .map(taskMapper::toUnresolvedDto)
         .toList();
   }
 
 
-  public InternalSummary generateSummary(UUID orgId, LocalDate from, LocalDate to) {
+  public InternalSummary generateSummary(UUID orgId, LocalDateTime from, LocalDateTime to) {
     return InternalSummary.builder()
         .period(new ReportPeriod(from, to))
         .matStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
@@ -62,7 +62,7 @@ public class ReportService {
         .build();
   }
 
-  public InspectionReport generateInspection(UUID orgId, LocalDate from, LocalDate to) {
+  public InspectionReport generateInspection(UUID orgId, LocalDateTime from, LocalDateTime to) {
 //    OrganizationModel org = orgRepository.findById(orgId)
 //        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
 //
