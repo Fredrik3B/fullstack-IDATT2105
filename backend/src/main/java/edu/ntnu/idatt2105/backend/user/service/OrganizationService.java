@@ -7,9 +7,9 @@ import edu.ntnu.idatt2105.backend.common.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
+import edu.ntnu.idatt2105.backend.user.dto.MemberDto;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
-import edu.ntnu.idatt2105.backend.user.dto.ResolveJoinRequest;
 import edu.ntnu.idatt2105.backend.user.mapper.OrganizationMapper;
 import edu.ntnu.idatt2105.backend.user.model.JoinRequestModel;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
@@ -186,5 +186,58 @@ public class OrganizationService {
           return organizationMapper.toJoinRequestDto(request, user);
         })
         .toList();
+  }
+
+  public List<MemberDto> getMembers(UUID organizationId) {
+    return userRepository.findAllByOrganizationId(organizationId).stream()
+        .map(organizationMapper::toMemberDto)
+        .collect(Collectors.toList());
+  }
+
+  public void removeMember(UUID organizationId, UUID targetUserId, UUID requestingUserId) {
+    if (targetUserId.equals(requestingUserId)) {
+      throw new RuntimeException("Cannot remove yourself from the organization");
+    }
+    UserModel user = userRepository.findById(targetUserId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    if (!organizationId.equals(user.getOrganization() == null ? null : user.getOrganization().getId())) {
+      throw new RuntimeException("User does not belong to your organization");
+    }
+    RoleModel staffRole = roleRepository.findByName(RoleEnum.STAFF)
+        .orElseThrow(() -> new ResourceNotFoundException("STAFF role not found"));
+    user.getRoles().clear();
+    user.getRoles().add(staffRole);
+    user.setOrganization(null);
+    userRepository.save(user);
+  }
+
+  public void updateMemberRoles(UUID organizationId, UUID targetUserId, UUID requestingUserId, List<String> roleNames) {
+    if (targetUserId.equals(requestingUserId)) {
+      throw new RuntimeException("Cannot change your own roles");
+    }
+    UserModel user = userRepository.findById(targetUserId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    if (!organizationId.equals(user.getOrganization() == null ? null : user.getOrganization().getId())) {
+      throw new RuntimeException("User does not belong to your organization");
+    }
+    List<RoleModel> newRoles = roleNames.stream()
+        .map(name -> roleRepository.findByName(RoleEnum.valueOf(name))
+            .orElseThrow(() -> new RuntimeException("Unknown role: " + name)))
+        .collect(Collectors.toList());
+
+    boolean wouldRemoveLastAdmin = user.getRoles().stream()
+        .anyMatch(r -> r.getName() == RoleEnum.ADMIN)
+        && newRoles.stream().noneMatch(r -> r.getName() == RoleEnum.ADMIN);
+    if (wouldRemoveLastAdmin) {
+      long adminCount = userRepository.findAllByOrganizationId(organizationId).stream()
+          .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName() == RoleEnum.ADMIN))
+          .count();
+      if (adminCount <= 1) {
+        throw new RuntimeException("Cannot remove the last admin from the organization");
+      }
+    }
+    user.getRoles().clear();
+    user.getRoles().addAll(newRoles);
+    userRepository.save(user);
   }
 }

@@ -287,6 +287,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // ── Member management ──────────────────────────────────────────────────────
+
+  async function fetchMembers() {
+    const { data } = await api.get('/api/organizations/members')
+    return data
+  }
+
+  async function removeMember(userId) {
+    await api.delete(`/api/organizations/members/${userId}`)
+  }
+
+  async function updateMemberRoles(userId, roles) {
+    await api.put(`/api/organizations/members/${userId}/roles`, { roles })
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
 
   return {
@@ -316,6 +331,9 @@ export const useAuthStore = defineStore('auth', () => {
     createRestaurant,
     fetchJoinRequests,
     resolveJoinRequest,
+    fetchMembers,
+    removeMember,
+    updateMemberRoles,
     logout,
   }
 })

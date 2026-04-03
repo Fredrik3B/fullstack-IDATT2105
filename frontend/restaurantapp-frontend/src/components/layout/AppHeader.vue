@@ -57,7 +57,7 @@
                 <path d="M1 11c0-2.21 1.79-4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                 <path d="M9 8v4M7 10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
               </svg>
-              Manage access requests
+              Admin Panel
             </RouterLink>
 
             <div v-if="auth.isAdminOrManager" class="dropdown-divider" />
