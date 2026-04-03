@@ -81,6 +81,12 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 
 		TasksModel task = tasksRepository.findByIdAndChecklist_Id(request.taskId(), checklist.getId())
 			.orElseThrow(() -> new IllegalArgumentException("Activated task not found."));
+		if (!task.isActive()) {
+			throw new IllegalArgumentException("Temperature can only be logged for active checklist tasks.");
+		}
+		if (!isTemperatureTask(task)) {
+			throw new IllegalArgumentException("Temperature can only be logged for temperature-controlled tasks.");
+		}
 
 		String resolvedPeriodKey = task.getPeriodKey();
 		if (request.periodKey() != null && !request.periodKey().isBlank()) {
@@ -148,8 +154,33 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 			model.getTask().getId(),
 			model.getValueC(),
 			model.getMeasuredAt(),
-			model.getPeriodKey()
+			model.getPeriodKey(),
+			isTemperatureDeviation(model)
 		);
+	}
+
+	private boolean isTemperatureTask(TasksModel task) {
+		return task.getTaskTemplate() != null && (
+			task.getTaskTemplate().getUnit() != null ||
+			task.getTaskTemplate().getTargetMin() != null ||
+			task.getTaskTemplate().getTargetMax() != null
+		);
+	}
+
+	private boolean isTemperatureDeviation(TemperatureMeasurementModel measurement) {
+		if (measurement == null || measurement.getTask() == null || measurement.getTask().getTaskTemplate() == null) {
+			return false;
+		}
+
+		if (measurement.getTask().getTaskTemplate().getTargetMin() != null
+			&& measurement.getValueC().compareTo(measurement.getTask().getTaskTemplate().getTargetMin()) < 0) {
+			return true;
+		}
+		if (measurement.getTask().getTaskTemplate().getTargetMax() != null
+			&& measurement.getValueC().compareTo(measurement.getTask().getTaskTemplate().getTargetMax()) > 0) {
+			return true;
+		}
+		return false;
 	}
 
 	private JwtAuthenticatedPrincipal requirePrincipal(JwtAuthenticatedPrincipal principal) {

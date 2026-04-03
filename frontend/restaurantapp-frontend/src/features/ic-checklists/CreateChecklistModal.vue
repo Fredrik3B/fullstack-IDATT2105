@@ -7,77 +7,102 @@
           <h2>{{ modalTitle }}</h2>
           <p class="subtitle">{{ modalSubtitle }}</p>
         </div>
-
-        <button type="button" class="icon-button" aria-label="Close" @click="handleClose">×</button>
+        <button type="button" class="icon-button" aria-label="Close" @click="handleClose">
+          &times;
+        </button>
       </header>
 
       <form class="modal-body" @submit.prevent="handleSubmit">
-        <div class="grid">
-          <label class="field">
-            <span class="label">Title</span>
-            <input v-model.trim="title" class="input" type="text" placeholder="e.g. Opening checklist" required />
-          </label>
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Checklist details</h3>
+            <p>Set the name, cadence, and placement of this checklist.</p>
+          </div>
 
-          <label class="field">
-            <span class="label">Period</span>
-            <select v-model="period" class="input" required>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </label>
+          <div class="grid">
+            <label class="field">
+              <span class="label">Title</span>
+              <input
+                v-model.trim="title"
+                class="input"
+                type="text"
+                placeholder="e.g. Opening checklist"
+                required
+              />
+            </label>
 
-          <label class="field full toggle-field">
-            <span class="label">Workbench behavior</span>
-            <button type="button" class="toggle-card" :class="{ active: displayedOnWorkbench }" @click="displayedOnWorkbench = !displayedOnWorkbench">
-              <span class="toggle-copy">
-                <span class="toggle-title">{{ displayedOnWorkbench ? 'Shown on workbench' : 'Saved in library' }}</span>
-                <span class="toggle-text">
-                  {{ displayedOnWorkbench
-                    ? 'This checklist is visible on the current workbench right away.'
-                    : 'This checklist is hidden from the workbench until someone loads it from the library.' }}
+            <label class="field">
+              <span class="label">Period</span>
+              <select v-model="period" class="input" required>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+
+            <label class="field full">
+              <span class="label">Subtitle (optional)</span>
+              <input
+                v-model.trim="subtitle"
+                class="input"
+                type="text"
+                placeholder="e.g. Daily opening routine"
+              />
+            </label>
+          </div>
+
+          <div class="settings-grid">
+            <button
+              type="button"
+              class="setting-row"
+              :class="{ active: displayedOnWorkbench }"
+              @click="displayedOnWorkbench = !displayedOnWorkbench"
+            >
+              <span class="setting-copy">
+                <span class="setting-title">Show on workbench</span>
+                <span class="setting-text">
+                  {{
+                    displayedOnWorkbench
+                      ? 'Visible immediately in the active module workbench.'
+                      : 'Keep it in the library until someone opens it manually.'
+                  }}
                 </span>
               </span>
-              <span class="toggle-pill" :class="{ active: displayedOnWorkbench }">
-                <span class="toggle-knob"></span>
-              </span>
+              <span class="setting-value">{{ displayedOnWorkbench ? 'Yes' : 'No' }}</span>
             </button>
-          </label>
 
-          <label class="field full toggle-field">
-            <span class="label">After submit</span>
-            <button type="button" class="toggle-card" :class="{ active: recurring }" @click="recurring = !recurring">
-              <span class="toggle-copy">
-                <span class="toggle-title">{{ recurring ? 'Recurring on workbench' : 'Library only' }}</span>
-                <span class="toggle-text">
-                  {{ recurring
-                    ? 'After a submit, this checklist stays on the workbench for its next daily, weekly, or monthly run.'
-                    : 'After a submit, this checklist moves back to the library instead of staying on the workbench.' }}
+            <button
+              type="button"
+              class="setting-row"
+              :class="{ active: recurring }"
+              @click="recurring = !recurring"
+            >
+              <span class="setting-copy">
+                <span class="setting-title">Repeat after submit</span>
+                <span class="setting-text">
+                  {{
+                    recurring
+                      ? 'Keep the checklist active for the next scheduled run.'
+                      : 'Return the checklist to the library after submission.'
+                  }}
                 </span>
               </span>
-              <span class="toggle-pill" :class="{ active: recurring }">
-                <span class="toggle-knob"></span>
-              </span>
+              <span class="setting-value">{{ recurring ? 'Repeats' : 'Library only' }}</span>
             </button>
-          </label>
+          </div>
+        </section>
 
-          <label class="field full">
-            <span class="label">Subtitle (optional)</span>
-            <input v-model.trim="subtitle" class="input" type="text" placeholder="e.g. Daily - opening" />
-          </label>
-        </div>
-
-        <section class="task-pool">
-          <div class="task-pool-header">
-            <div>
-              <h3>Task pool</h3>
-              <p>Select existing tasks for this checklist. Tasks are grouped and ordered automatically.</p>
-            </div>
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Task selection</h3>
+            <p>Select reusable tasks from the shared task pool for this checklist.</p>
           </div>
 
           <div class="task-pool-linkbar">
-            <span>Need to add or remove company tasks first?</span>
-            <button type="button" class="link-button" @click="emit('manage-tasks')">Open task pool manager</button>
+            <span>Need to update the shared pool first?</span>
+            <button type="button" class="link-button" @click="emit('manage-tasks')">
+              Open task pool manager
+            </button>
           </div>
 
           <div v-if="loadingTasks" class="tasks-state">Loading tasks...</div>
@@ -91,7 +116,9 @@
                 <input v-model="selectedTaskIds" type="checkbox" :value="task.id" />
                 <div class="task-option-copy">
                   <span class="task-option-title">{{ task.title }}</span>
-                  <span v-if="taskSummary(task)" class="task-option-meta">{{ taskSummary(task) }}</span>
+                  <span v-if="taskSummary(task)" class="task-option-meta">{{
+                    taskSummary(task)
+                  }}</span>
                 </div>
               </label>
             </section>
@@ -101,13 +128,18 @@
         <p v-if="error" class="error" role="alert">{{ error }}</p>
 
         <footer class="modal-footer">
-          <button v-if="isEditMode" type="button" class="danger" @click="emitDelete">Delete checklist</button>
-          <button type="button" class="secondary" @click="handleClose">Cancel</button>
-          <button type="submit" class="primary">{{ submitLabel }}</button>
+          <button v-if="isEditMode" type="button" class="danger" @click="emitDelete">
+            Delete checklist
+          </button>
+          <button type="button" class="secondary" :disabled="submitting" @click="handleClose">
+            Cancel
+          </button>
+          <button type="submit" class="primary" :disabled="submitting">
+            {{ submitButtonLabel }}
+          </button>
         </footer>
       </form>
     </div>
-
   </div>
 </template>
 
@@ -117,27 +149,15 @@ import { fetchTasks } from '../../api/tasks'
 import { formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
-  open: {
-    type: Boolean,
-    default: false
-  },
+  open: { type: Boolean, default: false },
   mode: {
     type: String,
     default: 'create',
-    validator: (value) => ['create', 'edit'].includes(value)
+    validator: (value) => ['create', 'edit'].includes(value),
   },
-  initialCard: {
-    type: Object,
-    default: null
-  },
-  module: {
-    type: String,
-    required: true
-  },
-  moduleLabel: {
-    type: String,
-    default: ''
-  }
+  initialCard: { type: Object, default: null },
+  module: { type: String, required: true },
+  moduleLabel: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:open', 'close', 'created', 'updated', 'delete', 'manage-tasks'])
@@ -151,15 +171,20 @@ const error = ref('')
 const poolTasks = ref([])
 const selectedTaskIds = ref([])
 const loadingTasks = ref(false)
+const submitting = ref(false)
 
 const isEditMode = computed(() => props.mode === 'edit')
 const modalTitle = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
 const modalSubtitle = computed(() =>
   isEditMode.value
-    ? 'Choose which reusable tasks belong to this checklist.'
-    : 'Build a checklist by selecting tasks from the shared pool.'
+    ? 'Update the checklist setup and selected tasks.'
+    : 'Create a reusable checklist for the active module.',
 )
-const submitLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Create'))
+const submitLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Create checklist'))
+const submitButtonLabel = computed(() => {
+  if (!submitting.value) return submitLabel.value
+  return isEditMode.value ? 'Saving...' : 'Creating...'
+})
 const dialogAriaLabel = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
 
 const groupedTasks = computed(() => {
@@ -170,7 +195,7 @@ const groupedTasks = computed(() => {
       groups.set(key, {
         sectionType: key,
         title: formatSectionType(key),
-        items: []
+        items: [],
       })
     }
     groups.get(key).items.push(task)
@@ -179,7 +204,7 @@ const groupedTasks = computed(() => {
   return Array.from(groups.values())
     .map((group) => ({
       ...group,
-      items: [...group.items].sort((a, b) => String(a.title).localeCompare(String(b.title)))
+      items: [...group.items].sort((a, b) => String(a.title).localeCompare(String(b.title))),
     }))
     .sort((a, b) => a.title.localeCompare(b.title))
 })
@@ -192,6 +217,7 @@ function resetForm() {
   displayedOnWorkbench.value = true
   error.value = ''
   selectedTaskIds.value = []
+  submitting.value = false
 }
 
 function taskSummary(task) {
@@ -200,7 +226,7 @@ function taskSummary(task) {
   if (task.targetMin != null || task.targetMax != null) {
     fragments.push(`Range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)
   }
-  return fragments.join(' · ')
+  return fragments.join(' - ')
 }
 
 function initFromCard(card) {
@@ -246,22 +272,24 @@ watch(
     resetForm()
     if (isEditMode.value) initFromCard(props.initialCard)
     await loadTasks()
-  }
+  },
 )
 
 watch(
   () => props.initialCard,
   (nextCard) => {
     if (props.open && isEditMode.value) initFromCard(nextCard)
-  }
+  },
 )
 
 function handleClose() {
+  if (submitting.value) return
   emit('update:open', false)
   emit('close')
 }
 
-function handleSubmit() {
+async function handleSubmit() {
+  if (submitting.value) return
   error.value = ''
 
   if (!title.value.trim()) {
@@ -274,23 +302,31 @@ function handleSubmit() {
   }
 
   const payload = {
-    id: isEditMode.value ? props.initialCard?.id ?? null : null,
+    id: isEditMode.value ? (props.initialCard?.id ?? null) : null,
     period: period.value,
     title: title.value.trim(),
     subtitle: subtitle.value.trim(),
     recurring: recurring.value,
     displayedOnWorkbench: displayedOnWorkbench.value,
-    taskTemplateIds: [...selectedTaskIds.value]
+    taskTemplateIds: [...selectedTaskIds.value],
   }
 
-  if (isEditMode.value) emit('updated', payload)
-  else emit('created', payload)
+  submitting.value = true
+  try {
+    if (isEditMode.value) {
+      await emit('updated', payload)
+    } else {
+      await emit('created', payload)
+    }
+  } finally {
+    submitting.value = false
+  }
 }
 
 function emitDelete() {
   emit('delete', {
     id: props.initialCard?.id ?? null,
-    title: title.value.trim() || props.initialCard?.title || 'this checklist'
+    title: title.value.trim() || props.initialCard?.title || 'this checklist',
   })
 }
 </script>
@@ -309,13 +345,13 @@ function emitDelete() {
 }
 
 .modal {
-  width: min(820px, 100%);
+  width: min(860px, 100%);
   max-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(210, 213, 230, 0.95);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
@@ -325,7 +361,7 @@ function emitDelete() {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px 14px;
+  padding: 18px 24px 14px;
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
@@ -351,20 +387,43 @@ h2 {
 }
 
 .icon-button {
-  border: 0;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 24px;
   overflow: auto;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.section-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+}
+
+.section-heading h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.section-heading p {
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .grid {
@@ -376,6 +435,7 @@ h2 {
 .field {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .full {
@@ -392,105 +452,64 @@ h2 {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
   background: white;
+  box-sizing: border-box;
 }
 
-.toggle-field {
-  margin-top: 2px;
-}
-
-.toggle-card {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid rgba(214, 219, 235, 0.95);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(248, 249, 253, 0.98) 0%, rgba(242, 244, 250, 0.98) 100%);
-  cursor: pointer;
-  text-align: left;
-}
-
-.toggle-card.active {
-  border-color: rgba(83, 122, 28, 0.34);
-  background: linear-gradient(180deg, rgba(244, 249, 231, 0.98) 0%, rgba(235, 245, 212, 0.98) 100%);
-}
-
-.toggle-copy {
+.settings-grid {
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
-.toggle-title {
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: 800;
-}
-
-.toggle-text {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.toggle-pill {
-  flex-shrink: 0;
-  width: 54px;
-  height: 30px;
-  padding: 3px;
-  border-radius: 999px;
-  background: rgba(45, 43, 85, 0.18);
-  display: inline-flex;
-  align-items: center;
-  transition: background 140ms ease;
-}
-
-.toggle-pill.active {
-  justify-content: flex-end;
-  background: var(--color-success-border);
-}
-
-.toggle-knob {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: white;
-  box-shadow: 0 4px 12px rgba(18, 22, 34, 0.14);
-}
-
-.task-pool {
-  margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.task-pool-header {
+.setting-row {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  text-align: left;
+  cursor: pointer;
 }
 
-.task-pool-header h3 {
-  margin: 0;
-  font-size: 18px;
+.setting-row.active {
+  border-color: var(--color-success-border);
+  background: #fbfdea;
 }
 
-.task-pool-header p {
-  margin: 6px 0 0;
+.setting-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.setting-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.setting-text {
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+}
+
+.setting-value {
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
 }
 
 .task-pool-linkbar {
-  margin-bottom: 16px;
   padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(246, 247, 252, 0.85);
-  border: 1px solid rgba(222, 226, 239, 0.9);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -516,58 +535,73 @@ h2 {
 
 .task-groups {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .task-group {
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(246, 247, 252, 0.85);
-  border: 1px solid rgba(222, 226, 239, 0.9);
+  padding: 0;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
 }
 
 .task-group-title {
-  margin-bottom: 12px;
+  margin: 0;
+  padding: 12px 14px;
   font-weight: 800;
   color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .task-option {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 18px minmax(0, 1fr);
   gap: 12px;
-  align-items: flex-start;
-  padding: 10px 0;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--color-bg-primary);
 }
 
 .task-option + .task-option {
-  border-top: 1px solid rgba(210, 213, 230, 0.65);
+  margin-top: 0;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .task-option-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .task-option-title {
   font-weight: 700;
   color: var(--color-text-primary);
+  font-size: var(--font-size-md);
 }
 
 .task-option-meta {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
+.task-option input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
 .error {
-  margin-top: 14px;
+  margin: 0;
   color: #a11d2d;
 }
 
 .modal-footer {
-  margin-top: 24px;
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -576,8 +610,8 @@ h2 {
 .secondary {
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 999px;
-  border: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   cursor: pointer;
 }
 
@@ -588,12 +622,13 @@ h2 {
 }
 
 .primary {
-  background: var(--color-text-primary);
+  background: var(--color-dark-secondary);
   color: white;
 }
 
 .secondary {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
   color: var(--color-text-primary);
 }
 
@@ -602,10 +637,7 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .task-pool-header {
-    flex-direction: column;
-  }
-
+  .setting-row,
   .task-pool-linkbar {
     flex-direction: column;
     align-items: flex-start;

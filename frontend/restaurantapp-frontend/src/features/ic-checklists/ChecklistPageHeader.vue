@@ -1,40 +1,58 @@
 <template>
   <section class="page-header">
-    <div>
+    <div class="page-header__main">
       <div class="eyebrow">{{ moduleLabel }}</div>
       <h1>{{ title }}</h1>
-      <p>{{ dateLabel }}</p>
+      <p class="page-date">{{ dateLabel }}</p>
+      <p v-if="moduleDescription" class="page-description">{{ moduleDescription }}</p>
     </div>
 
     <div class="actions">
-      <div class="period-switcher">
-        <button
-          v-for="option in periods"
-          :key="option"
-          type="button"
-          class="period-button"
-          :class="{ active: option === activePeriod }"
-          @click="handlePeriodClick(option)"
-        >
-          {{ option }}
-        </button>
+      <div class="insight-card">
+        <span class="insight-label">Workbench</span>
+        <span class="insight-value">{{ activePeriod }}</span>
+        <span class="insight-text">{{
+          summaryHint || 'Filter the workbench and manage reusable checklists.'
+        }}</span>
       </div>
 
-      <button type="button" class="manage-button" @click="emit('manage-tasks')">{{ manageLabel }}</button>
-      <div class="menu-shell">
-        <button type="button" class="create-button" @click="menuOpen = !menuOpen">
-          {{ createLabel }}
-          <span class="menu-caret" :class="{ open: menuOpen }">▾</span>
+      <div class="actions-row">
+        <div class="period-switcher" aria-label="Checklist period filter">
+          <button
+            v-for="option in periods"
+            :key="option"
+            type="button"
+            class="period-button"
+            :class="{ active: option === activePeriod }"
+            @click="handlePeriodClick(option)"
+          >
+            {{ option }}
+          </button>
+        </div>
+
+        <button type="button" class="ghost-button" @click="emit('refresh')">Refresh</button>
+        <button type="button" class="ghost-button" @click="emit('manage-tasks')">
+          {{ manageLabel }}
         </button>
-        <div v-if="menuOpen" class="menu-panel">
-          <button type="button" class="menu-item" @click="handleMenuAction('create')">
-            <span class="menu-item__title">New checklist</span>
-            <span class="menu-item__hint">Start a fresh checklist template.</span>
+
+        <div class="menu-shell" ref="menuShell">
+          <button type="button" class="create-button" @click="menuOpen = !menuOpen">
+            New {{ createLabel.toLowerCase() }}
+            <span class="menu-caret" :class="{ open: menuOpen }">&#9662;</span>
           </button>
-          <button type="button" class="menu-item" @click="handleMenuAction('library')">
-            <span class="menu-item__title">Checklist library</span>
-            <span class="menu-item__hint">Browse saved checklists and open one on the workbench.</span>
-          </button>
+
+          <div v-if="menuOpen" class="menu-panel">
+            <button type="button" class="menu-item" @click="handleMenuAction('create')">
+              <span class="menu-item__title">Create checklist</span>
+              <span class="menu-item__hint">Build a new checklist from the shared task pool.</span>
+            </button>
+            <button type="button" class="menu-item" @click="handleMenuAction('library')">
+              <span class="menu-item__title">Open checklist library</span>
+              <span class="menu-item__hint"
+                >Bring an existing checklist back onto the workbench.</span
+              >
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -42,43 +60,56 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 defineProps({
   moduleLabel: {
     type: String,
-    default: ''
+    default: '',
   },
   title: {
     type: String,
-    required: true
+    required: true,
   },
   dateLabel: {
     type: String,
-    required: true
+    required: true,
+  },
+  moduleDescription: {
+    type: String,
+    default: '',
+  },
+  summaryHint: {
+    type: String,
+    default: '',
   },
   periods: {
     type: Array,
-    default: () => ['Daily', 'Weekly', 'Monthly']
+    default: () => ['Daily', 'Weekly', 'Monthly'],
   },
   activePeriod: {
     type: String,
-    default: 'Daily'
+    default: 'Daily',
   },
   createLabel: {
     type: String,
-    default: 'Checklists'
+    default: 'Checklists',
   },
   manageLabel: {
     type: String,
-    default: 'Task pool'
-  }
+    default: 'Task pool',
+  },
 })
 
-
-const emit = defineEmits(['update:activePeriod', 'create', 'open-library', 'manage-tasks'])
+const emit = defineEmits([
+  'update:activePeriod',
+  'create',
+  'open-library',
+  'manage-tasks',
+  'refresh',
+])
 const menuOpen = ref(false)
-
+const menuShell = ref(null)
 
 function handlePeriodClick(option) {
   emit('update:activePeriod', option)
@@ -92,42 +123,118 @@ function handleMenuAction(action) {
   }
   emit('open-library')
 }
+
+function handleClickOutside(event) {
+  if (menuShell.value && !menuShell.value.contains(event.target)) {
+    menuOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+})
 </script>
 
 <style scoped>
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.9fr);
   gap: var(--space-6);
-  margin-bottom: var(--space-6);
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, var(--color-dark-primary) 0%, #232248 100%);
+  box-shadow: var(--shadow-md);
+}
+
+.page-header__main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 
 .eyebrow {
-  margin-bottom: var(--space-2);
-  font-size: var(--font-size-sm);
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(212, 232, 53, 0.32);
+  background: rgba(212, 232, 53, 0.08);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--color-accent);
 }
 
 h1 {
   margin: 0;
-  font-size: 36px;
-  line-height: 1.05;
-  color: var(--color-text-primary);
+  font-size: clamp(32px, 4vw, 42px);
+  line-height: 1.1;
+  color: #ffffff;
 }
 
-p {
-  margin: var(--space-2) 0 0;
-  color: var(--color-text-muted);
+.page-date,
+.page-description {
+  margin: 0;
   font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+.page-date {
+  color: var(--color-dark-border);
+}
+
+.page-description {
+  max-width: 60ch;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .actions {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.insight-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(200, 200, 216, 0.18);
+}
+
+.insight-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-dark-border);
+}
+
+.insight-value {
+  font-size: 22px;
+  font-weight: var(--font-weight-bold);
+  color: #ffffff;
+}
+
+.insight-text {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.actions-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
@@ -137,15 +244,14 @@ p {
 
 .period-switcher {
   display: inline-flex;
-  padding: 4px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: var(--shadow-sm);
+  padding: 3px;
+  border: 1px solid rgba(200, 200, 216, 0.18);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .period-button,
-.manage-button,
+.ghost-button,
 .create-button,
 .menu-item {
   border: 0;
@@ -153,44 +259,44 @@ p {
 }
 
 .period-button {
-  padding: 10px 16px;
-  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-md);
+  color: var(--color-dark-border);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
 }
 
 .period-button.active {
   background: #ffffff;
-  color: var(--color-text-primary);
+  color: var(--color-dark-primary);
   box-shadow: var(--shadow-sm);
 }
 
-.manage-button {
-  padding: 14px 20px;
-  border-radius: 14px;
-  background: #ffffff;
-  color: var(--color-text-primary);
+.ghost-button,
+.create-button {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
-  box-shadow: var(--shadow-md);
   cursor: pointer;
+}
+
+.ghost-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(200, 200, 216, 0.18);
+  color: #ffffff;
 }
 
 .create-button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-  border-radius: 14px;
-  background: var(--color-dark-secondary);
-  color: var(--color-accent);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  box-shadow: var(--shadow-md);
-  cursor: pointer;
+  gap: var(--space-2);
+  background: var(--color-accent);
+  color: var(--color-dark-primary);
 }
 
 .menu-caret {
@@ -207,35 +313,35 @@ p {
   right: 0;
   z-index: 20;
   width: min(320px, 92vw);
-  padding: 10px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(214, 219, 235, 0.95);
-  box-shadow: 0 22px 52px rgba(18, 22, 34, 0.16);
+  padding: var(--space-2);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
 }
 
 .menu-item {
   width: 100%;
   display: block;
   text-align: left;
-  padding: 14px 14px;
-  border-radius: 14px;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
   background: transparent;
   cursor: pointer;
 }
 
 .menu-item:hover {
-  background: rgba(245, 246, 251, 0.95);
+  background: var(--color-bg-secondary);
 }
 
 .menu-item + .menu-item {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .menu-item__title {
   display: block;
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
 }
 
@@ -243,16 +349,20 @@ p {
   display: block;
   margin-top: 4px;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
 }
 
 @media (max-width: 900px) {
   .page-header {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    padding: var(--space-6);
   }
 
   .actions {
     width: 100%;
+  }
+
+  .actions-row {
     flex-direction: column;
     align-items: stretch;
   }

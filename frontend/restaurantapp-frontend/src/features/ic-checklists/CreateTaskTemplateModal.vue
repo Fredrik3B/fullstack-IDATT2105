@@ -1,44 +1,63 @@
 <template>
-  <div v-if="open" class="overlay" role="dialog" aria-modal="true" aria-label="Create task template">
+  <div
+    v-if="open"
+    class="overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Create task template"
+  >
     <div class="modal">
       <header class="modal-header">
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
           <h2>Create task</h2>
-          <p class="subtitle">Add a reusable task template to the shared pool for this module.</p>
+          <p class="subtitle">Add a reusable task to the shared module task pool.</p>
         </div>
-        <button type="button" class="icon-button" aria-label="Close" @click="close">×</button>
+        <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <form class="modal-body" @submit.prevent="submit">
-        <div class="grid">
-          <label class="field full">
-            <span class="label">Task title</span>
-            <input v-model.trim="title" class="input" type="text" placeholder="e.g. Check Fridge 1" required />
-          </label>
+        <section class="section-card">
+          <div class="section-heading">
+            <h3>Task details</h3>
+            <p>Use clear titles so the task is easy to reuse across checklists.</p>
+          </div>
 
-          <label class="field">
-            <span class="label">Section</span>
-            <select v-model="sectionType" class="input" required>
-              <option disabled value="">Choose section</option>
-              <option v-for="option in SECTION_TYPE_OPTIONS" :key="option" :value="option">
-                {{ formatSectionType(option) }}
-              </option>
-            </select>
-          </label>
-
-          <template v-if="isTemperatureControl">
-            <label class="field">
-              <span class="label">Target min (optional)</span>
-              <input v-model.number="targetMin" class="input" type="number" step="0.1" />
+          <div class="grid">
+            <label class="field full">
+              <span class="label">Task title</span>
+              <input
+                v-model.trim="title"
+                class="input"
+                type="text"
+                placeholder="e.g. Check fridge 1"
+                required
+              />
             </label>
 
             <label class="field">
-              <span class="label">Target max (optional)</span>
-              <input v-model.number="targetMax" class="input" type="number" step="0.1" />
+              <span class="label">Section</span>
+              <select v-model="sectionType" class="input" required>
+                <option disabled value="">Choose section</option>
+                <option v-for="option in SECTION_TYPE_OPTIONS" :key="option" :value="option">
+                  {{ formatSectionType(option) }}
+                </option>
+              </select>
             </label>
-          </template>
-        </div>
+
+            <template v-if="isTemperatureControl">
+              <label class="field">
+                <span class="label">Target min (optional)</span>
+                <input v-model.number="targetMin" class="input" type="number" step="0.1" />
+              </label>
+
+              <label class="field">
+                <span class="label">Target max (optional)</span>
+                <input v-model.number="targetMax" class="input" type="number" step="0.1" />
+              </label>
+            </template>
+          </div>
+        </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
 
@@ -56,18 +75,9 @@ import { computed, ref, watch } from 'vue'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
-  open: {
-    type: Boolean,
-    default: false
-  },
-  module: {
-    type: String,
-    required: true
-  },
-  moduleLabel: {
-    type: String,
-    default: ''
-  }
+  open: { type: Boolean, default: false },
+  module: { type: String, required: true },
+  moduleLabel: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:open', 'created', 'close'])
@@ -90,8 +100,8 @@ function reset() {
 watch(
   () => props.open,
   (isOpen) => {
-  if (isOpen) reset()
-  }
+    if (isOpen) reset()
+  },
 )
 
 watch(isTemperatureControl, (enabled) => {
@@ -116,7 +126,11 @@ function submit() {
     error.value = 'Section type is required.'
     return
   }
-  if (Number.isFinite(targetMin.value) && Number.isFinite(targetMax.value) && Number(targetMin.value) > Number(targetMax.value)) {
+  if (
+    Number.isFinite(targetMin.value) &&
+    Number.isFinite(targetMax.value) &&
+    Number(targetMin.value) > Number(targetMax.value)
+  ) {
     error.value = 'Target min cannot be greater than target max.'
     return
   }
@@ -125,8 +139,14 @@ function submit() {
     module: props.module,
     title: title.value.trim(),
     sectionType: sectionType.value,
-    targetMin: isTemperatureControl.value && Number.isFinite(Number(targetMin.value)) ? Number(targetMin.value) : null,
-    targetMax: isTemperatureControl.value && Number.isFinite(Number(targetMax.value)) ? Number(targetMax.value) : null
+    targetMin:
+      isTemperatureControl.value && Number.isFinite(Number(targetMin.value))
+        ? Number(targetMin.value)
+        : null,
+    targetMax:
+      isTemperatureControl.value && Number.isFinite(Number(targetMax.value))
+        ? Number(targetMax.value)
+        : null,
   })
   close()
 }
@@ -147,16 +167,16 @@ function submit() {
 
 .modal {
   width: min(640px, 100%);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(210, 213, 230, 0.95);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
 
 .modal-header,
 .modal-body {
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .modal-header {
@@ -189,11 +209,40 @@ h2 {
 }
 
 .icon-button {
-  border: 0;
-  background: transparent;
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
+}
+
+.modal-body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.section-card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+}
+
+.section-heading h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.section-heading p {
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .grid {
@@ -221,18 +270,17 @@ h2 {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
   background: white;
 }
 
 .error {
-  margin: 14px 0 0;
+  margin: 0;
   color: #a11d2d;
 }
 
 .modal-footer {
-  margin-top: 20px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
@@ -242,18 +290,19 @@ h2 {
 .secondary {
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 999px;
-  border: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   cursor: pointer;
 }
 
 .primary {
-  background: var(--color-text-primary);
+  background: var(--color-dark-secondary);
   color: white;
 }
 
 .secondary {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
   color: var(--color-text-primary);
 }
 

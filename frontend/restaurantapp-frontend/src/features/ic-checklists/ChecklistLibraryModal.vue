@@ -5,48 +5,59 @@
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
           <h2>Checklist library</h2>
-          <p class="subtitle">Browse your saved checklists and open one directly on the workbench.</p>
+          <p class="subtitle">Browse saved checklists and place them back on the workbench.</p>
         </div>
-        <button type="button" class="icon-button" aria-label="Close" @click="close">×</button>
+        <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <div class="modal-body">
+        <section class="summary-strip">
+          <div class="summary-item">
+            <span class="summary-label">Saved checklists</span>
+            <strong class="summary-value">{{ sortedCards.length }}</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Already on workbench</span>
+            <strong class="summary-value">{{ loadedChecklistIds.length }}</strong>
+          </div>
+        </section>
+
         <div v-if="sortedCards.length === 0" class="state">
-          No checklists yet. Create your first one from the menu.
+          <p class="state-title">No checklists yet</p>
+          <p class="state-copy">Create your first checklist from the workbench menu.</p>
         </div>
 
-        <div v-else class="library-grid">
-          <article v-for="card in sortedCards" :key="card.id" class="library-card">
-            <div class="library-top">
-              <div>
-                <div class="library-title">{{ card.title }}</div>
-                <p class="library-subtitle">{{ card.subtitle || 'Reusable checklist ready for the workbench.' }}</p>
-              </div>
-              <div class="pill-stack">
-                <span class="period-pill">{{ formatPeriod(card.period) }}</span>
-                <span class="mode-pill" :class="{ workbench: card.displayedOnWorkbench !== false }">
-                  {{ card.displayedOnWorkbench !== false ? 'On workbench' : 'In library' }}
-                </span>
-                <span class="mode-pill" :class="{ recurring: card.recurring !== false }">
-                  {{ card.recurring !== false ? 'Repeats after submit' : 'Returns to library' }}
-                </span>
+        <div v-else class="library-list">
+          <article v-for="card in sortedCards" :key="card.id" class="library-row">
+            <div class="row-main">
+              <div class="library-title">{{ card.title }}</div>
+              <p class="library-subtitle">
+                {{ card.subtitle || 'Reusable checklist ready for the workbench.' }}
+              </p>
+              <div class="library-meta">
+                <span>{{ formatPeriod(card.period) }}</span>
+                <span>{{ countTasks(card) }} tasks</span>
+                <span>{{ card.progress ?? 0 }}% done in current run</span>
               </div>
             </div>
 
-            <div class="library-meta">
-              <span>{{ countTasks(card) }} tasks</span>
-              <span>{{ card.progress ?? 0 }}% done in current run</span>
+            <div class="row-side">
+              <span class="mode-pill" :class="{ workbench: card.displayedOnWorkbench !== false }">
+                {{ card.displayedOnWorkbench !== false ? 'On workbench' : 'In library' }}
+              </span>
+              <span class="mode-pill" :class="{ recurring: card.recurring !== false }">
+                {{ card.recurring !== false ? 'Repeats after submit' : 'Returns to library' }}
+              </span>
+              <button
+                type="button"
+                class="open-button"
+                :class="{ disabled: isLoaded(card) }"
+                :disabled="isLoaded(card)"
+                @click="emit('open-checklist', card)"
+              >
+                {{ isLoaded(card) ? 'Already loaded' : 'Open on workbench' }}
+              </button>
             </div>
-
-            <button
-              type="button"
-              class="open-button"
-              :class="{ disabled: isLoaded(card) }"
-              :disabled="isLoaded(card)"
-              @click="emit('open-checklist', card)"
-            >
-              {{ isLoaded(card) ? 'Already on workbench' : 'Open on workbench' }}
-            </button>
           </article>
         </div>
       </div>
@@ -58,31 +69,20 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  open: {
-    type: Boolean,
-    default: false
-  },
-  moduleLabel: {
-    type: String,
-    default: ''
-  },
-  cards: {
-    type: Array,
-    default: () => []
-  },
-  loadedChecklistIds: {
-    type: Array,
-    default: () => []
-  }
+  open: { type: Boolean, default: false },
+  moduleLabel: { type: String, default: '' },
+  cards: { type: Array, default: () => [] },
+  loadedChecklistIds: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update:open', 'close', 'open-checklist'])
 
 const sortedCards = computed(() =>
-  [...props.cards].sort((a, b) =>
-    String(a?.title ?? '').localeCompare(String(b?.title ?? '')) ||
-    String(a?.period ?? '').localeCompare(String(b?.period ?? ''))
-  )
+  [...props.cards].sort(
+    (a, b) =>
+      String(a?.title ?? '').localeCompare(String(b?.title ?? '')) ||
+      String(a?.period ?? '').localeCompare(String(b?.period ?? '')),
+  ),
 )
 
 function close() {
@@ -123,17 +123,17 @@ function isLoaded(card) {
 }
 
 .modal {
-  width: min(940px, 100%);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(210, 213, 230, 0.95);
+  width: min(900px, 100%);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
 }
 
 .modal-header,
 .modal-body {
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .modal-header {
@@ -155,6 +155,7 @@ function isLoaded(card) {
 h2 {
   margin: 0;
   font-size: 26px;
+  color: var(--color-text-primary);
 }
 
 .subtitle {
@@ -163,48 +164,92 @@ h2 {
 }
 
 .icon-button {
-  border: 0;
-  background: transparent;
-  font-size: 28px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
 }
 
-.state {
-  color: var(--color-text-muted);
-  padding: 24px 4px;
+.modal-body {
+  display: grid;
+  gap: var(--space-4);
 }
 
-.library-grid {
+.summary-strip {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--space-3);
 }
 
-.library-card {
+.summary-item {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.summary-label {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.summary-value {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+}
+
+.state {
+  padding: var(--space-8) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  text-align: center;
+}
+
+.state-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.state-copy {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+}
+
+.library-list {
   display: grid;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(248, 249, 253, 0.98) 0%, rgba(242, 244, 250, 0.98) 100%);
-  border: 1px solid rgba(220, 224, 238, 0.95);
+  gap: var(--space-3);
 }
 
-.library-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.pill-stack {
+.library-row {
   display: grid;
-  gap: 8px;
-  justify-items: end;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.row-main {
+  min-width: 0;
 }
 
 .library-title {
-  font-size: 20px;
-  font-weight: 800;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
 
@@ -214,19 +259,20 @@ h2 {
   font-size: var(--font-size-sm);
 }
 
-.period-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-start;
-  min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(45, 43, 85, 0.08);
-  color: var(--color-text-primary);
-  font-size: 12px;
-  font-weight: var(--font-weight-bold);
-  white-space: nowrap;
+.library-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.row-side {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: var(--space-2);
 }
 
 .mode-pill {
@@ -235,11 +281,11 @@ h2 {
   justify-content: center;
   min-height: 28px;
   padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(45, 43, 85, 0.08);
-  color: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-primary);
   font-size: 12px;
   font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -249,26 +295,17 @@ h2 {
 }
 
 .mode-pill.recurring {
-  background: rgba(152, 197, 74, 0.16);
-  color: rgba(49, 79, 8, 0.92);
-}
-
-.library-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  color: var(--color-text-muted);
-  font-size: 13px;
+  background: rgba(212, 232, 53, 0.2);
+  color: var(--color-success-text);
 }
 
 .open-button {
-  justify-self: start;
+  min-height: 40px;
+  padding: 0 var(--space-4);
   border: 0;
-  border-radius: 999px;
-  min-height: 42px;
-  padding: 0 16px;
+  border-radius: var(--radius-md);
   background: var(--color-dark-secondary);
-  color: var(--color-accent);
+  color: #ffffff;
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
@@ -276,14 +313,19 @@ h2 {
 }
 
 .open-button.disabled {
-  background: rgba(45, 43, 85, 0.12);
-  color: rgba(45, 43, 85, 0.48);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
 @media (max-width: 820px) {
-  .library-grid {
+  .summary-strip,
+  .library-row {
     grid-template-columns: 1fr;
+  }
+
+  .row-side {
+    justify-items: start;
   }
 }
 </style>
