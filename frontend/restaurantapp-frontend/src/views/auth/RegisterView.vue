@@ -168,8 +168,12 @@ async function handleSubmit() {
   submitError.value = ''
   try {
     await auth.register(form.name, form.email, form.password)
-  } catch {
-    submitError.value = 'Something went wrong. Please try again.'
+  } catch (err) {
+    if (err?.response?.status === 409) {
+      errors.email = 'An account with this email already exists.'
+    } else {
+      submitError.value = 'Something went wrong. Please try again.'
+    }
   } finally {
     isLoading.value = false
   }
