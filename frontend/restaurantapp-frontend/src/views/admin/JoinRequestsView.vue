@@ -61,52 +61,60 @@
           <span class="state-hint">Share the join code above so staff can request access.</span>
         </div>
 
-        <ul v-else class="member-list">
-          <li
-            v-for="member in members"
-            :key="member.userId"
-            class="member-card"
-            :class="{ processing: processing === member.userId }"
-          >
-            <div class="request-avatar">
-              {{ initials(member.firstName, member.lastName) }}
-            </div>
-
-            <div class="request-info">
-              <span class="request-name">
-                {{ member.firstName }} {{ member.lastName }}
-                <span v-if="member.userId === auth.user?.id" class="you-badge">You</span>
-              </span>
-              <span class="request-email">{{ member.email }}</span>
-              <div class="role-badges">
-                <span v-for="role in member.roles" :key="role" class="role-badge" :class="roleBadgeClass(role)">
-                  {{ roleLabel(role) }}
-                </span>
-              </div>
-            </div>
-
-            <div v-if="isAdmin && member.userId !== auth.user?.id" class="member-actions">
-              <select
-                class="role-select"
-                :value="primaryRole(member.roles)"
-                :disabled="processing === member.userId"
-                @change="changeRole(member, $event.target.value)"
+        <div v-else class="member-list">
+          <div v-for="section in memberSections" :key="section.role" class="member-section">
+            <h3 v-if="section.members.length > 0" class="section-header">
+              {{ section.label }}
+              <span class="section-count">{{ section.members.length }}</span>
+            </h3>
+            <ul class="section-members">
+              <li
+                v-for="member in section.members"
+                :key="member.userId"
+                class="member-card"
+                :class="{ processing: processing === member.userId }"
               >
-                <option value="STAFF">Staff</option>
-                <option value="HR">HR</option>
-                <option value="MANAGER">Manager</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-              <button
-                class="action-btn action-btn--decline"
-                :disabled="processing === member.userId"
-                @click="confirmRemove(member)"
-              >
-                Remove
-              </button>
-            </div>
-          </li>
-        </ul>
+                <div class="request-avatar">
+                  {{ initials(member.firstName, member.lastName) }}
+                </div>
+
+                <div class="request-info">
+                  <span class="request-name">
+                    {{ member.firstName }} {{ member.lastName }}
+                    <span v-if="member.userId === auth.user?.id" class="you-badge">You</span>
+                  </span>
+                  <span class="request-email">{{ member.email }}</span>
+                  <div class="role-badges">
+                    <span v-for="role in member.roles" :key="role" class="role-badge" :class="roleBadgeClass(role)">
+                      {{ roleLabel(role) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div v-if="isAdmin && member.userId !== auth.user?.id" class="member-actions">
+                  <select
+                    class="role-select"
+                    :value="primaryRole(member.roles)"
+                    :disabled="processing === member.userId"
+                    @change="changeRole(member, $event.target.value)"
+                  >
+                    <option value="STAFF">Staff</option>
+                    <option value="HR">HR</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                  <button
+                    class="action-btn action-btn--decline"
+                    :disabled="processing === member.userId"
+                    @click="confirmRemove(member)"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
       </template>
 
       <!-- ── Requests tab ── -->
@@ -207,7 +215,26 @@ const membersError  = ref(null)
 const processing    = ref(null)
 const confirmTarget = ref(null)
 
-const isAdmin = computed(() => auth.userRoles?.includes('ADMIN'))
+const isAdmin = computed(() => auth.userRoles?.includes('ROLE_ADMIN'))
+
+const memberSections = computed(() => {
+  const sections = [
+    { role: 'ADMIN', label: 'Administrators', members: [] },
+    { role: 'MANAGER', label: 'Managers', members: [] },
+    { role: 'HR', label: 'HR', members: [] },
+    { role: 'STAFF', label: 'Staff', members: [] },
+  ]
+  
+  members.value.forEach(member => {
+    const role = primaryRole(member.roles)
+    const section = sections.find(s => s.role === role)
+    if (section) {
+      section.members.push(member)
+    }
+  })
+  
+  return sections
+})
 
 async function loadMembers() {
   membersLoading.value = true
@@ -548,6 +575,46 @@ onMounted(() => {
 
 /* ── Member list ── */
 .member-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.member-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.section-header {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-1);
+}
+
+.section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-hint);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: normal;
+}
+
+.section-members {
   list-style: none;
   margin: 0;
   padding: 0;
