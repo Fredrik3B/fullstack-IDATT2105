@@ -10,6 +10,45 @@ import {
 import { periodEnumToLabel } from './recurrence'
 import { useChecklistDashboard } from './useChecklistDashboard'
 
+function normalizeChecklistCardIds(card) {
+  if (!card || typeof card !== 'object') return card
+
+  return {
+    ...card,
+    id: card.id != null ? String(card.id) : card.id,
+    sections: Array.isArray(card.sections)
+      ? card.sections.map((section) => ({
+          ...section,
+          items: Array.isArray(section.items)
+            ? section.items.map((item) => ({
+                ...item,
+                id: item?.id != null ? String(item.id) : item?.id,
+                templateId:
+                  item?.templateId != null ? String(item.templateId) : item?.templateId,
+                latestMeasurement: item?.latestMeasurement
+                  ? {
+                      ...item.latestMeasurement,
+                      id:
+                        item.latestMeasurement.id != null
+                          ? String(item.latestMeasurement.id)
+                          : item.latestMeasurement.id,
+                      checklistId:
+                        item.latestMeasurement.checklistId != null
+                          ? String(item.latestMeasurement.checklistId)
+                          : item.latestMeasurement.checklistId,
+                      taskId:
+                        item.latestMeasurement.taskId != null
+                          ? String(item.latestMeasurement.taskId)
+                          : item.latestMeasurement.taskId,
+                    }
+                  : item?.latestMeasurement,
+              }))
+            : section.items,
+        }))
+      : card.sections,
+  }
+}
+
 export function useIcModulePage({ module, moduleLabel }) {
   const toast = useToast()
   const isCreateOpen = ref(false)
@@ -70,7 +109,7 @@ export function useIcModulePage({ module, moduleLabel }) {
 
     try {
       const data = await fetchChecklists({ module })
-      cards.value = Array.isArray(data) ? data : []
+      cards.value = Array.isArray(data) ? data.map(normalizeChecklistCardIds) : []
     } catch (err) {
       console.error(`Failed to fetch ${moduleLabel} checklists`, err)
       loadError.value =
