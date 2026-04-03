@@ -1,8 +1,7 @@
 package edu.ntnu.idatt2105.backend.common.dto.icchecklist;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
 public record UpdateChecklistCardRequest(
@@ -14,9 +13,11 @@ public record UpdateChecklistCardRequest(
 
 	String subtitle,
 
-	@NotNull
-	@Valid
-	List<ChecklistSectionUpsertRequest> sections
+	Boolean recurring,
+
+	Boolean displayedOnWorkbench,
+
+	@NotEmpty
+	List<Long> taskTemplateIds
 ) {
 }
-

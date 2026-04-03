@@ -3,9 +3,11 @@ import { deriveDisplayCards, getCardPeriodEnum, getPeriodKey, seedCompletionMeta
 import { recalcCardProgress } from './recalcCardProgress'
 import { useNowTick } from './useNowTick'
 import { useTemperatureLog } from './useTemperatureLog'
-import { setTaskCompletion, setTaskFlag } from '../../api/checklists'
+import { setTaskCompletion, setTaskFlag, submitChecklist } from '../../api/checklists'
+import { useToast } from '@/composables/useToast'
 
 export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Daily', module = null } = {}) {
+  const toast = useToast()
   const cards = ref(Array.isArray(initialCards) ? initialCards : [])
   const activePeriod = ref(defaultActivePeriod)
   const now = useNowTick(60_000)
@@ -27,8 +29,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
   })
 
   function getCardPeriodKey(card, date = new Date()) {
-    const periodEnum = getCardPeriodEnum(card) ?? 'daily'
-    return getPeriodKey(periodEnum, date)
+    return String(card?.activePeriodKey ?? '').trim() || getPeriodKey(getCardPeriodEnum(card) ?? 'daily', date)
   }
 
   async function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
@@ -162,12 +163,31 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     return await logTemperature({ checklistId, taskId, valueC, periodKey })
   }
 
+  async function submitCard({ cardIndex }) {
+    const card = cards.value[cardIndex]
+    if (!card?.id) return null
+
+    try {
+      const refreshed = await submitChecklist({ checklistId: card.id })
+      if (refreshed) {
+        cards.value.splice(cardIndex, 1, refreshed)
+        toast.success(`Started a fresh ${card.title} checklist period.`)
+      }
+      return refreshed
+    } catch (err) {
+      console.error('Failed to submit checklist', err)
+      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not submit checklist.')
+      throw err
+    }
+  }
+
   return {
     activePeriod,
     cards,
     displayCards,
     togglePending,
     toggleTask,
+    submitCard,
     logTemperatureMeasurement,
     temperatureMeasurements,
     temperatureLatestByTaskId,

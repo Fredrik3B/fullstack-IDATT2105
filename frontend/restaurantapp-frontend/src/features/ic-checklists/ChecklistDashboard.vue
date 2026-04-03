@@ -7,7 +7,10 @@
       :periods="periods"
       :active-period="activePeriod"
       :create-label="createLabel"
+      :manage-label="manageLabel"
       @update:activePeriod="emit('update:activePeriod', $event)"
+      @open-library="emit('open-library')"
+      @manage-tasks="emit('manage-tasks')"
       @create="emit('create')"
     />
 
@@ -16,10 +19,13 @@
         v-for="(card, cardIndex) in cards"
         :key="card.id ?? card.title"
         v-bind="card"
+        :now="now"
+        :highlighted-workbench="String(highlightedChecklistId ?? '') === String(card.id ?? '')"
         :temperature-latest-by-task-id="temperatureLatestByTaskId"
         @toggle-task="emit('toggle-task', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @toggle-pending="emit('toggle-pending', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @edit-checklist="emit('edit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex })"
+        @submit-checklist="emit('submit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @log-temperature="emit('log-temperature', $event)"
       />
     </div>
@@ -58,7 +64,11 @@ defineProps({
   },
   createLabel: {
     type: String,
-    default: '+ New checklist'
+    default: 'Checklists'
+  },
+  manageLabel: {
+    type: String,
+    default: 'Task pool'
   },
   cards: {
     type: Array,
@@ -67,10 +77,18 @@ defineProps({
   temperatureLatestByTaskId: {
     type: Object,
     default: null
+  },
+  now: {
+    type: [Date, String, Number],
+    default: null
+  },
+  highlightedChecklistId: {
+    type: [String, Number],
+    default: null
   }
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'log-temperature', 'update:activePeriod', 'create'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'submit-checklist', 'log-temperature', 'update:activePeriod', 'create', 'open-library', 'manage-tasks'])
 
 </script>
 

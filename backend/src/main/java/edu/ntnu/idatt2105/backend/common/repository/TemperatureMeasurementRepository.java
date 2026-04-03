@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.common.repository;
 
 import edu.ntnu.idatt2105.backend.common.model.TemperatureMeasurementModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskModel;
+import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import java.time.Instant;
 import java.util.Collection;
@@ -18,6 +18,5 @@ public interface TemperatureMeasurementRepository extends JpaRepository<Temperat
 		Instant to
 	);
 
-	void deleteAllByTaskIn(Collection<TaskModel> tasks);
+	void deleteAllByTaskIn(Collection<TasksModel> tasks);
 }
-

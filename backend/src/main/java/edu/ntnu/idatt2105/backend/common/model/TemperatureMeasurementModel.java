@@ -29,7 +29,7 @@ public class TemperatureMeasurementModel extends AuditableEntity {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "task_id", nullable = false)
-	private TaskModel task;
+	private TasksModel task;
 
 	@Column(name = "period_key", length = 16)
 	private String periodKey;
@@ -71,11 +71,11 @@ public class TemperatureMeasurementModel extends AuditableEntity {
 		this.checklist = checklist;
 	}
 
-	public TaskModel getTask() {
+	public TasksModel getTask() {
 		return task;
 	}
 
-	public void setTask(TaskModel task) {
+	public void setTask(TasksModel task) {
 		this.task = task;
 	}
 
@@ -119,4 +119,3 @@ public class TemperatureMeasurementModel extends AuditableEntity {
 		this.recordedBy = recordedBy;
 	}
 }
-

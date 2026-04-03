@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
@@ -55,18 +56,14 @@ public class ChecklistController {
 		Authentication auth
 	) {
 		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-		int sectionCount = request.sections() != null ? request.sections().size() : 0;
-		int taskCount = request.sections() == null ? 0 : request.sections().stream()
-			.mapToInt(s -> s.items() != null ? s.items().size() : 0)
-			.sum();
+		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
-			"IC create checklist: orgId={} userId={} module={} period={} title='{}' sections={} tasks={}",
+			"IC create checklist: orgId={} userId={} module={} period={} title='{}' taskTemplates={}",
 			principal.getOrganizationId(),
 			principal.getUserId(),
 			request.module(),
 			request.period(),
 			request.title(),
-			sectionCount,
 			taskCount
 		);
 
@@ -103,18 +100,14 @@ public class ChecklistController {
 		Authentication auth
 	) {
 		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-		int sectionCount = request.sections() != null ? request.sections().size() : 0;
-		int taskCount = request.sections() == null ? 0 : request.sections().stream()
-			.mapToInt(s -> s.items() != null ? s.items().size() : 0)
-			.sum();
+		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
-			"IC update checklist: orgId={} userId={} checklistId={} period={} title='{}' sections={} tasks={}",
+			"IC update checklist: orgId={} userId={} checklistId={} period={} title='{}' taskTemplates={}",
 			principal.getOrganizationId(),
 			principal.getUserId(),
 			checklistId,
 			request.period(),
 			request.title(),
-			sectionCount,
 			taskCount
 		);
 		ChecklistCardResponse updated = checklistService.updateChecklist(checklistId, request, principal);
@@ -166,6 +159,39 @@ public class ChecklistController {
 			request.flaggedAt()
 		);
 		return checklistService.setTaskFlag(checklistId, taskId, request, principal);
+	}
+
+	@PutMapping("/{checklistId}/submit")
+	@Operation(summary = "Submit the current checklist period and start a new one")
+	@ApiResponse(responseCode = "200", description = "Checklist submitted")
+	public ChecklistCardResponse submitChecklist(@PathVariable Long checklistId, Authentication auth) {
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		LOGGER.info(
+			"IC submit checklist: orgId={} userId={} checklistId={}",
+			principal.getOrganizationId(),
+			principal.getUserId(),
+			checklistId
+		);
+		return checklistService.submitChecklist(checklistId, principal);
+	}
+
+	@PutMapping("/{checklistId}/workbench")
+	@Operation(summary = "Set whether a checklist is displayed on the workbench")
+	@ApiResponse(responseCode = "200", description = "Checklist workbench state updated")
+	public ChecklistCardResponse setChecklistWorkbenchState(
+		@PathVariable Long checklistId,
+		@Valid @RequestBody ChecklistWorkbenchStateRequest request,
+		Authentication auth
+	) {
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		LOGGER.info(
+			"IC set workbench state: orgId={} userId={} checklistId={} displayedOnWorkbench={}",
+			principal.getOrganizationId(),
+			principal.getUserId(),
+			checklistId,
+			request.displayedOnWorkbench()
+		);
+		return checklistService.setChecklistWorkbenchState(checklistId, request, principal);
 	}
 
 	@DeleteMapping("/{checklistId}")

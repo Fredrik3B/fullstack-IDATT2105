@@ -62,23 +62,43 @@ export async function setTaskFlag({ checklistId, taskId, state, periodKey, flagg
   return data
 }
 
-export async function createChecklist({ module, period, title, subtitle, sections }) {
+export async function createChecklist({ module, period, title, subtitle, recurring, displayedOnWorkbench, taskTemplateIds }) {
   const { data } = await api.post('/api/checklists', {
     module,
     period,
     title,
     subtitle,
-    sections
+    recurring,
+    displayedOnWorkbench,
+    taskTemplateIds
   })
   return data
 }
 
-export async function updateChecklist({ checklistId, period, title, subtitle, sections }) {
+export async function updateChecklist({ checklistId, period, title, subtitle, recurring, displayedOnWorkbench, taskTemplateIds }) {
   const { data } = await api.put(`/api/checklists/${checklistId}`, {
     period,
     title,
     subtitle,
-    sections
+    recurring,
+    displayedOnWorkbench,
+    taskTemplateIds
   })
   return data
+}
+
+export async function submitChecklist({ checklistId }) {
+  const { data } = await api.put(`/api/checklists/${checklistId}/submit`)
+  return data
+}
+
+export async function setChecklistWorkbenchState({ checklistId, displayedOnWorkbench }) {
+  const { data } = await api.put(`/api/checklists/${checklistId}/workbench`, {
+    displayedOnWorkbench
+  })
+  return data
+}
+
+export async function deleteChecklist({ checklistId }) {
+  await api.delete(`/api/checklists/${checklistId}`)
 }

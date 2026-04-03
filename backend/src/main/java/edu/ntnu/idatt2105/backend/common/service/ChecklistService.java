@@ -6,6 +6,7 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskFlagRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.UpdateChecklistCardRequest;
@@ -35,6 +36,14 @@ public interface ChecklistService {
 		Long checklistId,
 		Long taskId,
 		TaskFlagRequest request,
+		JwtAuthenticatedPrincipal principal
+	);
+
+	ChecklistCardResponse submitChecklist(Long checklistId, JwtAuthenticatedPrincipal principal);
+
+	ChecklistCardResponse setChecklistWorkbenchState(
+		Long checklistId,
+		ChecklistWorkbenchStateRequest request,
 		JwtAuthenticatedPrincipal principal
 	);
 

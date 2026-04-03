@@ -5,6 +5,7 @@ import java.time.Instant;
 
 public record ChecklistTaskItemResponse(
 	Long id,
+	Long templateId,
 	String label,
 	String meta,
 	String type,
@@ -18,4 +19,3 @@ public record ChecklistTaskItemResponse(
 	String pendingForPeriodKey
 ) {
 }
-

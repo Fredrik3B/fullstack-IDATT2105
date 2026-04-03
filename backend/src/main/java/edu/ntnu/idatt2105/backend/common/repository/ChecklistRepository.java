@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 
 public interface ChecklistRepository extends JpaRepository<ChecklistModel, Long> {
+	List<ChecklistModel> findAllByOrganization_IdOrderByIdAsc(UUID organizationId);
+
 	List<ChecklistModel> findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(
 		UUID organizationId,
 		ComplianceArea complianceArea

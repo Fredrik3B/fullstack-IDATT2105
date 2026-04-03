@@ -1,30 +1,30 @@
 package edu.ntnu.idatt2105.backend.common.dto.task;
 
-import jakarta.validation.constraints.Min;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 
 public record CreateTaskRequest(
+	@NotNull
+	IcModule module,
+
 	@NotBlank
 	@Size(max = 120)
 	String title,
 
-	@Size(max = 1000)
-	String description,
+	SectionTypes sectionType,
 
-	@Min(0)
-	Integer orderIndex,
+	@DecimalMin("-999.99")
+	@DecimalMax("999.99")
+	BigDecimal targetMin,
 
-	Boolean requiredTask,
-
-	Boolean active,
-
-	@NotNull
-	@Min(1)
-	Integer organisationId,
-
-	@NotNull
-	Long checklistId
+	@DecimalMin("-999.99")
+	@DecimalMax("999.99")
+	BigDecimal targetMax
 ) {
 }

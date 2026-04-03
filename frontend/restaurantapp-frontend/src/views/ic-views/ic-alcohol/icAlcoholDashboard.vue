@@ -1,9 +1,13 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useToast } from '@/composables/useToast'
 import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
 import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
+import ChecklistLibraryModal from '../../../features/ic-checklists/ChecklistLibraryModal.vue'
+import ManageTaskTemplatesModal from '../../../features/ic-checklists/ManageTaskTemplatesModal.vue'
 import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
-import { createChecklist, fetchChecklists, updateChecklist } from '../../../api/checklists'
+import { createChecklist, deleteChecklist, fetchChecklists, setChecklistWorkbenchState, updateChecklist } from '../../../api/checklists'
+import { periodEnumToLabel } from '../../../features/ic-checklists/recurrence'
 
 // Backend-only mode: keep empty so missing backend wiring is visible.
 const initialCards = []
@@ -14,6 +18,7 @@ const {
   displayCards,
   togglePending,
   toggleTask,
+  submitCard,
   logTemperatureMeasurement,
   temperatureLatestByTaskId,
   now
@@ -23,38 +28,58 @@ const {
   module: 'IC_ALCOHOL'
 })
 
-onMounted(async () => {
+async function reloadChecklists() {
   try {
     const data = await fetchChecklists({ module: 'IC_ALCOHOL' })
-    if (cards.value.length === 0) cards.value = Array.isArray(data) ? data : []
+    cards.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Failed to fetch IC-Alcohol checklists', err)
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not refresh checklists.')
   }
+}
+
+function isChecklistMissing(err) {
+  const message = String(err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '')
+  return message.includes('Checklist not found')
+}
+
+onMounted(async () => {
+  await reloadChecklists()
 })
 
 const isCreateOpen = ref(false)
+const isLibraryOpen = ref(false)
+const isTaskPoolOpen = ref(false)
+const highlightedChecklistId = ref(null)
+const toast = useToast()
+
+const workbenchCards = computed(() => displayCards.value.filter((card) => card?.displayedOnWorkbench !== false))
+const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
 function handleCreate() {
   isCreateOpen.value = true
 }
+function handleOpenLibrary() {
+  isLibraryOpen.value = true
+}
+function handleManageTasks() {
+  isTaskPoolOpen.value = true
+}
 async function handleCreatedChecklist(newCard) {
-  const optimisticIndex = cards.value.length
-  cards.value.push(newCard)
-
   try {
-    const created = await createChecklist({
+    await createChecklist({
       module: 'IC_ALCOHOL',
       period: newCard?.period,
       title: newCard?.title,
       subtitle: newCard?.subtitle,
-      sections: newCard?.sections
+      recurring: newCard?.recurring,
+      displayedOnWorkbench: newCard?.displayedOnWorkbench,
+      taskTemplateIds: newCard?.taskTemplateIds
     })
-    if (created) {
-      created.moduleChip = created.moduleChip ?? newCard?.moduleChip
-      created.featured = created.featured ?? newCard?.featured
-      cards.value.splice(optimisticIndex, 1, created)
-    }
+    await reloadChecklists()
+    isCreateOpen.value = false
   } catch (err) {
-    console.error('Failed to create checklist; keeping optimistic card', err)
+    console.error('Failed to create checklist', err)
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not create checklist.')
   }
 }
 
@@ -66,25 +91,52 @@ const editingCard = computed(() =>
 
 async function handleUpdatedChecklist(updatedCard) {
   if (!Number.isInteger(editingCardIndex.value)) return
-  const previous = cards.value[editingCardIndex.value]
-  cards.value.splice(editingCardIndex.value, 1, updatedCard)
 
   try {
-    const saved = await updateChecklist({
+    await updateChecklist({
       checklistId: updatedCard?.id,
       period: updatedCard?.period,
       title: updatedCard?.title,
       subtitle: updatedCard?.subtitle,
-      sections: updatedCard?.sections
+      recurring: updatedCard?.recurring,
+      displayedOnWorkbench: updatedCard?.displayedOnWorkbench,
+      taskTemplateIds: updatedCard?.taskTemplateIds
     })
-    if (saved) {
-      saved.moduleChip = saved.moduleChip ?? updatedCard?.moduleChip
-      saved.featured = saved.featured ?? updatedCard?.featured
-      cards.value.splice(editingCardIndex.value, 1, saved)
-    }
+    await reloadChecklists()
+    isEditOpen.value = false
+    editingCardIndex.value = null
   } catch (err) {
-    console.error('Failed to update checklist; reverting optimistic update', err)
-    cards.value.splice(editingCardIndex.value, 1, previous)
+    console.error('Failed to update checklist', err)
+    if (isChecklistMissing(err)) {
+      await reloadChecklists()
+      isEditOpen.value = false
+      editingCardIndex.value = null
+    }
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not update checklist.')
+  }
+}
+
+async function handleDeleteChecklist(checklist) {
+  const checklistId = checklist?.id
+  if (!checklistId) return
+
+  const confirmed = window.confirm(`Delete "${checklist?.title || 'this checklist'}"? This cannot be undone.`)
+  if (!confirmed) return
+
+  try {
+    await deleteChecklist({ checklistId })
+    await reloadChecklists()
+    isEditOpen.value = false
+    editingCardIndex.value = null
+    toast.success('Checklist deleted.')
+  } catch (err) {
+    console.error('Failed to delete checklist', err)
+    if (isChecklistMissing(err)) {
+      await reloadChecklists()
+      isEditOpen.value = false
+      editingCardIndex.value = null
+    }
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not delete checklist.')
   }
 }
 
@@ -101,6 +153,31 @@ function editChecklist({ cardIndex }) {
   editingCardIndex.value = cardIndex
   isEditOpen.value = true
 }
+
+async function openChecklistOnWorkbench(card) {
+  if (!card?.id) return
+  try {
+    const saved = await setChecklistWorkbenchState({ checklistId: card.id, displayedOnWorkbench: true })
+    await reloadChecklists()
+    isLibraryOpen.value = false
+    activePeriod.value = periodEnumToLabel((saved ?? card).period)
+    highlightedChecklistId.value = card.id
+    await nextTick()
+    document.getElementById(`checklist-card-${card.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.setTimeout(() => {
+      if (String(highlightedChecklistId.value) === String(card.id)) {
+        highlightedChecklistId.value = null
+      }
+    }, 2200)
+  } catch (err) {
+    console.error('Failed to load checklist onto workbench', err)
+    if (isChecklistMissing(err)) {
+      await reloadChecklists()
+      isLibraryOpen.value = false
+    }
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not load checklist onto workbench.')
+  }
+}
 </script>
 
 <template>
@@ -109,19 +186,25 @@ function editChecklist({ cardIndex }) {
     title="Checklists"
     :date-label="dateLabel"
     v-model:activePeriod="activePeriod"
-    :cards="displayCards"
+    :cards="workbenchCards"
+    :highlighted-checklist-id="highlightedChecklistId"
+    :now="now"
     :temperature-latest-by-task-id="temperatureLatestByTaskId"
+    @open-library="handleOpenLibrary"
+    @manage-tasks="handleManageTasks"
     @create="handleCreate"
     @toggle-task="toggleTask"
     @toggle-pending="togglePending"
+    @submit-checklist="submitCard"
     @log-temperature="logTemperatureMeasurement"
     @edit-checklist="editChecklist"
   />
 
   <CreateChecklistModal
     v-model:open="isCreateOpen"
+    module="IC_ALCOHOL"
     module-label="IC-Alcohol"
-    module-chip="IC-Alcohol"
+    @manage-tasks="handleManageTasks"
     @created="handleCreatedChecklist"
   />
 
@@ -129,9 +212,25 @@ function editChecklist({ cardIndex }) {
     v-model:open="isEditOpen"
     mode="edit"
     :initial-card="editingCard"
+    module="IC_ALCOHOL"
     module-label="IC-Alcohol"
-    module-chip="IC-Alcohol"
+    @manage-tasks="handleManageTasks"
     @close="editingCardIndex = null"
+    @delete="handleDeleteChecklist"
     @updated="handleUpdatedChecklist"
+  />
+
+  <ChecklistLibraryModal
+    v-model:open="isLibraryOpen"
+    module-label="IC-Alcohol"
+    :cards="cards"
+    :loaded-checklist-ids="loadedChecklistIds"
+    @open-checklist="openChecklistOnWorkbench"
+  />
+
+  <ManageTaskTemplatesModal
+    v-model:open="isTaskPoolOpen"
+    module="IC_ALCOHOL"
+    module-label="IC-Alcohol"
   />
 </template>

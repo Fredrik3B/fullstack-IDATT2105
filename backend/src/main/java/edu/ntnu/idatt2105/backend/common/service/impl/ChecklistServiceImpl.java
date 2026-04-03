@@ -2,129 +2,87 @@ package edu.ntnu.idatt2105.backend.common.service.impl;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistSectionResponse;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistSectionUpsertRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskUpsertRequest;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskFlagRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.UpdateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskPeriodStateModel;
-import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TaskPeriodStateRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TaskRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistTaskType;
+import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.common.model.TasksModel;
+import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.service.ChecklistService;
 import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
-import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
-import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
-import java.util.List;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.time.Instant;
-import java.time.ZoneId;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ChecklistServiceImpl implements ChecklistService {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(ChecklistServiceImpl.class);
-
 	private final ChecklistRepository checklistRepository;
-	private final OrganizationRepository organizationRepository;
-	private final UserRepository userRepository;
-	private final TaskRepository taskRepository;
-	private final TaskPeriodStateRepository taskPeriodStateRepository;
+	private final TaskTemplateRepository taskTemplateRepository;
+	private final TasksRepository tasksRepository;
 	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
+	private final OrganizationRepository organizationRepository;
 
 	public ChecklistServiceImpl(
 		ChecklistRepository checklistRepository,
-		OrganizationRepository organizationRepository,
-		UserRepository userRepository,
-		TaskRepository taskRepository,
-		TaskPeriodStateRepository taskPeriodStateRepository,
-		TemperatureMeasurementRepository temperatureMeasurementRepository
+		TaskTemplateRepository taskTemplateRepository,
+		TasksRepository tasksRepository,
+		TemperatureMeasurementRepository temperatureMeasurementRepository,
+		OrganizationRepository organizationRepository
 	) {
 		this.checklistRepository = checklistRepository;
-		this.organizationRepository = organizationRepository;
-		this.userRepository = userRepository;
-		this.taskRepository = taskRepository;
-		this.taskPeriodStateRepository = taskPeriodStateRepository;
+		this.taskTemplateRepository = taskTemplateRepository;
+		this.tasksRepository = tasksRepository;
 		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
+		this.organizationRepository = organizationRepository;
 	}
 
 	@Override
 	public List<ChecklistCardResponse> fetchChecklists(IcModule module, JwtAuthenticatedPrincipal principal) {
-		UUID orgId = requirePrincipal(principal).getOrganizationId();
-		UUID userId = principal.getUserId();
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		ComplianceArea area = requireModule(module).toComplianceArea();
 
-		LOGGER.debug("fetchChecklists(orgId={}, userId={}, module={}, complianceArea={})", orgId, userId, module, area);
-
 		List<ChecklistModel> checklists = checklistRepository
-			.findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(orgId, area);
+			.findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(safePrincipal.getOrganizationId(), area);
 
-		if (checklists.isEmpty()) return List.of();
-
-		List<Long> checklistIds = checklists.stream().map(ChecklistModel::getId).toList();
-		List<TaskModel> tasks = taskRepository.findActiveByChecklistIdsOrdered(checklistIds);
-		LOGGER.debug("fetchChecklists: found {} checklists and {} tasks", checklists.size(), tasks.size());
-
-		Set<Long> taskIds = tasks.stream().map(TaskModel::getId).filter(Objects::nonNull).collect(Collectors.toSet());
-		Set<String> periodKeys = checklists.stream()
-			.map(c -> PeriodKeyUtil.currentPeriodKey(c.getFrequency(), ZoneId.systemDefault()))
-			.collect(Collectors.toSet());
-
-		Map<String, TaskPeriodStateModel> stateByTaskAndPeriod = new HashMap<>();
-		if (!taskIds.isEmpty() && !periodKeys.isEmpty()) {
-			List<TaskPeriodStateModel> states = taskPeriodStateRepository
-				.findAllByOrganization_IdAndUser_IdAndTask_IdInAndPeriodKeyIn(orgId, userId, taskIds, periodKeys);
-			for (TaskPeriodStateModel state : states) {
-				stateByTaskAndPeriod.put(state.getTask().getId() + "|" + state.getPeriodKey(), state);
-			}
-		}
-
-		Map<Long, List<TaskModel>> tasksByChecklistId = tasks.stream()
-			.collect(Collectors.groupingBy(t -> t.getChecklist().getId(), LinkedHashMap::new, Collectors.toList()));
-
-		List<ChecklistCardResponse> cards = new ArrayList<>(checklists.size());
-		for (ChecklistModel checklist : checklists) {
-			List<TaskModel> checklistTasks = tasksByChecklistId.getOrDefault(checklist.getId(), List.of());
-			String currentKey = PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault());
-			cards.add(toCardResponse(checklist, checklistTasks, currentKey, stateByTaskAndPeriod));
-		}
-		return cards;
+		return checklists.stream()
+			.map(this::sortTemplates)
+			.map(this::toCardResponse)
+			.toList();
 	}
 
 	@Override
+	@Transactional
 	public ChecklistCardResponse createChecklist(CreateChecklistCardRequest request, JwtAuthenticatedPrincipal principal) {
-		requirePrincipal(principal);
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		Objects.requireNonNull(request, "Checklist request cannot be null.");
 
-		UUID orgId = principal.getOrganizationId();
-		LOGGER.debug("createChecklist(orgId={}, userId={}, module={}, period={})", orgId, principal.getUserId(), request.module(), request.period());
-		OrganizationModel organization = organizationRepository.findById(orgId)
+		OrganizationModel organization = organizationRepository.findById(safePrincipal.getOrganizationId())
 			.orElseThrow(() -> new IllegalArgumentException("Organization not found."));
 
 		ChecklistModel checklist = new ChecklistModel();
@@ -132,50 +90,47 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setDescription(trimToNull(request.subtitle()));
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
 		checklist.setComplianceArea(requireModule(request.module()).toComplianceArea());
+		checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
+		checklist.setRecurring(Boolean.TRUE.equals(request.recurring()));
+		checklist.setDisplayedOnWorkbench(Boolean.TRUE.equals(request.displayedOnWorkbench()));
 		checklist.setActive(true);
 		checklist.setOrganization(organization);
+		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
 
-		ChecklistModel saved = checklistRepository.save(checklist);
-		List<TaskModel> savedTasks = upsertTasks(saved, request.sections(), List.of());
-		LOGGER.debug("createChecklist: saved checklistId={} tasks={}", saved.getId(), savedTasks.size());
-
-		String currentKey = PeriodKeyUtil.currentPeriodKey(saved.getFrequency(), ZoneId.systemDefault());
-		return toCardResponse(saved, savedTasks, currentKey, Map.of());
+		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist);
 	}
 
 	@Override
+	@Transactional
 	public ChecklistCardResponse updateChecklist(
 		Long checklistId,
 		UpdateChecklistCardRequest request,
 		JwtAuthenticatedPrincipal principal
 	) {
-		requirePrincipal(principal);
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		Objects.requireNonNull(request, "Checklist request cannot be null.");
 
-		UUID orgId = principal.getOrganizationId();
-		LOGGER.debug("updateChecklist(orgId={}, userId={}, checklistId={}, period={})", orgId, principal.getUserId(), checklistId, request.period());
-		ChecklistModel checklist = checklistRepository.findByIdAndOrganization_Id(checklistId, orgId)
-			.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
-
+		ChecklistModel checklist = getChecklist(checklistId, safePrincipal.getOrganizationId());
+		ChecklistFrequency previousFrequency = checklist.getFrequency();
 		checklist.setName(requireText(request.title(), "title"));
 		checklist.setDescription(trimToNull(request.subtitle()));
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
+		checklist.setRecurring(request.recurring() == null || Boolean.TRUE.equals(request.recurring()));
+		checklist.setDisplayedOnWorkbench(request.displayedOnWorkbench() == null || Boolean.TRUE.equals(request.displayedOnWorkbench()));
+		if (!Objects.equals(previousFrequency, checklist.getFrequency())) {
+			checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
+			deactivateActiveTasks(checklist.getId());
+		}
+		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
+		if (!checklist.isDisplayedOnWorkbench()) {
+			deleteAllActivatedTasks(checklist.getId());
+		}
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
-
-		List<TaskModel> existingTasks = taskRepository.findAllByChecklist_IdAndActiveTrue(savedChecklist.getId());
-		List<TaskModel> savedTasks = upsertTasks(savedChecklist, request.sections(), existingTasks);
-		LOGGER.debug("updateChecklist: saved checklistId={} tasks={}", savedChecklist.getId(), savedTasks.size());
-
-		String currentKey = PeriodKeyUtil.currentPeriodKey(savedChecklist.getFrequency(), ZoneId.systemDefault());
-		Map<String, TaskPeriodStateModel> stateMap = loadStatesForTasksAndPeriod(
-			orgId,
-			principal.getUserId(),
-			savedTasks,
-			Set.of(currentKey)
-		);
-
-		return toCardResponse(savedChecklist, savedTasks, currentKey, stateMap);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist);
 	}
 
 	@Override
@@ -188,64 +143,31 @@ public class ChecklistServiceImpl implements ChecklistService {
 		requirePrincipal(principal);
 		Objects.requireNonNull(request, "Request cannot be null.");
 
-		LOGGER.debug(
-			"setTaskCompletion(orgId={}, userId={}, checklistId={}, taskId={}, state={}, periodKey={})",
-			principal.getOrganizationId(),
-			principal.getUserId(),
-			checklistId,
-			taskId,
-			request.state(),
-			request.periodKey()
-		);
-		ChecklistModel checklist = checklistRepository
-			.findByIdAndOrganization_Id(checklistId, principal.getOrganizationId())
-			.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
+		ChecklistModel checklist = getChecklist(checklistId, principal.getOrganizationId());
+		PeriodKeyUtil.validatePeriodKey(request.periodKey(), checklist.getFrequency());
+		String periodKey = request.periodKey().trim();
 
-		TaskModel task = taskRepository.findById(taskId)
-			.orElseThrow(() -> new IllegalArgumentException("Task not found."));
-		if (!Objects.equals(task.getChecklist().getId(), checklist.getId())) {
-			throw new IllegalArgumentException("Task does not belong to checklist.");
+		TasksModel task = tasksRepository.findByIdAndChecklist_Id(taskId, checklistId)
+			.orElseThrow(() -> new IllegalArgumentException("Activated task not found."));
+		if (!Objects.equals(task.getPeriodKey(), periodKey)) {
+			throw new IllegalArgumentException("Task does not belong to requested period.");
 		}
 
-		String state = String.valueOf(request.state()).trim().toLowerCase();
+		String state = normalizedState(request.state());
 		if (!state.equals("completed") && !state.equals("todo")) {
 			throw new IllegalArgumentException("Invalid state: " + request.state());
 		}
 
-		PeriodKeyUtil.validatePeriodKey(request.periodKey(), checklist.getFrequency());
-		String periodKey = request.periodKey().trim();
-
-		TaskPeriodStateModel row = taskPeriodStateRepository
-			.findByOrganization_IdAndUser_IdAndTask_IdAndPeriodKey(
-				principal.getOrganizationId(),
-				principal.getUserId(),
-				task.getId(),
-				periodKey
-			)
-			.orElse(null);
-
 		if (state.equals("completed")) {
-			if (row == null) row = new TaskPeriodStateModel();
-			row.setOrganization(getOrganization(principal.getOrganizationId()));
-			row.setUser(getUser(principal.getUserId()));
-			row.setTask(task);
-			row.setPeriodKey(periodKey);
-			row.setCompletedAt(request.completedAt() != null ? request.completedAt() : Instant.now());
-			row.setFlaggedAt(null);
-			row = taskPeriodStateRepository.save(row);
+			task.setCompleted(true);
+			task.setFlagged(false);
+			task.setCompletedAt(toLocalDateTime(request.completedAt()));
 		} else {
-			if (row != null) {
-				row.setCompletedAt(null);
-				if (row.getFlaggedAt() == null) {
-					taskPeriodStateRepository.delete(row);
-					row = null;
-				} else {
-					row = taskPeriodStateRepository.save(row);
-				}
-			}
+			task.setCompleted(false);
+			task.setCompletedAt(null);
 		}
 
-		return toTaskItemResponse(task, periodKey, row);
+		return toTaskItemResponse(tasksRepository.save(task));
 	}
 
 	@Override
@@ -258,267 +180,359 @@ public class ChecklistServiceImpl implements ChecklistService {
 		requirePrincipal(principal);
 		Objects.requireNonNull(request, "Request cannot be null.");
 
-		LOGGER.debug(
-			"setTaskFlag(orgId={}, userId={}, checklistId={}, taskId={}, state={}, periodKey={})",
-			principal.getOrganizationId(),
-			principal.getUserId(),
-			checklistId,
-			taskId,
-			request.state(),
-			request.periodKey()
-		);
-		ChecklistModel checklist = checklistRepository
-			.findByIdAndOrganization_Id(checklistId, principal.getOrganizationId())
-			.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
+		ChecklistModel checklist = getChecklist(checklistId, principal.getOrganizationId());
+		PeriodKeyUtil.validatePeriodKey(request.periodKey(), checklist.getFrequency());
+		String periodKey = request.periodKey().trim();
 
-		TaskModel task = taskRepository.findById(taskId)
-			.orElseThrow(() -> new IllegalArgumentException("Task not found."));
-		if (!Objects.equals(task.getChecklist().getId(), checklist.getId())) {
-			throw new IllegalArgumentException("Task does not belong to checklist.");
+		TasksModel task = tasksRepository.findByIdAndChecklist_Id(taskId, checklistId)
+			.orElseThrow(() -> new IllegalArgumentException("Activated task not found."));
+		if (!Objects.equals(task.getPeriodKey(), periodKey)) {
+			throw new IllegalArgumentException("Task does not belong to requested period.");
 		}
 
-		String state = String.valueOf(request.state()).trim().toLowerCase();
+		String state = normalizedState(request.state());
 		if (!state.equals("pending") && !state.equals("todo")) {
 			throw new IllegalArgumentException("Invalid state: " + request.state());
 		}
 
-		PeriodKeyUtil.validatePeriodKey(request.periodKey(), checklist.getFrequency());
-		String periodKey = request.periodKey().trim();
-
-		TaskPeriodStateModel row = taskPeriodStateRepository
-			.findByOrganization_IdAndUser_IdAndTask_IdAndPeriodKey(
-				principal.getOrganizationId(),
-				principal.getUserId(),
-				task.getId(),
-				periodKey
-			)
-			.orElse(null);
-
 		if (state.equals("pending")) {
-			if (row == null) row = new TaskPeriodStateModel();
-			row.setOrganization(getOrganization(principal.getOrganizationId()));
-			row.setUser(getUser(principal.getUserId()));
-			row.setTask(task);
-			row.setPeriodKey(periodKey);
-			row.setFlaggedAt(request.flaggedAt() != null ? request.flaggedAt() : Instant.now());
-			row.setCompletedAt(null);
-			row = taskPeriodStateRepository.save(row);
+			task.setFlagged(true);
+			task.setCompleted(false);
+			task.setCompletedAt(null);
 		} else {
-			if (row != null) {
-				row.setFlaggedAt(null);
-				if (row.getCompletedAt() == null) {
-					taskPeriodStateRepository.delete(row);
-					row = null;
-				} else {
-					row = taskPeriodStateRepository.save(row);
-				}
-			}
+			task.setFlagged(false);
 		}
 
-		return toTaskItemResponse(task, periodKey, row);
+		return toTaskItemResponse(tasksRepository.save(task));
 	}
 
 	@Override
-	public void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
-		requirePrincipal(principal);
-		UUID orgId = principal.getOrganizationId();
-		LOGGER.debug("deleteChecklist(orgId={}, userId={}, checklistId={})", orgId, principal.getUserId(), checklistId);
-
-		ChecklistModel checklist = checklistRepository.findByIdAndOrganization_Id(checklistId, orgId)
-			.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
-
-		List<TaskModel> tasks = taskRepository.findAllByChecklist_IdAndActiveTrue(checklist.getId());
-		if (!tasks.isEmpty()) {
-			taskPeriodStateRepository.deleteAllByTaskIn(tasks);
-			temperatureMeasurementRepository.deleteAllByTaskIn(tasks);
-			taskRepository.deleteAll(tasks);
+	@Transactional
+	public ChecklistCardResponse submitChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
+		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
+		sortTemplates(checklist);
+		if (checklist.getTaskTemplates() == null || checklist.getTaskTemplates().isEmpty()) {
+			throw new IllegalArgumentException("Checklist must contain at least one task before it can be submitted.");
 		}
+
+		String activePeriodKey = resolveActivePeriodKey(checklist);
+		List<TasksModel> activeTasks = ensureTasksForActivePeriod(checklist);
+		if (activeTasks.isEmpty()) {
+			throw new IllegalArgumentException("Checklist has no active tasks to submit.");
+		}
+		for (TasksModel task : activeTasks) {
+			task.setActive(false);
+		}
+		tasksRepository.saveAll(activeTasks);
+
+		checklist.setActivePeriodKey(PeriodKeyUtil.nextPeriodKey(checklist.getFrequency(), activePeriodKey));
+		checklist.setDisplayedOnWorkbench(checklist.isRecurring());
+		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist);
+	}
+
+	@Override
+	@Transactional
+	public ChecklistCardResponse setChecklistWorkbenchState(
+		Long checklistId,
+		ChecklistWorkbenchStateRequest request,
+		JwtAuthenticatedPrincipal principal
+	) {
+		Objects.requireNonNull(request, "Workbench state request cannot be null.");
+		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
+		boolean displayedOnWorkbench = Boolean.TRUE.equals(request.displayedOnWorkbench());
+		checklist.setDisplayedOnWorkbench(displayedOnWorkbench);
+		if (!displayedOnWorkbench) {
+			deleteAllActivatedTasks(checklist.getId());
+		}
+		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist);
+	}
+
+	@Override
+	@Transactional
+	public void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
+		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
+
+		List<TasksModel> tasks = tasksRepository.findAllByChecklist_Id(checklistId);
+		if (!tasks.isEmpty()) {
+			temperatureMeasurementRepository.deleteAllByTaskIn(tasks);
+			tasksRepository.deleteAll(tasks);
+		}
+
 		checklistRepository.delete(checklist);
 	}
 
-	private ChecklistCardResponse toCardResponse(
-		ChecklistModel checklist,
-		List<TaskModel> tasks,
-		String currentPeriodKey,
-		Map<String, TaskPeriodStateModel> stateByTaskAndPeriod
+	private ChecklistModel sortTemplates(ChecklistModel checklist) {
+		List<TaskTemplate> sorted = new ArrayList<>(checklist.getTaskTemplates());
+		sorted.sort(taskTemplateComparator());
+		checklist.setTaskTemplates(new LinkedHashSet<>(sorted));
+		return checklist;
+	}
+
+	private Set<TaskTemplate> resolveSelectedTemplates(
+		List<Long> templateIds,
+		UUID organizationId,
+		ComplianceArea complianceArea
 	) {
-		List<ChecklistSectionResponse> sections = toSectionResponses(tasks, currentPeriodKey, stateByTaskAndPeriod);
+		if (templateIds == null || templateIds.isEmpty()) {
+			throw new IllegalArgumentException("taskTemplateIds must contain at least one task.");
+		}
+
+		List<TaskTemplate> selected = taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(
+			templateIds,
+			organizationId,
+			complianceArea
+		);
+		if (selected.size() != templateIds.stream().filter(Objects::nonNull).distinct().count()) {
+			throw new IllegalArgumentException("One or more selected tasks were not found.");
+		}
+		return new LinkedHashSet<>(selected);
+	}
+
+	private List<TasksModel> ensureTasksForActivePeriod(ChecklistModel checklist) {
+		String activePeriodKey = resolveActivePeriodKey(checklist);
+		List<TasksModel> existing = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), activePeriodKey);
+		Map<Long, TasksModel> existingByTemplateId = new LinkedHashMap<>();
+		for (TasksModel task : existing) {
+			if (task.getTaskTemplate() != null && task.getTaskTemplate().getId() != null) {
+				existingByTemplateId.put(task.getTaskTemplate().getId(), task);
+			}
+		}
+
+		List<TasksModel> toSave = new ArrayList<>();
+		Set<Long> selectedTemplateIds = new LinkedHashSet<>();
+		for (TaskTemplate template : checklist.getTaskTemplates()) {
+			Long templateId = template.getId();
+			if (templateId == null) continue;
+			selectedTemplateIds.add(templateId);
+			if (!existingByTemplateId.containsKey(templateId)) {
+				TasksModel task = new TasksModel();
+				task.setChecklist(checklist);
+				task.setTaskTemplate(template);
+				task.setPeriodKey(activePeriodKey);
+				task.setActive(true);
+				task.setCompleted(false);
+				task.setFlagged(false);
+				toSave.add(task);
+			}
+		}
+
+		for (TasksModel task : existing) {
+			Long templateId = task.getTaskTemplate() != null ? task.getTaskTemplate().getId() : null;
+			if (templateId == null || !selectedTemplateIds.contains(templateId)) {
+				task.setActive(false);
+				toSave.add(task);
+			}
+		}
+
+		if (!toSave.isEmpty()) {
+			tasksRepository.saveAll(toSave);
+		}
+
+		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), activePeriodKey);
+		activeTasks.sort(Comparator.comparing((TasksModel task) -> sectionLabel(task.getTaskTemplate().getSectionType()))
+			.thenComparing(task -> task.getTaskTemplate().getTitle(), String.CASE_INSENSITIVE_ORDER));
+		return activeTasks;
+	}
+
+	private ChecklistCardResponse toCardResponse(ChecklistModel checklist) {
+		List<TasksModel> tasks = checklist.isDisplayedOnWorkbench()
+			? ensureTasksForActivePeriod(checklist)
+			: List.of();
+		int completedCount = (int) tasks.stream().filter(TasksModel::isCompleted).count();
+		int total = tasks.size();
+		Integer progress = total == 0 ? 0 : Math.toIntExact(Math.round((completedCount * 100.0) / total));
+		boolean completed = total > 0 && completedCount == total;
+		List<ChecklistSectionResponse> sections = checklist.isDisplayedOnWorkbench()
+			? toSectionResponses(tasks)
+			: toTemplateSectionResponses(checklist);
+
 		return new ChecklistCardResponse(
 			checklist.getId(),
 			PeriodKeyUtil.frequencyToPeriod(checklist.getFrequency()),
+			resolveActivePeriodKey(checklist),
+			checklist.isRecurring(),
+			checklist.isDisplayedOnWorkbench(),
 			checklist.getName(),
 			checklist.getDescription() != null ? checklist.getDescription() : "",
 			null,
-			false,
-			"",
-			"muted",
-			null,
+			Boolean.FALSE,
+			checklist.isDisplayedOnWorkbench() ? (completed ? "Ready to submit" : "In progress") : "In library",
+			checklist.isDisplayedOnWorkbench() ? (completed ? "success" : "muted") : "muted",
+			progress,
 			sections
 		);
 	}
 
-	private List<ChecklistSectionResponse> toSectionResponses(
-		List<TaskModel> tasks,
-		String currentPeriodKey,
-		Map<String, TaskPeriodStateModel> stateByTaskAndPeriod
-	) {
-		Map<Integer, Map<String, List<TaskModel>>> grouped = new LinkedHashMap<>();
-		for (TaskModel task : tasks) {
-			Integer sectionIndex = task.getSectionOrderIndex();
-			int index = sectionIndex != null ? sectionIndex : 0;
-			String title = (task.getSectionTitle() == null || task.getSectionTitle().isBlank())
-				? "Tasks"
-				: task.getSectionTitle().trim();
-
-			grouped.computeIfAbsent(index, ignored -> new LinkedHashMap<>())
-				.computeIfAbsent(title, ignored -> new ArrayList<>())
-				.add(task);
+	private String resolveActivePeriodKey(ChecklistModel checklist) {
+		String key = checklist.getActivePeriodKey();
+		if (key == null || key.isBlank()) {
+			key = PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault());
+			checklist.setActivePeriodKey(key);
+			checklistRepository.save(checklist);
 		}
+		return key;
+	}
 
-		List<Integer> sectionOrder = new ArrayList<>(grouped.keySet());
-		sectionOrder.sort(Comparator.naturalOrder());
+	private void deactivateActiveTasks(Long checklistId) {
+		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndActiveTrue(checklistId);
+		if (activeTasks.isEmpty()) {
+			return;
+		}
+		for (TasksModel task : activeTasks) {
+			task.setActive(false);
+		}
+		tasksRepository.saveAll(activeTasks);
+	}
+
+	private void deleteAllActivatedTasks(Long checklistId) {
+		List<TasksModel> tasks = tasksRepository.findAllByChecklist_Id(checklistId);
+		if (tasks.isEmpty()) {
+			return;
+		}
+		temperatureMeasurementRepository.deleteAllByTaskIn(tasks);
+		tasksRepository.deleteAll(tasks);
+	}
+
+	private List<ChecklistSectionResponse> toSectionResponses(List<TasksModel> tasks) {
+		Map<String, List<TasksModel>> grouped = new LinkedHashMap<>();
+		for (TasksModel task : tasks) {
+			String key = sectionLabel(task.getTaskTemplate().getSectionType());
+			grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(task);
+		}
 
 		List<ChecklistSectionResponse> sections = new ArrayList<>();
-		for (Integer sectionIndex : sectionOrder) {
-			Map<String, List<TaskModel>> byTitle = grouped.getOrDefault(sectionIndex, Map.of());
-			for (Map.Entry<String, List<TaskModel>> entry : byTitle.entrySet()) {
-				List<ChecklistTaskItemResponse> items = entry.getValue().stream()
-					.sorted(Comparator.comparingInt(TaskModel::getOrderIndex))
-					.map(task -> {
-						String lookupKey = task.getId() + "|" + currentPeriodKey;
-						TaskPeriodStateModel state = stateByTaskAndPeriod.get(lookupKey);
-						return toTaskItemResponse(task, currentPeriodKey, state);
-					})
-					.toList();
-				sections.add(new ChecklistSectionResponse(entry.getKey(), items));
-			}
+		for (Map.Entry<String, List<TasksModel>> entry : grouped.entrySet()) {
+			entry.getValue().sort(Comparator.comparing(task -> task.getTaskTemplate().getTitle(), String.CASE_INSENSITIVE_ORDER));
+			sections.add(new ChecklistSectionResponse(
+				entry.getKey(),
+				entry.getValue().stream().map(this::toTaskItemResponse).toList()
+			));
 		}
+		sections.sort(Comparator.comparing(ChecklistSectionResponse::title, String.CASE_INSENSITIVE_ORDER));
 		return sections;
 	}
 
-	private ChecklistTaskItemResponse toTaskItemResponse(TaskModel task, String periodKey, TaskPeriodStateModel state) {
-		String resolvedState = "todo";
-		String completedFor = null;
-		Instant completedAt = null;
-		String pendingFor = null;
-		boolean highlighted = false;
-
-		if (state != null && state.getCompletedAt() != null) {
-			resolvedState = "completed";
-			completedFor = periodKey;
-			completedAt = state.getCompletedAt();
-		} else if (state != null && state.getFlaggedAt() != null) {
-			resolvedState = "pending";
-			pendingFor = periodKey;
-			highlighted = true;
+	private List<ChecklistSectionResponse> toTemplateSectionResponses(ChecklistModel checklist) {
+		Map<String, List<TaskTemplate>> grouped = new LinkedHashMap<>();
+		for (TaskTemplate template : checklist.getTaskTemplates()) {
+			String key = sectionLabel(template.getSectionType());
+			grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(template);
 		}
 
-		String type = task.getTaskType() == ChecklistTaskType.TEMPERATURE ? "temperature" : null;
+		List<ChecklistSectionResponse> sections = new ArrayList<>();
+		for (Map.Entry<String, List<TaskTemplate>> entry : grouped.entrySet()) {
+			entry.getValue().sort(Comparator.comparing(TaskTemplate::getTitle, String.CASE_INSENSITIVE_ORDER));
+			sections.add(new ChecklistSectionResponse(
+				entry.getKey(),
+				entry.getValue().stream().map(this::toTemplateTaskItemResponse).toList()
+			));
+		}
+		sections.sort(Comparator.comparing(ChecklistSectionResponse::title, String.CASE_INSENSITIVE_ORDER));
+		return sections;
+	}
+
+	private ChecklistTaskItemResponse toTaskItemResponse(TasksModel task) {
+		TaskTemplate template = task.getTaskTemplate();
+		String type = isTemperatureTemplate(template) ? "temperature" : null;
+		String state = "todo";
+		String completedForPeriodKey = null;
+		Instant completedAt = null;
+		String pendingForPeriodKey = null;
+		Boolean highlighted = null;
+
+		if (task.isCompleted()) {
+			state = "completed";
+			completedForPeriodKey = task.getPeriodKey();
+			completedAt = toInstant(task.getCompletedAt());
+		} else if (task.isFlagged()) {
+			state = "pending";
+			pendingForPeriodKey = task.getPeriodKey();
+			highlighted = Boolean.TRUE;
+		}
 
 		return new ChecklistTaskItemResponse(
 			task.getId(),
-			task.getTitle(),
-			task.getDescription(),
+			template.getId(),
+			template.getTitle(),
+			task.getMeta(),
 			type,
-			task.getUnit(),
-			task.getTargetMin(),
-			task.getTargetMax(),
-			resolvedState,
-			highlighted ? Boolean.TRUE : null,
-			completedFor,
+			template.getUnit(),
+			template.getTargetMin(),
+			template.getTargetMax(),
+			state,
+			highlighted,
+			completedForPeriodKey,
 			completedAt,
-			pendingFor
+			pendingForPeriodKey
 		);
 	}
 
-	private List<TaskModel> upsertTasks(
-		ChecklistModel checklist,
-		List<ChecklistSectionUpsertRequest> sections,
-		List<TaskModel> existingTasks
-	) {
-		List<ChecklistSectionUpsertRequest> safeSections = sections != null ? sections : List.of();
-		Map<Long, TaskModel> existingById = existingTasks.stream()
-			.filter(t -> t.getId() != null)
-			.collect(Collectors.toMap(TaskModel::getId, t -> t));
-
-		List<TaskModel> toSave = new ArrayList<>();
-		Set<Long> keepIds = new java.util.HashSet<>();
-
-		for (int sectionIndex = 0; sectionIndex < safeSections.size(); sectionIndex++) {
-			ChecklistSectionUpsertRequest section = safeSections.get(sectionIndex);
-			String sectionTitle = requireText(section.title(), "section.title");
-			List<ChecklistTaskUpsertRequest> items = section.items() != null ? section.items() : List.of();
-
-			for (int taskIndex = 0; taskIndex < items.size(); taskIndex++) {
-				ChecklistTaskUpsertRequest item = items.get(taskIndex);
-				String label = requireText(item.label(), "task.label");
-
-				Long id = parseLongOrNull(item.id());
-				TaskModel task = (id != null) ? existingById.get(id) : null;
-				if (task == null) task = new TaskModel();
-
-				task.setChecklist(checklist);
-				task.setTitle(label);
-				task.setDescription(trimToNull(item.meta()));
-				task.setSectionTitle(sectionTitle);
-				task.setSectionOrderIndex(sectionIndex);
-				task.setOrderIndex(taskIndex);
-				task.setActive(true);
-				task.setRequiredTask(true);
-				task.setOrganisationId(1);
-
-				boolean isTemperature = "temperature".equalsIgnoreCase(String.valueOf(item.type()));
-				task.setTaskType(isTemperature ? ChecklistTaskType.TEMPERATURE : ChecklistTaskType.STANDARD);
-				task.setUnit(isTemperature ? (item.unit() != null ? item.unit() : "C") : null);
-				task.setTargetMin(isTemperature ? item.targetMin() : null);
-				task.setTargetMax(isTemperature ? item.targetMax() : null);
-
-				toSave.add(task);
-				if (task.getId() != null) keepIds.add(task.getId());
-			}
-		}
-
-		List<TaskModel> saved = taskRepository.saveAll(toSave);
-
-		List<TaskModel> toDelete = existingTasks.stream()
-			.filter(t -> t.getId() != null && !keepIds.contains(t.getId()))
-			.toList();
-		if (!toDelete.isEmpty()) {
-			taskPeriodStateRepository.deleteAllByTaskIn(toDelete);
-			temperatureMeasurementRepository.deleteAllByTaskIn(toDelete);
-			taskRepository.deleteAll(toDelete);
-		}
-
-		return saved;
+	private ChecklistTaskItemResponse toTemplateTaskItemResponse(TaskTemplate template) {
+		return new ChecklistTaskItemResponse(
+			null,
+			template.getId(),
+			template.getTitle(),
+			null,
+			isTemperatureTemplate(template) ? "temperature" : null,
+			template.getUnit(),
+			template.getTargetMin(),
+			template.getTargetMax(),
+			"todo",
+			Boolean.FALSE,
+			null,
+			null,
+			null
+		);
 	}
 
-	private Map<String, TaskPeriodStateModel> loadStatesForTasksAndPeriod(
-		UUID organizationId,
-		UUID userId,
-		Collection<TaskModel> tasks,
-		Collection<String> periodKeys
-	) {
-		Set<Long> taskIds = tasks.stream().map(TaskModel::getId).filter(Objects::nonNull).collect(Collectors.toSet());
-		if (taskIds.isEmpty() || periodKeys == null || periodKeys.isEmpty()) return Map.of();
+	private boolean isTemperatureTemplate(TaskTemplate template) {
+		return template.getUnit() != null || template.getTargetMin() != null || template.getTargetMax() != null;
+	}
 
-		List<TaskPeriodStateModel> states = taskPeriodStateRepository
-			.findAllByOrganization_IdAndUser_IdAndTask_IdInAndPeriodKeyIn(organizationId, userId, taskIds, periodKeys);
+	private Comparator<TaskTemplate> taskTemplateComparator() {
+		return Comparator.comparing((TaskTemplate template) -> sectionLabel(template.getSectionType()), String.CASE_INSENSITIVE_ORDER)
+			.thenComparing(TaskTemplate::getTitle, String.CASE_INSENSITIVE_ORDER);
+	}
 
-		Map<String, TaskPeriodStateModel> map = new HashMap<>();
-		for (TaskPeriodStateModel state : states) {
-			map.put(state.getTask().getId() + "|" + state.getPeriodKey(), state);
+	private String sectionLabel(SectionTypes sectionType) {
+		if (sectionType == null) {
+			return "Tasks";
 		}
-		return map;
+		String[] parts = sectionType.name().split("_");
+		StringBuilder builder = new StringBuilder();
+		for (int i = 0; i < parts.length; i++) {
+			if (i > 0) builder.append(' ');
+			String part = parts[i].toLowerCase();
+			builder.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+		}
+		return builder.toString();
 	}
 
-	private OrganizationModel getOrganization(UUID orgId) {
-		return organizationRepository.findById(orgId)
-			.orElseThrow(() -> new IllegalArgumentException("Organization not found."));
+	private ChecklistModel getChecklist(Long checklistId, UUID organizationId) {
+		return checklistRepository.findByIdAndOrganization_Id(checklistId, organizationId)
+			.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
 	}
 
-	private UserModel getUser(UUID userId) {
-		return userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("User not found."));
+	private String normalizedState(String state) {
+		return String.valueOf(state == null ? "" : state).trim().toLowerCase();
+	}
+
+	private LocalDateTime toLocalDateTime(Instant instant) {
+		if (instant == null) {
+			return LocalDateTime.now();
+		}
+		return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
+	}
+
+	private Instant toInstant(LocalDateTime localDateTime) {
+		if (localDateTime == null) {
+			return null;
+		}
+		return localDateTime.atZone(ZoneId.systemDefault()).toInstant();
 	}
 
 	private JwtAuthenticatedPrincipal requirePrincipal(JwtAuthenticatedPrincipal principal) {
@@ -543,17 +557,5 @@ public class ChecklistServiceImpl implements ChecklistService {
 		if (value == null) return null;
 		String trimmed = value.trim();
 		return trimmed.isEmpty() ? null : trimmed;
-	}
-
-	private Long parseLongOrNull(String raw) {
-		if (raw == null) return null;
-		String trimmed = raw.trim();
-		if (trimmed.isEmpty()) return null;
-		if (!trimmed.matches("\\d+")) return null;
-		try {
-			return Long.parseLong(trimmed);
-		} catch (NumberFormatException ignored) {
-			return null;
-		}
 	}
 }

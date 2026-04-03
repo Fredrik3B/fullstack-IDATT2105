@@ -1,5 +1,5 @@
 <template>
-  <article class="checklist-card" :class="{ featured: featured }">
+  <article :id="`checklist-card-${id}`" class="checklist-card" :class="{ featured: featured, 'on-workbench': highlightedWorkbench }">
     <header class="card-header">
       <div>
         <div class="title-row">
@@ -81,14 +81,56 @@
         </li>
       </ul>
     </div>
+
+    <footer class="submit-bar" :class="{ overdue: periodExpired }">
+      <div class="submit-copy">
+        <div class="submit-title">{{ periodExpired ? 'This checklist period has ended' : 'Submit when this checklist is ready' }}</div>
+        <p class="submit-text">{{ submitWarning }}</p>
+      </div>
+      <button type="button" class="submit-button" @click="handleSubmitChecklist">
+        {{ periodExpired ? 'Submit and load next period' : 'Submit checklist' }}
+      </button>
+    </footer>
+
+    <div
+      v-if="confirmDialog.open"
+      class="confirm-overlay"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="confirmDialog.title"
+    >
+      <div class="confirm-dialog" :class="{ warning: confirmDialog.tone === 'warning' }">
+        <div class="confirm-kicker">{{ confirmDialog.kicker }}</div>
+        <h3>{{ confirmDialog.title }}</h3>
+        <p>{{ confirmDialog.message }}</p>
+        <div v-if="confirmDialog.detail" class="confirm-detail">{{ confirmDialog.detail }}</div>
+        <div class="confirm-actions">
+          <button type="button" class="confirm-secondary" @click="closeConfirmDialog">Cancel</button>
+          <button type="button" class="confirm-primary" @click="confirmDialog.onConfirm?.()">
+            {{ confirmDialog.confirmLabel }}
+          </button>
+        </div>
+      </div>
+    </div>
   </article>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
+import { getPeriodEnd, isPeriodExpired, normalizePeriodEnum } from './recurrence'
 import { formatTemperatureTarget, isTemperatureTask } from './temperature'
 
 const temperatureDraftByTaskId = reactive({})
+const confirmDialog = reactive({
+  open: false,
+  kicker: '',
+  title: '',
+  message: '',
+  detail: '',
+  confirmLabel: 'Confirm',
+  tone: 'default',
+  onConfirm: null
+})
 
 const props = defineProps({
   id: {
@@ -98,6 +140,14 @@ const props = defineProps({
   title: {
     type: String,
     required: true
+  },
+  period: {
+    type: String,
+    default: 'daily'
+  },
+  activePeriodKey: {
+    type: String,
+    default: ''
   },
   subtitle: {
     type: String,
@@ -127,13 +177,55 @@ const props = defineProps({
     type: String,
     default: 'IC-Food'
   },
+  highlightedWorkbench: {
+    type: Boolean,
+    default: false
+  },
   temperatureLatestByTaskId: {
     type: Object,
+    default: null
+  },
+  now: {
+    type: [Date, String, Number],
     default: null
   }
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'log-temperature'])
+const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'submit-checklist', 'log-temperature'])
+
+const activeDate = computed(() => {
+  if (props.now instanceof Date) return props.now
+  if (typeof props.now === 'string' || typeof props.now === 'number') {
+    const parsed = new Date(props.now)
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+  }
+  return new Date()
+})
+
+const periodEnd = computed(() => getPeriodEnd(props.period, props.activePeriodKey))
+const periodExpired = computed(() => isPeriodExpired(props.period, props.activePeriodKey, activeDate.value))
+const periodLabel = computed(() => {
+  const normalized = normalizePeriodEnum(props.period)
+  if (normalized === 'weekly') return 'weekly'
+  if (normalized === 'monthly') return 'monthly'
+  return 'daily'
+})
+const formattedPeriodEnd = computed(() => {
+  if (!periodEnd.value) return ''
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(periodEnd.value)
+})
+const submitWarning = computed(() => {
+  if (periodExpired.value) {
+    return `The current ${periodLabel.value} run ended${formattedPeriodEnd.value ? ` at ${formattedPeriodEnd.value}` : ''}. Submit it to lock the entries and load a fresh set of tasks with new ids.`
+  }
+  return `Submitting locks the current ${periodLabel.value} run and immediately starts a fresh one with new task ids.`
+})
 
 function handleToggle(sectionIndex, taskIndex) {
   emit('toggle-task', { sectionIndex, taskIndex })
@@ -147,14 +239,31 @@ function handleEditChecklist() {
   emit('edit-checklist')
 }
 
+function handleSubmitChecklist() {
+  openConfirmDialog({
+    kicker: periodExpired.value ? 'Period Ended' : 'Submit Checklist',
+    title: periodExpired.value ? 'Start the next checklist period?' : 'Submit this checklist now?',
+    message: periodExpired.value
+      ? `The current ${periodLabel.value} period for "${props.title}" has ended.`
+      : `This will close the current ${periodLabel.value} run for "${props.title}".`,
+    detail: 'A fresh set of task ids will be created for the next run, and the current entries will stay locked to this finished period.',
+    confirmLabel: periodExpired.value ? 'Submit and continue' : 'Submit checklist',
+    tone: 'warning',
+    onConfirm: () => {
+      closeConfirmDialog()
+      emit('submit-checklist', { checklistId: props.id })
+    }
+  })
+}
+
 function getLatestMeasurement(task) {
   const id = task?.id
   if (!id) return null
 
   const container = props.temperatureLatestByTaskId
   if (!container) return null
-  if (typeof container.get === 'function') return container.get(id) ?? null
-  return container[id] ?? null
+  if (typeof container.get === 'function') return container.get(id) ?? container.get(String(id)) ?? null
+  return container[id] ?? container[String(id)] ?? null
 }
 
 function canSaveTemperature(task) {
@@ -172,12 +281,46 @@ function handleSaveTemperature(task) {
   const valueC = Number(temperatureDraftByTaskId[id])
   if (!Number.isFinite(valueC)) return
 
-  emit('log-temperature', { checklistId, taskId: id, valueC })
+  openConfirmDialog({
+    kicker: 'Confirm Reading',
+    title: `Save ${valueC} C for ${task.label}?`,
+    message: 'Double-check the reading before saving it to the checklist log.',
+    detail: 'Temperature entries are stored for reporting later, including monthly graphs and audit history.',
+    confirmLabel: 'Save reading',
+    tone: 'default',
+    onConfirm: () => {
+      closeConfirmDialog()
+      emit('log-temperature', { checklistId, taskId: id, valueC })
+    }
+  })
+}
+
+function openConfirmDialog(config) {
+  confirmDialog.open = true
+  confirmDialog.kicker = config?.kicker ?? ''
+  confirmDialog.title = config?.title ?? 'Confirm action'
+  confirmDialog.message = config?.message ?? ''
+  confirmDialog.detail = config?.detail ?? ''
+  confirmDialog.confirmLabel = config?.confirmLabel ?? 'Confirm'
+  confirmDialog.tone = config?.tone ?? 'default'
+  confirmDialog.onConfirm = typeof config?.onConfirm === 'function' ? config.onConfirm : null
+}
+
+function closeConfirmDialog() {
+  confirmDialog.open = false
+  confirmDialog.kicker = ''
+  confirmDialog.title = ''
+  confirmDialog.message = ''
+  confirmDialog.detail = ''
+  confirmDialog.confirmLabel = 'Confirm'
+  confirmDialog.tone = 'default'
+  confirmDialog.onConfirm = null
 }
 </script>
 
 <style scoped>
 .checklist-card {
+  position: relative;
   overflow: hidden;
   border: 1px solid rgba(210, 213, 230, 0.95);
   border-radius: 24px;
@@ -188,6 +331,11 @@ function handleSaveTemperature(task) {
 .checklist-card.featured {
   border-width: 2px;
   border-color: rgba(45, 43, 85, 0.55);
+}
+
+.checklist-card.on-workbench {
+  border-color: rgba(83, 122, 28, 0.52);
+  box-shadow: 0 0 0 4px rgba(152, 197, 74, 0.14), 0 22px 52px rgba(26, 26, 46, 0.12);
 }
 
 .card-header {
@@ -526,5 +674,157 @@ p {
 .temp-save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.submit-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px 22px;
+  border-top: 1px solid var(--color-border-subtle);
+  background: linear-gradient(180deg, rgba(249, 249, 253, 0.98) 0%, rgba(242, 244, 250, 0.98) 100%);
+}
+
+.submit-bar.overdue {
+  background: linear-gradient(180deg, rgba(255, 244, 208, 0.92) 0%, rgba(255, 237, 187, 0.98) 100%);
+}
+
+.submit-copy {
+  min-width: 0;
+}
+
+.submit-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.submit-text {
+  margin: 6px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.submit-button {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  min-height: 42px;
+  padding: 0 16px;
+  background: var(--color-dark-secondary);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.confirm-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(16, 18, 33, 0.48);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+  border-radius: 22px;
+  border: 1px solid rgba(214, 219, 235, 0.95);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 248, 252, 0.98) 100%);
+  box-shadow: 0 28px 60px rgba(10, 14, 24, 0.28);
+  padding: 22px;
+}
+
+.confirm-dialog.warning {
+  border-color: rgba(232, 192, 48, 0.42);
+  background: linear-gradient(180deg, rgba(255, 250, 233, 0.98) 0%, rgba(255, 244, 208, 0.98) 100%);
+}
+
+.confirm-kicker {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.confirm-dialog h3 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+}
+
+.confirm-dialog p {
+  margin: 10px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.confirm-detail {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(215, 220, 235, 0.9);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.confirm-secondary,
+.confirm-primary {
+  border: 0;
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.confirm-secondary {
+  background: rgba(45, 43, 85, 0.08);
+  color: var(--color-text-primary);
+}
+
+.confirm-primary {
+  background: var(--color-dark-secondary);
+  color: var(--color-accent);
+}
+
+@media (max-width: 720px) {
+  .submit-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .submit-button {
+    width: 100%;
+  }
+
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-secondary,
+  .confirm-primary {
+    width: 100%;
+  }
 }
 </style>
