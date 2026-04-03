@@ -28,13 +28,23 @@ const {
   module: 'IC_ALCOHOL'
 })
 
-onMounted(async () => {
+async function reloadChecklists() {
   try {
     const data = await fetchChecklists({ module: 'IC_ALCOHOL' })
-    if (cards.value.length === 0) cards.value = Array.isArray(data) ? data : []
+    cards.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Failed to fetch IC-Alcohol checklists', err)
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not refresh checklists.')
   }
+}
+
+function isChecklistMissing(err) {
+  const message = String(err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '')
+  return message.includes('Checklist not found')
+}
+
+onMounted(async () => {
+  await reloadChecklists()
 })
 
 const isCreateOpen = ref(false)
@@ -56,7 +66,7 @@ function handleManageTasks() {
 }
 async function handleCreatedChecklist(newCard) {
   try {
-    const created = await createChecklist({
+    await createChecklist({
       module: 'IC_ALCOHOL',
       period: newCard?.period,
       title: newCard?.title,
@@ -65,10 +75,8 @@ async function handleCreatedChecklist(newCard) {
       displayedOnWorkbench: newCard?.displayedOnWorkbench,
       taskTemplateIds: newCard?.taskTemplateIds
     })
-    if (created) {
-      cards.value.push(created)
-      isCreateOpen.value = false
-    }
+    await reloadChecklists()
+    isCreateOpen.value = false
   } catch (err) {
     console.error('Failed to create checklist', err)
     toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not create checklist.')
@@ -85,7 +93,7 @@ async function handleUpdatedChecklist(updatedCard) {
   if (!Number.isInteger(editingCardIndex.value)) return
 
   try {
-    const saved = await updateChecklist({
+    await updateChecklist({
       checklistId: updatedCard?.id,
       period: updatedCard?.period,
       title: updatedCard?.title,
@@ -94,13 +102,16 @@ async function handleUpdatedChecklist(updatedCard) {
       displayedOnWorkbench: updatedCard?.displayedOnWorkbench,
       taskTemplateIds: updatedCard?.taskTemplateIds
     })
-    if (saved) {
-      cards.value.splice(editingCardIndex.value, 1, saved)
+    await reloadChecklists()
+    isEditOpen.value = false
+    editingCardIndex.value = null
+  } catch (err) {
+    console.error('Failed to update checklist', err)
+    if (isChecklistMissing(err)) {
+      await reloadChecklists()
       isEditOpen.value = false
       editingCardIndex.value = null
     }
-  } catch (err) {
-    console.error('Failed to update checklist', err)
     toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not update checklist.')
   }
 }
@@ -114,13 +125,17 @@ async function handleDeleteChecklist(checklist) {
 
   try {
     await deleteChecklist({ checklistId })
-    const index = cards.value.findIndex((entry) => String(entry?.id) === String(checklistId))
-    if (index >= 0) cards.value.splice(index, 1)
+    await reloadChecklists()
     isEditOpen.value = false
     editingCardIndex.value = null
     toast.success('Checklist deleted.')
   } catch (err) {
     console.error('Failed to delete checklist', err)
+    if (isChecklistMissing(err)) {
+      await reloadChecklists()
+      isEditOpen.value = false
+      editingCardIndex.value = null
+    }
     toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not delete checklist.')
   }
 }
@@ -143,10 +158,7 @@ async function openChecklistOnWorkbench(card) {
   if (!card?.id) return
   try {
     const saved = await setChecklistWorkbenchState({ checklistId: card.id, displayedOnWorkbench: true })
-    const index = cards.value.findIndex((entry) => String(entry?.id) === String(card.id))
-    if (index >= 0 && saved) {
-      cards.value.splice(index, 1, saved)
-    }
+    await reloadChecklists()
     isLibraryOpen.value = false
     activePeriod.value = periodEnumToLabel((saved ?? card).period)
     highlightedChecklistId.value = card.id
@@ -159,6 +171,11 @@ async function openChecklistOnWorkbench(card) {
     }, 2200)
   } catch (err) {
     console.error('Failed to load checklist onto workbench', err)
+    if (isChecklistMissing(err)) {
+      await reloadChecklists()
+      isLibraryOpen.value = false
+    }
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not load checklist onto workbench.')
   }
 }
 </script>
