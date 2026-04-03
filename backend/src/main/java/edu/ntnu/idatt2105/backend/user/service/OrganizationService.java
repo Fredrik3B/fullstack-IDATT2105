@@ -1,5 +1,9 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
+import edu.ntnu.idatt2105.backend.common.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.common.model.enums.DocumentCategory;
+import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
+import edu.ntnu.idatt2105.backend.common.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
@@ -34,6 +38,7 @@ public class OrganizationService {
   private final RoleRepository roleRepository;
   private final OrganizationMapper organizationMapper;
   private final JoinRequestRepository joinRequestRepository;
+  private final DocumentRepository documentRepository;
 
   public OrganizationResponse create(CreateOrganizationRequest request, UUID userId) {
     OrganizationModel org = new OrganizationModel();
@@ -44,6 +49,8 @@ public class OrganizationService {
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     user.setOrganization(saved);
+
+    seedDefaultDocuments(saved, user);
 
     RoleModel adminRole = roleRepository.findByName(RoleEnum.ADMIN)
         .orElseThrow(() ->
@@ -94,6 +101,31 @@ public class OrganizationService {
     joinRequestRepository.save(joinRequest);
 
     return organizationMapper.toResponse(org);
+  }
+
+  private void seedDefaultDocuments(OrganizationModel org, UserModel creator) {
+    record Seed(String name, String description, DocumentCategory category, DocumentModule module, String url) {}
+    List<Seed> defaults = List.of(
+        new Seed("Alkoholloven", "Lov om omsetning av alkoholholdig drikk (alkoholloven)", DocumentCategory.GUIDELINES, DocumentModule.IC_ALCOHOL, "https://lovdata.no/dokument/NL/lov/1989-06-02-27"),
+        new Seed("Serveringsloven", "Lov om serveringsvirksomhet – krav til serveringsbevilling og styrer", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://lovdata.no/dokument/NL/lov/1997-06-13-55"),
+        new Seed("Internkontrollforskriften", "Forskrift om systematisk HMS-arbeid i virksomheter", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://lovdata.no/dokument/SF/forskrift/1996-12-06-1127"),
+        new Seed("Internkontroll og HACCP – Mattilsynet", "Veiledning om internkontroll og HACCP-basert styringssystem for næringsmiddelvirksomheter", DocumentCategory.HACCP, DocumentModule.IC_FOOD, "https://mattilsynet.no/mat-og-drikke/startpakke-for-nye-matbedrifter#kap_6_internkontroll"),
+        new Seed("Krav til allergeninformasjon – Mattilsynet", "Regler for informasjon om allergener på meny og til gjester", DocumentCategory.GUIDELINES, DocumentModule.IC_FOOD, "https://www.mattilsynet.no/mat-og-drikke/merking-av-mat/slik-skal-allergenene-merkes#kap-5-merking-av-kan-inneholde-spor-av"),
+        new Seed("Ansvarlig vertskap – Helsedirektoratet", "Kompetansekrav og kursinfo for ansvarlig alkoholservering", DocumentCategory.TRAINING, DocumentModule.IC_ALCOHOL, "https://www.helsedirektoratet.no/forebygging-diagnose-og-behandling/forebygging-og-levevaner/alkohol/ansvarlig-alkoholhandtering"),
+        new Seed("Bransjeveiviser – Arbeidstilsynet", "HMS-veiledning for serveringsbransjen: arbeidstid, ergonomi, kjemikalier", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://arbeidsmiljohjelpen.arbeidstilsynet.no/bransje/servering/#:~:text=Arbeidstid%20*%20Skift.%20*%20Uforutsigbarhet.%20*%20Arbeidsplan.")
+    );
+
+    for (Seed s : defaults) {
+      DocumentModel doc = new DocumentModel();
+      doc.setName(s.name());
+      doc.setDescription(s.description());
+      doc.setCategory(s.category());
+      doc.setModule(s.module());
+      doc.setExternalUrl(s.url());
+      doc.setOrganization(org);
+      doc.setUploadedBy(creator);
+      documentRepository.save(doc);
+    }
   }
 
   private String generateJoinCode(String name) {
