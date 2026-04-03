@@ -2,7 +2,6 @@ package edu.ntnu.idatt2105.backend.common.repository;
 
 import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.report.dto.UnresolvedItemDto;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -53,13 +52,14 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
 			@Param("area") ComplianceArea area);
 
+	// Redundant, can be removed
 	@Query("SELECT COUNT(t) FROM TasksModel t " +
 			"WHERE t.checklist.organization.id = :orgId " +
 			"AND t.completed = false " +
 			"AND t.active = false " +
 			"AND t.endedAt BETWEEN :from AND :to " +
 			"AND t.checklist.complianceArea = :area")
-	int countFlaggedInPeriod(@Param("orgId") UUID orgId,
+	int countDeviatedInPeriod(@Param("orgId") UUID orgId,
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
 			@Param("area") ComplianceArea area);
 

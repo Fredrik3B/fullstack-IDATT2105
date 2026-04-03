@@ -6,16 +6,13 @@ import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.report.dto.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
 import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
 import edu.ntnu.idatt2105.backend.report.dto.ReportPeriod;
 import edu.ntnu.idatt2105.backend.report.dto.UnresolvedItemDto;
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -36,13 +33,18 @@ public class ReportService {
   private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to, ComplianceArea area) {
     int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
     int completed = tasksRepository.countCompletedInPeriod(orgId, from, to, area);
-    int flagged = tasksRepository.countFlaggedInPeriod(orgId, from, to, area);
+    int flagged = tasksRepository.countDeviatedInPeriod(orgId, from, to, area);
+    int tempReadings = tempRepository.countReadingsInPeriod(orgId, from, to);
+    int tempOutOfRange = tempRepository.countOutOfRangeInPeriod(orgId, from, to);
 
     return ComplianceStats.builder()
         .totalTasks(total)
         .completedTasks(completed)
-        .flaggedTasks(flagged)
-        .completionRate((double) completed / total * 100)
+        .deviatedTasks(flagged)
+        .completionRate(total > 0 ? (double) completed / total * 100 : 0.0)
+        .temperatureReadings(tempReadings)
+        .outOfRangeReadings(tempOutOfRange)
+        .outOfRangeRate(tempReadings > 0 ? (double) tempOutOfRange / tempReadings * 100 : 0.0)
         .build();
   }
 

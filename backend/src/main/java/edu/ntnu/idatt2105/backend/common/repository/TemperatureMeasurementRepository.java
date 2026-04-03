@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface TemperatureMeasurementRepository extends JpaRepository<TemperatureMeasurementModel, Long> {
 
@@ -21,4 +22,18 @@ public interface TemperatureMeasurementRepository extends JpaRepository<Temperat
 	List<TemperatureMeasurementModel> findAllByTask_IdInOrderByMeasuredAtDesc(Collection<Long> taskIds);
 
 	void deleteAllByTaskIn(Collection<TasksModel> tasks);
+
+
+	@Query("SELECT COUNT(m) FROM TemperatureMeasurementModel m " +
+			"WHERE m.organization.id = :orgId " +
+			"AND m.measuredAt BETWEEN :from AND :to " +
+			"AND m.complianceArea = :area")
+	int countReadingsInPeriod(UUID orgId, LocalDateTime from, LocalDateTime to);
+
+	@Query("SELECT COUNT(m) FROM TemperatureMeasurementModel m " +
+			"WHERE m.organization.id = :orgId " +
+			"AND m.measuredAt BETWEEN :from AND :to " +
+			"AND m.complianceArea = :area " +
+			"AND (m.valueC < m.task.taskTemplate.targetMin OR m.valueC > m.task.taskTemplate.targetMax)")
+	int countOutOfRangeInPeriod(UUID orgId, LocalDateTime from, LocalDateTime to);
 }

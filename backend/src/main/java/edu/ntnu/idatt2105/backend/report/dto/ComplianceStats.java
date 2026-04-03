@@ -9,7 +9,8 @@ public class ComplianceStats {
   private int totalTasks;
   private int completedTasks;
   private double completionRate;
-  private int flaggedTasks;
+  private int deviatedTasks;
   private int temperatureReadings;
   private int outOfRangeReadings;
+  private double outOfRangeRate;
 }
