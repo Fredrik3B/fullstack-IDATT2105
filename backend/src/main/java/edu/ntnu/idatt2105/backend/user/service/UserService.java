@@ -1,5 +1,7 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
+import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import java.util.Set;
 import java.util.UUID;
 
@@ -105,6 +107,7 @@ public class UserService {
 
   // With new relationship this can be shortened
   // might have screwed things up here, org join code gone
+  // use enums
   public MeResponse getMe(UUID userId) {
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
@@ -113,23 +116,22 @@ public class UserService {
     UUID orgId = user.getOrganization().getId();
 
     if (orgId != null) {
-      String orgName = organizationRepository.findById(orgId)
-          .map(org -> org.getName())
-          .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "active", orgId, null, null));
+      OrganizationModel org = organizationRepository.findById(orgId)
+          .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
       return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-          "active", orgId, orgName, null);
+          "active", org.getId(), org.getName(), org.getJoinCode());
     }
 
     return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
         .map(request -> {
-          String orgName = organizationRepository.findById(request.getOrganizationId())
-              .map(org -> org.getName())
-              .orElse(null);
+          OrganizationModel org = organizationRepository.findById(orgId)
+              .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
           return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "pending", request.getOrganizationId(), orgName);
+              "pending", org.getId(), org.getName(), null);
         })
         .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-            null, null, null));
+            null, null, null, null));
+
   }
+
 }

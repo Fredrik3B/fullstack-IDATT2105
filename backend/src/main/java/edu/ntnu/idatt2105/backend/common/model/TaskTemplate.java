@@ -11,6 +11,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
+// implement correct relations
 @Entity
 @Table(name = "template_tasks")
 public class TaskTemplate extends AuditableEntity {
