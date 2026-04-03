@@ -1,20 +1,27 @@
 <template>
-  <article :id="`checklist-card-${id}`" class="checklist-card" :class="{ featured: featured, 'on-workbench': highlightedWorkbench }">
+  <article
+    :id="`checklist-card-${id}`"
+    class="checklist-card"
+    :class="{ featured, 'on-workbench': highlightedWorkbench }"
+  >
     <header class="card-header">
-      <div>
+      <div class="card-header__main">
         <div class="title-row">
           <h2>{{ title }}</h2>
           <span v-if="moduleChip" class="module-chip">{{ moduleChip }}</span>
         </div>
         <p>{{ subtitle }}</p>
+        <div class="header-meta">
+          <span class="status-pill" :class="statusTone">{{ statusLabel }}</span>
+          <span v-if="progress !== null" class="header-progress">{{ progress }}% complete</span>
+        </div>
       </div>
 
       <div class="header-status">
-        <button type="button" class="edit-button" @click="handleEditChecklist">Edit checklist</button>
-        <span class="status-pill" :class="statusTone">{{ statusLabel }}</span>
-        <div v-if="progress !== null" class="progress-track">
+        <div v-if="progress !== null" class="progress-track" aria-label="Checklist progress">
           <span class="progress-fill" :style="{ width: `${progress}%` }"></span>
         </div>
+        <button type="button" class="edit-button" @click="handleEditChecklist">Edit</button>
       </div>
     </header>
 
@@ -33,19 +40,28 @@
             class="task-marker"
             :aria-pressed="task.state === 'completed'"
             :aria-label="task.state === 'completed' ? 'Mark as incomplete' : 'Mark as complete'"
+            :disabled="task.isSaving"
             @click="handleToggle(sectionIndex, taskIndex)"
-          ></button>
+          >
+            <span v-if="task.state === 'completed'" class="task-marker__icon">&#10003;</span>
+            <span v-else-if="task.state === 'pending'" class="task-marker__icon">!</span>
+          </button>
+
           <div class="task-label">
             <div class="task-label__main">{{ task.label }}</div>
-            <div v-if="isTemperatureTask(task) && formatTemperatureTarget(task)" class="task-label__sub">
+            <div
+              v-if="isTemperatureTask(task) && formatTemperatureTarget(task)"
+              class="task-label__sub"
+            >
               Target: {{ formatTemperatureTarget(task) }}
             </div>
           </div>
+
           <div class="task-actions">
             <template v-if="isTemperatureTask(task)">
-              <span v-if="getLatestMeasurement(task)" class="task-meta">
-                Last: {{ getLatestMeasurement(task)?.valueC }} C
-              </span>
+              <span v-if="getLatestMeasurement(task)" class="task-meta"
+                >Last: {{ getLatestMeasurement(task)?.valueC }} C</span
+              >
               <div class="temp-input">
                 <input
                   v-model.trim="temperatureDraftByTaskId[task.id]"
@@ -66,16 +82,21 @@
                 </button>
               </div>
             </template>
+
             <span v-else-if="task.meta" class="task-meta">{{ task.meta }}</span>
+
             <button
               type="button"
               class="flag-button"
               :class="{ active: task.state === 'pending' }"
               :aria-pressed="task.state === 'pending'"
-              :aria-label="task.state === 'pending' ? 'Remove pending flag' : 'Mark task as pending'"
+              :aria-label="
+                task.state === 'pending' ? 'Remove pending flag' : 'Mark task as pending'
+              "
+              :disabled="task.isSaving"
               @click="handleFlag(sectionIndex, taskIndex)"
             >
-              Flag
+              {{ task.isSaving ? 'Saving...' : task.state === 'pending' ? 'Flagged' : 'Flag' }}
             </button>
           </div>
         </li>
@@ -84,7 +105,13 @@
 
     <footer class="submit-bar" :class="{ overdue: periodExpired }">
       <div class="submit-copy">
-        <div class="submit-title">{{ periodExpired ? 'This checklist period has ended' : 'Submit when this checklist is ready' }}</div>
+        <div class="submit-title">
+          {{
+            periodExpired
+              ? 'This checklist period has ended'
+              : 'Submit when this checklist is ready'
+          }}
+        </div>
         <p class="submit-text">{{ submitWarning }}</p>
       </div>
       <button type="button" class="submit-button" @click="handleSubmitChecklist">
@@ -105,7 +132,9 @@
         <p>{{ confirmDialog.message }}</p>
         <div v-if="confirmDialog.detail" class="confirm-detail">{{ confirmDialog.detail }}</div>
         <div class="confirm-actions">
-          <button type="button" class="confirm-secondary" @click="closeConfirmDialog">Cancel</button>
+          <button type="button" class="confirm-secondary" @click="closeConfirmDialog">
+            Cancel
+          </button>
           <button type="button" class="confirm-primary" @click="confirmDialog.onConfirm?.()">
             {{ confirmDialog.confirmLabel }}
           </button>
@@ -129,65 +158,71 @@ const confirmDialog = reactive({
   detail: '',
   confirmLabel: 'Confirm',
   tone: 'default',
-  onConfirm: null
+  onConfirm: null,
 })
 
 const props = defineProps({
   id: {
     type: String,
-    default: ''
+    default: '',
   },
   title: {
     type: String,
-    required: true
+    required: true,
   },
   period: {
     type: String,
-    default: 'daily'
+    default: 'daily',
   },
   activePeriodKey: {
     type: String,
-    default: ''
+    default: '',
   },
   subtitle: {
     type: String,
-    required: true
+    required: true,
   },
   statusLabel: {
     type: String,
-    required: true
+    required: true,
   },
   statusTone: {
     type: String,
-    default: 'success'
+    default: 'success',
   },
   progress: {
     type: Number,
-    default: null
+    default: null,
   },
   sections: {
     type: Array,
-    required: true
+    required: true,
   },
   featured: {
     type: Boolean,
-    default: false
+    default: false,
   },
   moduleChip: {
     type: String,
-    default: 'IC-Food'
+    default: 'IC-Food',
   },
   highlightedWorkbench: {
     type: Boolean,
-    default: false
+    default: false,
   },
   now: {
     type: [Date, String, Number],
-    default: null
-  }
+    default: null,
+  },
 })
 
-const emit = defineEmits(['toggle-task', 'toggle-pending', 'edit-checklist', 'submit-checklist', 'log-temperature'])
+const emit = defineEmits([
+  'toggle-task',
+  'toggle-pending',
+  'edit-checklist',
+  'submit-checklist',
+  'log-temperature',
+])
 
 const activeDate = computed(() => {
   if (props.now instanceof Date) return props.now
@@ -199,7 +234,9 @@ const activeDate = computed(() => {
 })
 
 const periodEnd = computed(() => getPeriodEnd(props.period, props.activePeriodKey))
-const periodExpired = computed(() => isPeriodExpired(props.period, props.activePeriodKey, activeDate.value))
+const periodExpired = computed(() =>
+  isPeriodExpired(props.period, props.activePeriodKey, activeDate.value),
+)
 const periodLabel = computed(() => {
   const normalized = normalizePeriodEnum(props.period)
   if (normalized === 'weekly') return 'weekly'
@@ -213,7 +250,7 @@ const formattedPeriodEnd = computed(() => {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   }).format(periodEnd.value)
 })
 const submitWarning = computed(() => {
@@ -242,13 +279,14 @@ function handleSubmitChecklist() {
     message: periodExpired.value
       ? `The current ${periodLabel.value} period for "${props.title}" has ended.`
       : `This will close the current ${periodLabel.value} run for "${props.title}".`,
-    detail: 'A fresh set of task ids will be created for the next run, and the current entries will stay locked to this finished period.',
+    detail:
+      'A fresh set of task ids will be created for the next run, and the current entries will stay locked to this finished period.',
     confirmLabel: periodExpired.value ? 'Submit and continue' : 'Submit checklist',
     tone: 'warning',
     onConfirm: () => {
       closeConfirmDialog()
       emit('submit-checklist', { checklistId: props.id })
-    }
+    },
   })
 }
 
@@ -275,13 +313,14 @@ function handleSaveTemperature(task) {
     kicker: 'Confirm Reading',
     title: `Save ${valueC} C for ${task.label}?`,
     message: 'Double-check the reading before saving it to the checklist log.',
-    detail: 'Temperature entries are stored for reporting later, including monthly graphs and audit history.',
+    detail:
+      'Temperature entries are stored for reporting later, including monthly graphs and audit history.',
     confirmLabel: 'Save reading',
     tone: 'default',
     onConfirm: () => {
       closeConfirmDialog()
       emit('log-temperature', { checklistId, taskId: id, valueC })
-    }
+    },
   })
 }
 
@@ -312,20 +351,21 @@ function closeConfirmDialog() {
 .checklist-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(210, 213, 230, 0.95);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 18px 42px rgba(26, 26, 46, 0.08);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .checklist-card.featured {
-  border-width: 2px;
-  border-color: rgba(45, 43, 85, 0.55);
+  border-color: var(--color-dark-tertiary);
 }
 
 .checklist-card.on-workbench {
-  border-color: rgba(83, 122, 28, 0.52);
-  box-shadow: 0 0 0 4px rgba(152, 197, 74, 0.14), 0 22px 52px rgba(26, 26, 46, 0.12);
+  border-color: var(--color-success-border);
+  box-shadow:
+    0 0 0 3px rgba(212, 232, 53, 0.16),
+    var(--shadow-md);
 }
 
 .card-header {
@@ -333,71 +373,89 @@ function closeConfirmDialog() {
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-4);
-  padding: 22px 22px 18px;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.card-header__main {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-2);
 }
 
 .title-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 h2 {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.05;
+  font-size: 24px;
+  line-height: 1.2;
   color: var(--color-text-primary);
 }
 
 p {
-  margin: 6px 0 0;
-  color: var(--color-text-muted);
+  margin: 0;
+  color: var(--color-text-secondary);
   font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+.header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .module-chip,
-.status-pill {
+.status-pill,
+.header-progress {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
-  padding: 0 12px;
+  min-height: 24px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-full);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
 }
 
 .module-chip {
-  background: var(--color-dark-secondary);
-  color: var(--color-accent);
+  background: var(--color-bg-subtle);
+  color: var(--color-dark-secondary);
 }
 
 .header-status {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: var(--space-3);
+  min-width: 160px;
 }
 
 .edit-button {
-  border: 1px solid rgba(45, 43, 85, 0.35);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--color-dark-secondary);
-  padding: 10px 14px;
+  min-height: 36px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  padding: 0 var(--space-4);
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 
 .edit-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(45, 43, 85, 0.55);
-  box-shadow: var(--shadow-md);
-  background: var(--color-dark-secondary);
-  color: var(--color-accent);
+  border-color: var(--color-dark-secondary);
+  background: var(--color-bg-secondary);
 }
 
 .status-pill.success {
@@ -411,15 +469,20 @@ p {
 }
 
 .status-pill.muted {
-  background: #f4f2fb;
-  color: #b6b2cf;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+}
+
+.header-progress {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
 }
 
 .progress-track {
-  width: 72px;
-  height: 6px;
+  width: 120px;
+  height: 8px;
   border-radius: var(--radius-full);
-  background: #eceaf6;
+  background: var(--color-bg-tertiary);
   overflow: hidden;
 }
 
@@ -435,10 +498,10 @@ p {
 }
 
 .section-label {
-  padding: 12px 22px 10px;
-  background: rgba(242, 243, 250, 0.82);
-  color: #a3a0bf;
-  font-size: var(--font-size-sm);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -452,25 +515,17 @@ p {
 
 .task-row {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding: 0 22px;
+  gap: var(--space-3);
+  min-height: 68px;
+  padding: 0 var(--space-5);
   border-top: 1px solid var(--color-border-subtle);
   position: relative;
 }
 
-.task-label__main {
-  color: var(--color-text-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.task-label__sub {
-  margin-top: 2px;
-  font-size: 12px;
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-muted);
+.task-row:first-child {
+  border-top: 0;
 }
 
 .task-row::before {
@@ -481,11 +536,6 @@ p {
   bottom: 0;
   width: 4px;
   background: transparent;
-  border-radius: 0 6px 6px 0;
-}
-
-.task-row:first-child {
-  border-top: 0;
 }
 
 .task-row.highlighted {
@@ -496,61 +546,55 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  border: 2px solid #d7d6e7;
+  border: 2px solid var(--color-border-strong);
   background: #fff;
   padding: 0;
-  position: relative;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.task-marker:disabled,
+.flag-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .task-marker:hover {
-  transform: scale(1.08);
+  transform: scale(1.04);
   box-shadow: 0 0 0 5px rgba(152, 197, 74, 0.14);
+}
+
+.task-marker__icon {
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: #ffffff;
 }
 
 .task-row.completed .task-marker {
   border-color: var(--color-success-border);
   background: var(--color-success);
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.92);
 }
 
 .task-row.pending .task-marker {
   border-color: var(--color-warning);
-  background: var(--color-warning-bg);
-  box-shadow: 0 0 0 5px rgba(232, 192, 48, 0.12);
-}
-
-.task-row.todo .task-marker {
-  border-color: #d7d6e7;
+  background: var(--color-warning);
+  box-shadow: 0 0 0 4px rgba(232, 192, 48, 0.12);
 }
 
 .task-row.completed {
-  background: rgba(240, 247, 204, 0.55);
-}
-
-.task-row.completed .task-label {
-  color: rgba(26, 26, 46, 0.78);
-}
-
-.task-row.completed .task-meta {
-  color: rgba(76, 74, 114, 0.58);
+  background: rgba(240, 247, 204, 0.38);
 }
 
 .task-row.pending {
   background: rgba(255, 244, 208, 0.82);
-}
-
-.task-row.pending .task-label {
-  color: rgba(26, 26, 46, 0.92);
-  font-weight: var(--font-weight-medium);
-}
-
-.task-row.todo::before {
-  background: transparent;
 }
 
 .task-row.pending::before,
@@ -563,98 +607,88 @@ p {
 }
 
 .task-label {
-  font-size: 15px;
+  font-size: var(--font-size-md);
   color: var(--color-text-primary);
+}
+
+.task-label__main {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+}
+
+.task-label__sub {
+  margin-top: 2px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
 }
 
 .task-actions {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .task-meta {
-  color: var(--color-text-hint);
+  color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   white-space: nowrap;
 }
 
 .flag-button {
-  border: 1px solid rgba(45, 43, 85, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
-  padding: 8px 12px;
+  padding: 0 var(--space-3);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .flag-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(45, 43, 85, 0.14);
+  background: var(--color-bg-secondary);
 }
 
 .flag-button.active {
-  border-color: rgba(232, 192, 48, 0.6);
-  background: linear-gradient(180deg, rgba(255, 244, 208, 0.98) 0%, rgba(232, 192, 48, 0.95) 100%);
-  color: rgba(36, 28, 0, 0.92);
-}
-
-.task-row.pending .task-meta {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
   color: var(--color-warning-text);
-  font-weight: var(--font-weight-bold);
-}
-
-.task-row.completed .task-actions .flag-button {
-  opacity: 0.65;
-}
-
-@media (max-width: 720px) {
-  .card-header,
-  .header-status {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .task-row {
-    grid-template-columns: 18px minmax(0, 1fr);
-    padding-top: 14px;
-    padding-bottom: 14px;
-  }
-
-  .task-actions {
-    grid-column: 2;
-    flex-wrap: wrap;
-  }
 }
 
 .temp-input {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .temp-field {
-  width: 74px;
-  border-radius: 999px;
-  border: 1px solid rgba(45, 43, 85, 0.18);
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.95);
+  width: 84px;
+  min-height: 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  padding: 0 var(--space-3);
+  background: var(--color-bg-primary);
   font: inherit;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 }
 
 .temp-save {
-  border: 1px solid rgba(45, 43, 85, 0.18);
-  border-radius: 999px;
-  padding: 8px 12px;
+  min-height: 34px;
+  border: 1px solid var(--color-dark-secondary);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-3);
   background: var(--color-dark-secondary);
-  color: var(--color-accent);
+  color: #ffffff;
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
@@ -670,14 +704,14 @@ p {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  padding: 18px 22px 22px;
+  gap: var(--space-4);
+  padding: var(--space-5);
   border-top: 1px solid var(--color-border-subtle);
-  background: linear-gradient(180deg, rgba(249, 249, 253, 0.98) 0%, rgba(242, 244, 250, 0.98) 100%);
+  background: var(--color-bg-secondary);
 }
 
 .submit-bar.overdue {
-  background: linear-gradient(180deg, rgba(255, 244, 208, 0.92) 0%, rgba(255, 237, 187, 0.98) 100%);
+  background: var(--color-warning-bg);
 }
 
 .submit-copy {
@@ -699,16 +733,15 @@ p {
 .submit-button {
   flex-shrink: 0;
   border: 0;
-  border-radius: 999px;
-  min-height: 42px;
-  padding: 0 16px;
+  border-radius: var(--radius-md);
+  min-height: 40px;
+  padding: 0 var(--space-4);
   background: var(--color-dark-secondary);
-  color: var(--color-accent);
+  color: #ffffff;
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
 }
 
 .confirm-overlay {
@@ -725,16 +758,16 @@ p {
 
 .confirm-dialog {
   width: min(420px, 100%);
-  border-radius: 22px;
-  border: 1px solid rgba(214, 219, 235, 0.95);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 248, 252, 0.98) 100%);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
   box-shadow: 0 28px 60px rgba(10, 14, 24, 0.28);
-  padding: 22px;
+  padding: var(--space-5);
 }
 
 .confirm-dialog.warning {
-  border-color: rgba(232, 192, 48, 0.42);
-  background: linear-gradient(180deg, rgba(255, 250, 233, 0.98) 0%, rgba(255, 244, 208, 0.98) 100%);
+  border-color: var(--color-warning-border);
+  background: #fffdf5;
 }
 
 .confirm-kicker {
@@ -761,10 +794,10 @@ p {
 
 .confirm-detail {
   margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(215, 220, 235, 0.9);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   font-size: 13px;
   color: var(--color-text-muted);
 }
@@ -779,9 +812,9 @@ p {
 .confirm-secondary,
 .confirm-primary {
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 var(--space-4);
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
@@ -789,23 +822,42 @@ p {
 }
 
 .confirm-secondary {
-  background: rgba(45, 43, 85, 0.08);
+  background: var(--color-bg-secondary);
   color: var(--color-text-primary);
 }
 
 .confirm-primary {
   background: var(--color-dark-secondary);
-  color: var(--color-accent);
+  color: #ffffff;
 }
 
 @media (max-width: 720px) {
+  .card-header,
+  .header-status,
   .submit-bar {
     flex-direction: column;
     align-items: flex-start;
   }
 
+  .header-status {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .progress-track,
   .submit-button {
     width: 100%;
+  }
+
+  .task-row {
+    grid-template-columns: 24px minmax(0, 1fr);
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .task-actions {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 
   .confirm-actions {

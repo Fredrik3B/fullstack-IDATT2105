@@ -1,7 +1,12 @@
 <template>
-  <footer class="summary-card" aria-label="Checklist summary">
+  <section class="summary-card" aria-label="Checklist summary">
     <div class="summary-top">
-      <h3 class="summary-title">Summary</h3>
+      <div>
+        <h3 class="summary-title">Checklist summary</h3>
+        <p class="summary-copy">
+          Completion across all workbench checklists in the selected period.
+        </p>
+      </div>
       <div class="summary-total">{{ totals.total }} tasks</div>
     </div>
 
@@ -37,7 +42,7 @@
         <span class="legend-value">{{ totals.todo }}</span>
       </div>
     </div>
-  </footer>
+  </section>
 </template>
 
 <script setup>
@@ -47,8 +52,8 @@ import { countTaskStates, getSummaryAriaLabel } from './checklistSummary'
 const props = defineProps({
   cards: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const totals = computed(() => countTaskStates(props.cards))
@@ -57,35 +62,39 @@ const summaryAriaLabel = computed(() => getSummaryAriaLabel(totals.value))
 
 <style scoped>
 .summary-card {
-  margin-top: 18px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(210, 213, 230, 0.95);
-  background: rgba(255, 255, 255, 0.92);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
   box-shadow: var(--shadow-sm);
 }
 
 .summary-top {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .summary-title {
   margin: 0;
-  font-size: 14px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.summary-copy {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
 .summary-total {
-  color: var(--color-text-muted);
-  font-size: 13px;
+  min-width: 84px;
+  text-align: right;
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
 }
 
 .summary-bar {
@@ -118,8 +127,8 @@ const summaryAriaLabel = computed(() => getSummaryAriaLabel(totals.value))
 .summary-legend {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 12px;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .legend-item {
@@ -127,9 +136,9 @@ const summaryAriaLabel = computed(() => getSummaryAriaLabel(totals.value))
   grid-template-columns: 10px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(242, 243, 250, 0.58);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-subtle);
 }
 
@@ -169,4 +178,3 @@ const summaryAriaLabel = computed(() => getSummaryAriaLabel(totals.value))
   }
 }
 </style>
-

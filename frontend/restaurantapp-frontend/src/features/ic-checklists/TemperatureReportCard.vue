@@ -1,14 +1,28 @@
 <template>
-  <footer class="temp-report" aria-label="Temperature report">
+  <section class="temp-report" aria-label="Temperature report">
     <div class="report-top">
-      <h3 class="report-title">Temperature log</h3>
+      <div>
+        <h3 class="report-title">Temperature log</h3>
+        <p class="report-copy">
+          Latest recorded readings for temperature-controlled tasks on the workbench.
+        </p>
+      </div>
       <div class="report-badge" :class="{ danger: deviationCount > 0 }">
         {{ deviationCount > 0 ? `${deviationCount} deviations` : 'No deviations' }}
       </div>
     </div>
 
-    <ul class="report-list">
-      <li v-for="row in rows" :key="row.key" class="report-row" :class="{ danger: row.isDeviation }">
+    <div v-if="rows.length === 0" class="empty-state">
+      No temperature-controlled tasks are active in this period.
+    </div>
+
+    <ul v-else class="report-list">
+      <li
+        v-for="row in rows"
+        :key="row.key"
+        class="report-row"
+        :class="{ danger: row.isDeviation }"
+      >
         <div class="row-main">
           <div class="row-title">{{ row.label }}</div>
           <div class="row-sub">Target: {{ row.target }}</div>
@@ -19,7 +33,7 @@
         </div>
       </li>
     </ul>
-  </footer>
+  </section>
 </template>
 
 <script setup>
@@ -29,8 +43,8 @@ import { formatTemperatureTarget, isTemperatureTask } from './temperature'
 const props = defineProps({
   cards: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const rows = computed(() => {
@@ -44,15 +58,16 @@ const rows = computed(() => {
       items.forEach((task) => {
         if (!isTemperatureTask(task)) return
         const latest = task?.latestMeasurement ?? null
-        const valueC = latest && Number.isFinite(Number(latest.valueC)) ? Number(latest.valueC) : null
+        const valueC =
+          latest && Number.isFinite(Number(latest.valueC)) ? Number(latest.valueC) : null
         const isDev = Boolean(latest?.deviation)
 
         result.push({
           key: `${card?.id ?? 'card'}:${task.id ?? task.label}`,
           label: String(task.label ?? 'Temperature'),
-          target: formatTemperatureTarget(task) || '—',
+          target: formatTemperatureTarget(task) || '-',
           valueC,
-          isDeviation: isDev
+          isDeviation: isDev,
         })
       })
     })
@@ -66,28 +81,30 @@ const deviationCount = computed(() => rows.value.filter((row) => row.isDeviation
 
 <style scoped>
 .temp-report {
-  margin-top: 18px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(210, 213, 230, 0.95);
-  background: rgba(255, 255, 255, 0.92);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
   box-shadow: var(--shadow-sm);
 }
 
 .report-top {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .report-title {
   margin: 0;
-  font-size: 14px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-primary);
+}
+
+.report-copy {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
@@ -109,12 +126,18 @@ const deviationCount = computed(() => rows.value.filter((row) => row.isDeviation
   color: var(--color-warning-text);
 }
 
+.empty-state {
+  padding: var(--space-5) 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .report-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .report-row {
@@ -122,9 +145,9 @@ const deviationCount = computed(() => rows.value.filter((row) => row.isDeviation
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(242, 243, 250, 0.58);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border-subtle);
 }
 
