@@ -10,11 +10,13 @@ import edu.ntnu.idatt2105.backend.report.dto.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
 import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
 import edu.ntnu.idatt2105.backend.report.dto.ReportPeriod;
+import edu.ntnu.idatt2105.backend.report.dto.UnresolvedItemDto;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,13 +44,17 @@ public class ReportService {
         .build();
   }
 
+  private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDate from, LocalDate to) {
+    tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to);
+  }
+
 
   public InternalSummary generateSummary(UUID orgId, LocalDate from, LocalDate to) {
     return InternalSummary.builder()
         .period(new ReportPeriod(from, to))
         .matStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
         .alkoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
-        .unresolvedItems(getUnresolvedItems(orgId))
+        .unresolvedItems(getUnresolvedItems(orgId, from, to))
         .build();
   }
 

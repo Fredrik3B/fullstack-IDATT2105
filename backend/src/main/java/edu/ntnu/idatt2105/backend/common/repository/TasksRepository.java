@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.common.repository;
 
 import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.report.dto.UnresolvedItemDto;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -32,6 +33,7 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 	List<TasksModel> findAllByChecklist_IdAndPeriodKeyAndActiveTrue(Long checklistId, String periodKey);
 
 
+// Use joins??
 
 	@Query("SELECT COUNT(t) FROM TasksModel t " +
 			"WHERE t.checklist.organization.id = :orgId " +
@@ -60,4 +62,12 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 	int countFlaggedInPeriod(@Param("orgId") UUID orgId,
 			@Param("from") LocalDate from, @Param("to") LocalDate to,
 			@Param("area") ComplianceArea area);
+
+	@Query("SELECT t FROM TasksModel t " +
+			"WHERE t.checklist.organization.id = :orgId " +
+			"AND t.completed = false " +
+			"AND t.active = false " +
+			"AND t.endedAt BETWEEN :from AND :to ")
+	List<TasksModel> findDeviatedTaskByOrgIdInPeriod(@Param("orgId") UUID orgId,
+			@Param("from") LocalDate from, @Param("to") LocalDate to);
 }
