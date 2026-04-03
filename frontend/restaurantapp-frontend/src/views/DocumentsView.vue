@@ -245,18 +245,22 @@
             v-for="cat in visibleCategories"
             :key="cat.value"
           >
-            <div class="category-header">
+            <div class="category-header" @click="toggleCategory(cat.value)">
               <h2 class="section-heading">{{ cat.label }}</h2>
               <span class="category-count">
                 {{ documentsForCategory(cat.value).length }}
                 {{ cat.value === 'CERTIFICATE' ? 'certificates' : 'documents' }}
               </span>
+              <ChevronDown
+                :size="18"
+                :class="['category-chevron', { 'category-chevron--collapsed': collapsedCategories.has(cat.value) }]"
+              />
             </div>
-            <div v-if="documentsForCategory(cat.value).length === 0" class="empty-state">
+            <div v-if="documentsForCategory(cat.value).length === 0 && !collapsedCategories.has(cat.value)" class="empty-state">
               <p class="empty-title">No {{ cat.label.toLowerCase() }} uploaded</p>
               <p class="empty-sub">{{ cat.emptyHint }}</p>
             </div>
-            <div v-else class="doc-grid">
+            <div v-else-if="!collapsedCategories.has(cat.value)" class="doc-grid">
               <div
                 v-for="doc in documentsForCategory(cat.value)"
                 :key="doc.id"
@@ -296,7 +300,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Search, AlertTriangle } from 'lucide-vue-next'
+import { Search, AlertTriangle, ChevronDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
 
@@ -312,6 +316,7 @@ const searchQuery = ref('')
 const activeCategory = ref('')
 const activeModule = ref('')
 const expiryBannerDismissed = ref(false)
+const collapsedCategories = ref(new Set())
 
 // ── Certificate expiry alerts ──────────────────────────────────────────────
 
@@ -413,6 +418,13 @@ const visibleCategories = computed(() => {
 
 function documentsForCategory(category) {
   return filteredDocuments.value.filter(d => d.category === category)
+}
+
+function toggleCategory(value) {
+  const s = collapsedCategories.value
+  if (s.has(value)) s.delete(value)
+  else s.add(value)
+  collapsedCategories.value = new Set(s) // trigger reactivity
 }
 
 // ── Upload modal actions ───────────────────────────────────────────────────
@@ -778,9 +790,33 @@ function expiryLabel(expiryDate) {
 /* ── Category header ── */
 .category-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-4);
+  cursor: pointer;
+  user-select: none;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.category-header:hover {
+  background: var(--color-bg-subtle);
+  border-color: var(--color-border-strong);
+}
+
+.category-chevron {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.category-chevron--collapsed {
+  transform: rotate(-90deg);
 }
 
 .section-heading {
