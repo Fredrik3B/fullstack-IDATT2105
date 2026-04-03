@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.security;
 
+import edu.ntnu.idatt2105.backend.exception.OrganizationRequiredException;
 import java.util.Collection;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -32,4 +33,11 @@ public class JwtAuthenticatedPrincipal {
   private final UUID organizationId;
   private final String username;
   private final Collection<? extends GrantedAuthority> authorities;
+
+  public UUID requireOrganizationId() {
+    if (organizationId == null) {
+      throw new OrganizationRequiredException();
+    }
+    return organizationId;
+  }
 }
