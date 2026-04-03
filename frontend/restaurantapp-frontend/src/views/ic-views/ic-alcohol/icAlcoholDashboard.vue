@@ -1,11 +1,12 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useToast } from '@/composables/useToast'
 import ChecklistDashboard from '../../../features/ic-checklists/ChecklistDashboard.vue'
 import CreateChecklistModal from '../../../features/ic-checklists/CreateChecklistModal.vue'
 import ChecklistLibraryModal from '../../../features/ic-checklists/ChecklistLibraryModal.vue'
 import ManageTaskTemplatesModal from '../../../features/ic-checklists/ManageTaskTemplatesModal.vue'
 import { useChecklistDashboard } from '../../../features/ic-checklists/useChecklistDashboard'
-import { createChecklist, fetchChecklists, setChecklistWorkbenchState, updateChecklist } from '../../../api/checklists'
+import { createChecklist, deleteChecklist, fetchChecklists, setChecklistWorkbenchState, updateChecklist } from '../../../api/checklists'
 import { periodEnumToLabel } from '../../../features/ic-checklists/recurrence'
 
 // Backend-only mode: keep empty so missing backend wiring is visible.
@@ -40,6 +41,7 @@ const isCreateOpen = ref(false)
 const isLibraryOpen = ref(false)
 const isTaskPoolOpen = ref(false)
 const highlightedChecklistId = ref(null)
+const toast = useToast()
 
 const workbenchCards = computed(() => displayCards.value.filter((card) => card?.displayedOnWorkbench !== false))
 const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
@@ -65,9 +67,11 @@ async function handleCreatedChecklist(newCard) {
     })
     if (created) {
       cards.value.push(created)
+      isCreateOpen.value = false
     }
   } catch (err) {
     console.error('Failed to create checklist', err)
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not create checklist.')
   }
 }
 
@@ -92,9 +96,32 @@ async function handleUpdatedChecklist(updatedCard) {
     })
     if (saved) {
       cards.value.splice(editingCardIndex.value, 1, saved)
+      isEditOpen.value = false
+      editingCardIndex.value = null
     }
   } catch (err) {
     console.error('Failed to update checklist', err)
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not update checklist.')
+  }
+}
+
+async function handleDeleteChecklist(checklist) {
+  const checklistId = checklist?.id
+  if (!checklistId) return
+
+  const confirmed = window.confirm(`Delete "${checklist?.title || 'this checklist'}"? This cannot be undone.`)
+  if (!confirmed) return
+
+  try {
+    await deleteChecklist({ checklistId })
+    const index = cards.value.findIndex((entry) => String(entry?.id) === String(checklistId))
+    if (index >= 0) cards.value.splice(index, 1)
+    isEditOpen.value = false
+    editingCardIndex.value = null
+    toast.success('Checklist deleted.')
+  } catch (err) {
+    console.error('Failed to delete checklist', err)
+    toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not delete checklist.')
   }
 }
 
@@ -172,6 +199,7 @@ async function openChecklistOnWorkbench(card) {
     module-label="IC-Alcohol"
     @manage-tasks="handleManageTasks"
     @close="editingCardIndex = null"
+    @delete="handleDeleteChecklist"
     @updated="handleUpdatedChecklist"
   />
 

@@ -101,6 +101,7 @@
         <p v-if="error" class="error" role="alert">{{ error }}</p>
 
         <footer class="modal-footer">
+          <button v-if="isEditMode" type="button" class="danger" @click="emitDelete">Delete checklist</button>
           <button type="button" class="secondary" @click="handleClose">Cancel</button>
           <button type="submit" class="primary">{{ submitLabel }}</button>
         </footer>
@@ -139,7 +140,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:open', 'close', 'created', 'updated', 'manage-tasks'])
+const emit = defineEmits(['update:open', 'close', 'created', 'updated', 'delete', 'manage-tasks'])
 
 const title = ref('')
 const subtitle = ref('')
@@ -284,7 +285,13 @@ function handleSubmit() {
 
   if (isEditMode.value) emit('updated', payload)
   else emit('created', payload)
-  handleClose()
+}
+
+function emitDelete() {
+  emit('delete', {
+    id: props.initialCard?.id ?? null,
+    title: title.value.trim() || props.initialCard?.title || 'this checklist'
+  })
 }
 </script>
 
@@ -564,6 +571,7 @@ h2 {
   gap: 12px;
 }
 
+.danger,
 .primary,
 .secondary {
   min-height: 44px;
@@ -571,6 +579,12 @@ h2 {
   border-radius: 999px;
   border: 0;
   cursor: pointer;
+}
+
+.danger {
+  margin-right: auto;
+  background: rgba(255, 232, 232, 0.98);
+  color: #a11d2d;
 }
 
 .primary {
