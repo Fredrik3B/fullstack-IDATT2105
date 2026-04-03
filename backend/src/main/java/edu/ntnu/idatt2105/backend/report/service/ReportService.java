@@ -3,14 +3,18 @@ package edu.ntnu.idatt2105.backend.report.service;
 
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
+import edu.ntnu.idatt2105.backend.report.dto.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
 import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
+import edu.ntnu.idatt2105.backend.report.dto.ReportPeriod;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,13 +23,26 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class ReportService {
 
-  private final TasksModelRepository tasksRepository;
+  private final TasksRepository tasksRepository;
   private final TemperatureMeasurementRepository tempRepository;
   private final ChecklistRepository checklistRepository;
   private final UserRepository userRepository;
-  private final OrganizationRepository orgRepository;
+  private final OrganizationRepository organizationRepository;
 
-  // Internal — just the numbers
+  private ComplianceStats buildStats(UUID orgId, LocalDate from, LocalDate to, ComplianceArea area) {
+    int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
+    int completed = tasksRepository.countCompletedInPeriod(orgId, from, to, area);
+    int flagged = tasksRepository.countFlaggedInPeriod(orgId, from, to, area);
+
+    return ComplianceStats.builder()
+        .totalTasks(total)
+        .completedTasks(completed)
+        .flaggedTasks(flagged)
+        .completionRate((double) completed / total * 100)
+        .build();
+  }
+
+
   public InternalSummary generateSummary(UUID orgId, LocalDate from, LocalDate to) {
     return InternalSummary.builder()
         .period(new ReportPeriod(from, to))
@@ -35,7 +52,6 @@ public class ReportService {
         .build();
   }
 
-  // External — numbers + evidence
   public InspectionReport generateInspection(UUID orgId, LocalDate from, LocalDate to) {
     OrganizationModel org = orgRepository.findById(orgId)
         .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
