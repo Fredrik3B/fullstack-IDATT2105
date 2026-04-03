@@ -72,7 +72,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		return checklists.stream()
 			.map(this::sortTemplates)
-			.map(checklist -> toCardResponse(checklist, ensureTasksForActivePeriod(checklist)))
+			.map(this::toCardResponse)
 			.toList();
 	}
 
@@ -99,7 +99,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
-		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
+		return toCardResponse(savedChecklist);
 	}
 
 	@Override
@@ -124,10 +124,13 @@ public class ChecklistServiceImpl implements ChecklistService {
 			deactivateActiveTasks(checklist.getId());
 		}
 		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
+		if (!checklist.isDisplayedOnWorkbench()) {
+			deleteAllActivatedTasks(checklist.getId());
+		}
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
-		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
+		return toCardResponse(savedChecklist);
 	}
 
 	@Override
@@ -226,7 +229,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setDisplayedOnWorkbench(checklist.isRecurring());
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
-		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
+		return toCardResponse(savedChecklist);
 	}
 
 	@Override
@@ -238,10 +241,14 @@ public class ChecklistServiceImpl implements ChecklistService {
 	) {
 		Objects.requireNonNull(request, "Workbench state request cannot be null.");
 		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
-		checklist.setDisplayedOnWorkbench(Boolean.TRUE.equals(request.displayedOnWorkbench()));
+		boolean displayedOnWorkbench = Boolean.TRUE.equals(request.displayedOnWorkbench());
+		checklist.setDisplayedOnWorkbench(displayedOnWorkbench);
+		if (!displayedOnWorkbench) {
+			deleteAllActivatedTasks(checklist.getId());
+		}
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
-		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
+		return toCardResponse(savedChecklist);
 	}
 
 	@Override
@@ -331,11 +338,17 @@ public class ChecklistServiceImpl implements ChecklistService {
 		return activeTasks;
 	}
 
-	private ChecklistCardResponse toCardResponse(ChecklistModel checklist, List<TasksModel> tasks) {
+	private ChecklistCardResponse toCardResponse(ChecklistModel checklist) {
+		List<TasksModel> tasks = checklist.isDisplayedOnWorkbench()
+			? ensureTasksForActivePeriod(checklist)
+			: List.of();
 		int completedCount = (int) tasks.stream().filter(TasksModel::isCompleted).count();
 		int total = tasks.size();
 		Integer progress = total == 0 ? 0 : Math.toIntExact(Math.round((completedCount * 100.0) / total));
 		boolean completed = total > 0 && completedCount == total;
+		List<ChecklistSectionResponse> sections = checklist.isDisplayedOnWorkbench()
+			? toSectionResponses(tasks)
+			: toTemplateSectionResponses(checklist);
 
 		return new ChecklistCardResponse(
 			checklist.getId(),
@@ -347,10 +360,10 @@ public class ChecklistServiceImpl implements ChecklistService {
 			checklist.getDescription() != null ? checklist.getDescription() : "",
 			null,
 			Boolean.FALSE,
-			completed ? "Ready to submit" : "In progress",
-			completed ? "success" : "muted",
+			checklist.isDisplayedOnWorkbench() ? (completed ? "Ready to submit" : "In progress") : "In library",
+			checklist.isDisplayedOnWorkbench() ? (completed ? "success" : "muted") : "muted",
 			progress,
-			toSectionResponses(tasks)
+			sections
 		);
 	}
 
@@ -375,6 +388,15 @@ public class ChecklistServiceImpl implements ChecklistService {
 		tasksRepository.saveAll(activeTasks);
 	}
 
+	private void deleteAllActivatedTasks(Long checklistId) {
+		List<TasksModel> tasks = tasksRepository.findAllByChecklist_Id(checklistId);
+		if (tasks.isEmpty()) {
+			return;
+		}
+		temperatureMeasurementRepository.deleteAllByTaskIn(tasks);
+		tasksRepository.deleteAll(tasks);
+	}
+
 	private List<ChecklistSectionResponse> toSectionResponses(List<TasksModel> tasks) {
 		Map<String, List<TasksModel>> grouped = new LinkedHashMap<>();
 		for (TasksModel task : tasks) {
@@ -388,6 +410,25 @@ public class ChecklistServiceImpl implements ChecklistService {
 			sections.add(new ChecklistSectionResponse(
 				entry.getKey(),
 				entry.getValue().stream().map(this::toTaskItemResponse).toList()
+			));
+		}
+		sections.sort(Comparator.comparing(ChecklistSectionResponse::title, String.CASE_INSENSITIVE_ORDER));
+		return sections;
+	}
+
+	private List<ChecklistSectionResponse> toTemplateSectionResponses(ChecklistModel checklist) {
+		Map<String, List<TaskTemplate>> grouped = new LinkedHashMap<>();
+		for (TaskTemplate template : checklist.getTaskTemplates()) {
+			String key = sectionLabel(template.getSectionType());
+			grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(template);
+		}
+
+		List<ChecklistSectionResponse> sections = new ArrayList<>();
+		for (Map.Entry<String, List<TaskTemplate>> entry : grouped.entrySet()) {
+			entry.getValue().sort(Comparator.comparing(TaskTemplate::getTitle, String.CASE_INSENSITIVE_ORDER));
+			sections.add(new ChecklistSectionResponse(
+				entry.getKey(),
+				entry.getValue().stream().map(this::toTemplateTaskItemResponse).toList()
 			));
 		}
 		sections.sort(Comparator.comparing(ChecklistSectionResponse::title, String.CASE_INSENSITIVE_ORDER));
@@ -427,6 +468,24 @@ public class ChecklistServiceImpl implements ChecklistService {
 			completedForPeriodKey,
 			completedAt,
 			pendingForPeriodKey
+		);
+	}
+
+	private ChecklistTaskItemResponse toTemplateTaskItemResponse(TaskTemplate template) {
+		return new ChecklistTaskItemResponse(
+			null,
+			template.getId(),
+			template.getTitle(),
+			null,
+			isTemperatureTemplate(template) ? "temperature" : null,
+			template.getUnit(),
+			template.getTargetMin(),
+			template.getTargetMax(),
+			"todo",
+			Boolean.FALSE,
+			null,
+			null,
+			null
 		);
 	}
 
