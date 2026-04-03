@@ -10,6 +10,7 @@ export function useIcModulePage({ module, moduleLabel }) {
   const isEditOpen = ref(false)
   const isLibraryOpen = ref(false)
   const isTaskPoolOpen = ref(false)
+  const isCreatingChecklist = ref(false)
   const editingCardIndex = ref(null)
   const highlightedChecklistId = ref(null)
 
@@ -84,6 +85,8 @@ export function useIcModulePage({ module, moduleLabel }) {
   }
 
   async function handleCreatedChecklist(newCard) {
+    if (isCreatingChecklist.value) return
+    isCreatingChecklist.value = true
     try {
       await createChecklist({
         module,
@@ -99,6 +102,8 @@ export function useIcModulePage({ module, moduleLabel }) {
     } catch (err) {
       console.error('Failed to create checklist', err)
       toast.warning(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not create checklist.')
+    } finally {
+      isCreatingChecklist.value = false
     }
   }
 

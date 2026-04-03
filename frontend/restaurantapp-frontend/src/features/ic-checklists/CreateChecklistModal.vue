@@ -102,8 +102,8 @@
 
         <footer class="modal-footer">
           <button v-if="isEditMode" type="button" class="danger" @click="emitDelete">Delete checklist</button>
-          <button type="button" class="secondary" @click="handleClose">Cancel</button>
-          <button type="submit" class="primary">{{ submitLabel }}</button>
+          <button type="button" class="secondary" :disabled="submitting" @click="handleClose">Cancel</button>
+          <button type="submit" class="primary" :disabled="submitting">{{ submitButtonLabel }}</button>
         </footer>
       </form>
     </div>
@@ -151,6 +151,7 @@ const error = ref('')
 const poolTasks = ref([])
 const selectedTaskIds = ref([])
 const loadingTasks = ref(false)
+const submitting = ref(false)
 
 const isEditMode = computed(() => props.mode === 'edit')
 const modalTitle = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
@@ -160,6 +161,10 @@ const modalSubtitle = computed(() =>
     : 'Build a checklist by selecting tasks from the shared pool.'
 )
 const submitLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Create'))
+const submitButtonLabel = computed(() => {
+  if (!submitting.value) return submitLabel.value
+  return isEditMode.value ? 'Saving...' : 'Creating...'
+})
 const dialogAriaLabel = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
 
 const groupedTasks = computed(() => {
@@ -192,6 +197,7 @@ function resetForm() {
   displayedOnWorkbench.value = true
   error.value = ''
   selectedTaskIds.value = []
+  submitting.value = false
 }
 
 function taskSummary(task) {
@@ -257,11 +263,13 @@ watch(
 )
 
 function handleClose() {
+  if (submitting.value) return
   emit('update:open', false)
   emit('close')
 }
 
-function handleSubmit() {
+async function handleSubmit() {
+  if (submitting.value) return
   error.value = ''
 
   if (!title.value.trim()) {
@@ -283,8 +291,16 @@ function handleSubmit() {
     taskTemplateIds: [...selectedTaskIds.value]
   }
 
-  if (isEditMode.value) emit('updated', payload)
-  else emit('created', payload)
+  submitting.value = true
+  try {
+    if (isEditMode.value) {
+      await emit('updated', payload)
+    } else {
+      await emit('created', payload)
+    }
+  } finally {
+    submitting.value = false
+  }
 }
 
 function emitDelete() {
