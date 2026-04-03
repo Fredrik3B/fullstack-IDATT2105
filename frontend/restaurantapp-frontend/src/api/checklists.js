@@ -89,3 +89,10 @@ export async function submitChecklist({ checklistId }) {
   const { data } = await api.put(`/api/checklists/${checklistId}/submit`)
   return data
 }
+
+export async function setChecklistWorkbenchState({ checklistId, displayedOnWorkbench }) {
+  const { data } = await api.put(`/api/checklists/${checklistId}/workbench`, {
+    displayedOnWorkbench
+  })
+  return data
+}

@@ -3,6 +3,7 @@ package edu.ntnu.idatt2105.backend.common.service.impl;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistSectionResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
@@ -36,6 +37,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ChecklistServiceImpl implements ChecklistService {
@@ -75,6 +77,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 	}
 
 	@Override
+	@Transactional
 	public ChecklistCardResponse createChecklist(CreateChecklistCardRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		Objects.requireNonNull(request, "Checklist request cannot be null.");
@@ -89,6 +92,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setComplianceArea(requireModule(request.module()).toComplianceArea());
 		checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
 		checklist.setRecurring(Boolean.TRUE.equals(request.recurring()));
+		checklist.setDisplayedOnWorkbench(Boolean.TRUE.equals(request.displayedOnWorkbench()));
 		checklist.setActive(true);
 		checklist.setOrganization(organization);
 		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
@@ -99,6 +103,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 	}
 
 	@Override
+	@Transactional
 	public ChecklistCardResponse updateChecklist(
 		Long checklistId,
 		UpdateChecklistCardRequest request,
@@ -113,6 +118,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setDescription(trimToNull(request.subtitle()));
 		checklist.setFrequency(PeriodKeyUtil.periodToFrequency(request.period()));
 		checklist.setRecurring(request.recurring() == null || Boolean.TRUE.equals(request.recurring()));
+		checklist.setDisplayedOnWorkbench(request.displayedOnWorkbench() == null || Boolean.TRUE.equals(request.displayedOnWorkbench()));
 		if (!Objects.equals(previousFrequency, checklist.getFrequency())) {
 			checklist.setActivePeriodKey(PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault()));
 			deactivateActiveTasks(checklist.getId());
@@ -198,25 +204,48 @@ public class ChecklistServiceImpl implements ChecklistService {
 	}
 
 	@Override
+	@Transactional
 	public ChecklistCardResponse submitChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
 		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
-		String activePeriodKey = resolveActivePeriodKey(checklist);
+		sortTemplates(checklist);
+		if (checklist.getTaskTemplates() == null || checklist.getTaskTemplates().isEmpty()) {
+			throw new IllegalArgumentException("Checklist must contain at least one task before it can be submitted.");
+		}
 
-		List<TasksModel> activeTasks = tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(checklist.getId(), activePeriodKey);
+		String activePeriodKey = resolveActivePeriodKey(checklist);
+		List<TasksModel> activeTasks = ensureTasksForActivePeriod(checklist);
+		if (activeTasks.isEmpty()) {
+			throw new IllegalArgumentException("Checklist has no active tasks to submit.");
+		}
 		for (TasksModel task : activeTasks) {
 			task.setActive(false);
 		}
-		if (!activeTasks.isEmpty()) {
-			tasksRepository.saveAll(activeTasks);
-		}
+		tasksRepository.saveAll(activeTasks);
 
 		checklist.setActivePeriodKey(PeriodKeyUtil.nextPeriodKey(checklist.getFrequency(), activePeriodKey));
+		checklist.setDisplayedOnWorkbench(checklist.isRecurring());
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
 		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
 	}
 
 	@Override
+	@Transactional
+	public ChecklistCardResponse setChecklistWorkbenchState(
+		Long checklistId,
+		ChecklistWorkbenchStateRequest request,
+		JwtAuthenticatedPrincipal principal
+	) {
+		Objects.requireNonNull(request, "Workbench state request cannot be null.");
+		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
+		checklist.setDisplayedOnWorkbench(Boolean.TRUE.equals(request.displayedOnWorkbench()));
+		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		sortTemplates(savedChecklist);
+		return toCardResponse(savedChecklist, ensureTasksForActivePeriod(savedChecklist));
+	}
+
+	@Override
+	@Transactional
 	public void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
 		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
 
@@ -313,6 +342,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			PeriodKeyUtil.frequencyToPeriod(checklist.getFrequency()),
 			resolveActivePeriodKey(checklist),
 			checklist.isRecurring(),
+			checklist.isDisplayedOnWorkbench(),
 			checklist.getName(),
 			checklist.getDescription() != null ? checklist.getDescription() : "",
 			null,

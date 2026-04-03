@@ -42,6 +42,9 @@ public class ChecklistModel extends AuditableEntity {
 	@Column(name = "recurring", nullable = false)
 	private boolean recurring = true;
 
+	@Column(name = "displayed_on_workbench", nullable = false)
+	private boolean displayedOnWorkbench = true;
+
 	@Column(nullable = false)
 	private boolean active = true;
 
@@ -103,6 +106,14 @@ public class ChecklistModel extends AuditableEntity {
 
 	public void setRecurring(boolean recurring) {
 		this.recurring = recurring;
+	}
+
+	public boolean isDisplayedOnWorkbench() {
+		return displayedOnWorkbench;
+	}
+
+	public void setDisplayedOnWorkbench(boolean displayedOnWorkbench) {
+		this.displayedOnWorkbench = displayedOnWorkbench;
 	}
 
 	public boolean isActive() {

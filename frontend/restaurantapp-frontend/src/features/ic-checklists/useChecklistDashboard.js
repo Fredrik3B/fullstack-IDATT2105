@@ -176,7 +176,7 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
       return refreshed
     } catch (err) {
       console.error('Failed to submit checklist', err)
-      toast.error(err?.response?.data?.message ?? 'Could not submit checklist.')
+      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not submit checklist.')
       throw err
     }
   }

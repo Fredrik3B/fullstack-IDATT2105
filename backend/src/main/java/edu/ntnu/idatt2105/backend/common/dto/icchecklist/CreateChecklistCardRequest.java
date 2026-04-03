@@ -21,6 +21,9 @@ public record CreateChecklistCardRequest(
 	@NotNull
 	Boolean recurring,
 
+	@NotNull
+	Boolean displayedOnWorkbench,
+
 	@NotEmpty
 	List<Long> taskTemplateIds
 ) {

@@ -15,6 +15,8 @@ public record UpdateChecklistCardRequest(
 
 	Boolean recurring,
 
+	Boolean displayedOnWorkbench,
+
 	@NotEmpty
 	List<Long> taskTemplateIds
 ) {

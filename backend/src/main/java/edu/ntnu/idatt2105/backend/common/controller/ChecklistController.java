@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
+import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
@@ -172,6 +173,25 @@ public class ChecklistController {
 			checklistId
 		);
 		return checklistService.submitChecklist(checklistId, principal);
+	}
+
+	@PutMapping("/{checklistId}/workbench")
+	@Operation(summary = "Set whether a checklist is displayed on the workbench")
+	@ApiResponse(responseCode = "200", description = "Checklist workbench state updated")
+	public ChecklistCardResponse setChecklistWorkbenchState(
+		@PathVariable Long checklistId,
+		@Valid @RequestBody ChecklistWorkbenchStateRequest request,
+		Authentication auth
+	) {
+		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		LOGGER.info(
+			"IC set workbench state: orgId={} userId={} checklistId={} displayedOnWorkbench={}",
+			principal.getOrganizationId(),
+			principal.getUserId(),
+			checklistId,
+			request.displayedOnWorkbench()
+		);
+		return checklistService.setChecklistWorkbenchState(checklistId, request, principal);
 	}
 
 	@DeleteMapping("/{checklistId}")

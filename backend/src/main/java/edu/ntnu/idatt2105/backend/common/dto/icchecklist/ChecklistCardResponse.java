@@ -7,6 +7,7 @@ public record ChecklistCardResponse(
 	String period,
 	String activePeriodKey,
 	Boolean recurring,
+	Boolean displayedOnWorkbench,
 	String title,
 	String subtitle,
 	String moduleChip,
