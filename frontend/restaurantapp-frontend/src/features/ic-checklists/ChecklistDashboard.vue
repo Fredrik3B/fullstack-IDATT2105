@@ -21,7 +21,6 @@
         v-bind="card"
         :now="now"
         :highlighted-workbench="String(highlightedChecklistId ?? '') === String(card.id ?? '')"
-        :temperature-latest-by-task-id="temperatureLatestByTaskId"
         @toggle-task="emit('toggle-task', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @toggle-pending="emit('toggle-pending', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })"
         @edit-checklist="emit('edit-checklist', { cardIndex: card.__sourceIndex ?? cardIndex })"
@@ -30,7 +29,7 @@
       />
     </div>
 
-    <TemperatureReportCard :cards="cards" :temperature-latest-by-task-id="temperatureLatestByTaskId" />
+    <TemperatureReportCard :cards="cards" />
     <ChecklistSummaryCard :cards="cards" />
   </section>
 </template>
@@ -73,10 +72,6 @@ defineProps({
   cards: {
     type: Array,
     required: true
-  },
-  temperatureLatestByTaskId: {
-    type: Object,
-    default: null
   },
   now: {
     type: [Date, String, Number],

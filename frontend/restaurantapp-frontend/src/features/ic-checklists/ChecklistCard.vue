@@ -181,10 +181,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  temperatureLatestByTaskId: {
-    type: Object,
-    default: null
-  },
   now: {
     type: [Date, String, Number],
     default: null
@@ -257,13 +253,7 @@ function handleSubmitChecklist() {
 }
 
 function getLatestMeasurement(task) {
-  const id = task?.id
-  if (!id) return null
-
-  const container = props.temperatureLatestByTaskId
-  if (!container) return null
-  if (typeof container.get === 'function') return container.get(id) ?? container.get(String(id)) ?? null
-  return container[id] ?? container[String(id)] ?? null
+  return task?.latestMeasurement ?? null
 }
 
 function canSaveTemperature(task) {

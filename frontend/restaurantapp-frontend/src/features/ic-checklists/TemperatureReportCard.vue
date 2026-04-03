@@ -24,26 +24,14 @@
 
 <script setup>
 import { computed } from 'vue'
-import { formatTemperatureTarget, isTemperatureDeviation, isTemperatureTask } from './temperature'
+import { formatTemperatureTarget, isTemperatureTask } from './temperature'
 
 const props = defineProps({
   cards: {
     type: Array,
     default: () => []
-  },
-  temperatureLatestByTaskId: {
-    type: Object,
-    default: null
   }
 })
-
-function latestForTaskId(taskId) {
-  if (!taskId) return null
-  const container = props.temperatureLatestByTaskId
-  if (!container) return null
-  if (typeof container.get === 'function') return container.get(taskId) ?? null
-  return container[taskId] ?? null
-}
 
 const rows = computed(() => {
   const safeCards = Array.isArray(props.cards) ? props.cards : []
@@ -55,9 +43,9 @@ const rows = computed(() => {
       const items = Array.isArray(section?.items) ? section.items : []
       items.forEach((task) => {
         if (!isTemperatureTask(task)) return
-        const latest = latestForTaskId(task.id)
+        const latest = task?.latestMeasurement ?? null
         const valueC = latest && Number.isFinite(Number(latest.valueC)) ? Number(latest.valueC) : null
-        const isDev = valueC !== null ? isTemperatureDeviation(task, valueC) : false
+        const isDev = Boolean(latest?.deviation)
 
         result.push({
           key: `${card?.id ?? 'card'}:${task.id ?? task.label}`,
@@ -174,4 +162,3 @@ const deviationCount = computed(() => rows.value.filter((row) => row.isDeviation
   color: var(--color-text-muted);
 }
 </style>
-
