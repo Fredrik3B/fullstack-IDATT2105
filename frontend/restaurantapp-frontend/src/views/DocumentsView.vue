@@ -187,21 +187,22 @@
         </Teleport>
 
         <!-- Certificate expiry alert -->
-        <div v-if="expiryAlerts.length > 0" class="expiry-banner">
-          <div class="expiry-banner-header">
-            <AlertTriangle :size="16" class="expiry-icon" />
-            <span class="expiry-banner-title">Certificate alerts</span>
-          </div>
-          <ul class="expiry-list">
-            <li
+        <div v-if="expiryAlerts.length > 0 && !expiryBannerDismissed" class="expiry-banner">
+          <AlertTriangle :size="15" class="expiry-icon" />
+          <span class="expiry-banner-title">Certificate alerts</span>
+          <div class="expiry-chips">
+            <button
               v-for="alert in expiryAlerts"
               :key="alert.id"
-              :class="['expiry-item', alert.expired ? 'expiry-item--expired' : 'expiry-item--warning']"
+              :class="['expiry-chip', alert.expired ? 'expiry-chip--expired' : 'expiry-chip--warning']"
+              type="button"
+              @click="scrollToDoc(alert.id)"
             >
-              <span class="expiry-item-name">{{ alert.name }}</span>
-              <span class="expiry-item-status">{{ alert.label }}</span>
-            </li>
-          </ul>
+              <span class="expiry-chip-name">{{ alert.name }}</span>
+              <span class="expiry-chip-status">{{ alert.label }}</span>
+            </button>
+          </div>
+          <button class="expiry-banner-close" type="button" @click="expiryBannerDismissed = true" aria-label="Dismiss">✕</button>
         </div>
 
         <!-- Loading state -->
@@ -231,6 +232,7 @@
               <div
                 v-for="doc in documentsForCategory(cat.value)"
                 :key="doc.id"
+                :id="`doc-${doc.id}`"
                 class="doc-card"
                 @click="handlePreview(doc)"
               >
@@ -280,6 +282,7 @@ const error = ref(null)
 const searchQuery = ref('')
 const activeCategory = ref('')
 const activeModule = ref('')
+const expiryBannerDismissed = ref(false)
 
 // ── Certificate expiry alerts ──────────────────────────────────────────────
 
@@ -421,6 +424,21 @@ async function handleUpload() {
   } finally {
     uploading.value = false
   }
+}
+
+// ── Expiry banner ──────────────────────────────────────────────────────────
+
+function scrollToDoc(id) {
+  const el = document.getElementById(`doc-${id}`)
+  if (!el) return
+  // Clear category filter so the card is visible
+  activeCategory.value = ''
+  activeModule.value = ''
+  setTimeout(() => {
+    document.getElementById(`doc-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.add('doc-card--highlight')
+    setTimeout(() => el.classList.remove('doc-card--highlight'), 1800)
+  }, 50)
 }
 
 // ── Preview modal ──────────────────────────────────────────────────────────
@@ -1006,19 +1024,16 @@ function expiryLabel(expiryDate) {
 
 /* ── Expiry alert banner ── */
 .expiry-banner {
-  background: var(--color-warning-bg);
-  border: 1px solid var(--color-warning-text);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.expiry-banner-header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-warning-text);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-5);
+  box-shadow: var(--shadow-sm);
 }
 
 .expiry-icon {
@@ -1029,49 +1044,81 @@ function expiryLabel(expiryDate) {
 .expiry-banner-title {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-  color: var(--color-warning-text);
-}
-
-.expiry-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.expiry-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-}
-
-.expiry-item--expired {
-  background: var(--color-danger-bg);
-}
-
-.expiry-item--warning {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.expiry-item-name {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
   color: var(--color-text-primary);
-}
-
-.expiry-item-status {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
 
-.expiry-item--expired .expiry-item-status { color: var(--color-danger-text); }
-.expiry-item--warning .expiry-item-status { color: var(--color-warning-text); }
+.expiry-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.expiry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  transition: filter 0.15s;
+}
+
+.expiry-chip:hover {
+  filter: brightness(0.93);
+}
+
+.expiry-chip--expired {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+}
+
+.expiry-chip--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.expiry-chip-name {
+  font-weight: var(--font-weight-medium);
+}
+
+.expiry-chip-status {
+  opacity: 0.7;
+  font-size: 10px;
+}
+
+.expiry-banner-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: 1;
+  padding: 0 var(--space-1);
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: color 0.15s;
+}
+
+.expiry-banner-close:hover {
+  color: var(--color-text-primary);
+}
+
+.doc-card--highlight {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  animation: card-flash 1.8s ease forwards;
+}
+
+@keyframes card-flash {
+  0%   { outline-color: var(--color-accent); }
+  70%  { outline-color: var(--color-accent); }
+  100% { outline-color: transparent; }
+}
 
 /* ── Upload modal ── */
 .modal-backdrop {
