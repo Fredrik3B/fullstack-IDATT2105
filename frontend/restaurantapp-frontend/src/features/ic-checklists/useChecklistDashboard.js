@@ -1,8 +1,8 @@
-import { computed, ref, watchEffect } from 'vue'
-import { deriveDisplayCards, getCardPeriodEnum, getPeriodKey, seedCompletionMetaForCurrentPeriod } from './recurrence'
+import { computed, ref } from 'vue'
+import { normalizePeriodEnum } from './recurrence'
 import { recalcCardProgress } from './recalcCardProgress'
 import { useNowTick } from './useNowTick'
-import { useTemperatureLog } from './useTemperatureLog'
+import { createTemperatureMeasurement } from '../../api/temperatureMeasurements'
 import { setTaskCompletion, setTaskFlag, submitChecklist } from '../../api/checklists'
 import { useToast } from '@/composables/useToast'
 
@@ -12,24 +12,31 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
   const activePeriod = ref(defaultActivePeriod)
   const now = useNowTick(60_000)
 
-  // Temperature logging is a separate stream of data from checklist task state.
-  // - Task state: completed/todo/pending (pending is "critical/should do", not a deviation log).
-  // - Temperature measurements: time series stored per module/checklist/task.
-  const { measurements: temperatureMeasurements, latestByTaskId: temperatureLatestByTaskId, logTemperature } =
-    useTemperatureLog({ module })
-
-  watchEffect(() => {
-    seedCompletionMetaForCurrentPeriod(cards.value, now.value)
-  })
-
   const displayCards = computed(() => {
-    const derived = deriveDisplayCards(cards.value, { activePeriodLabel: activePeriod.value, now: now.value })
-    derived.forEach((card) => recalcCardProgress(card))
-    return derived
+    const safeCards = Array.isArray(cards.value) ? cards.value : []
+    const activeEnum = normalizePeriodEnum(activePeriod.value)
+
+    return safeCards
+      .map((card, sourceIndex) => ({ ...card, __sourceIndex: sourceIndex }))
+      .filter((card) => {
+        if (!activeEnum) return true
+        const cardEnum = normalizePeriodEnum(card?.period)
+        return !cardEnum || cardEnum === activeEnum
+      })
   })
 
-  function getCardPeriodKey(card, date = new Date()) {
-    return String(card?.activePeriodKey ?? '').trim() || getPeriodKey(getCardPeriodEnum(card) ?? 'daily', date)
+  function getCardPeriodKey(card) {
+    return String(card?.activePeriodKey ?? '').trim()
+  }
+
+  function syncTaskWithResponse(task, response) {
+    if (!task || !response || typeof response !== 'object') return
+    task.state = response.state ?? task.state
+    task.highlighted = Boolean(response.highlighted)
+    task.completedForPeriodKey = response.completedForPeriodKey ?? null
+    task.completedAt = response.completedAt ?? null
+    task.pendingForPeriodKey = response.pendingForPeriodKey ?? null
+    task.latestMeasurement = response.latestMeasurement ?? task.latestMeasurement ?? null
   }
 
   async function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
@@ -40,19 +47,10 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     const task = section && Array.isArray(section.items) ? section.items[taskIndex] : null
     if (!task) return
 
-    const currentPeriodKey = getCardPeriodKey(card, new Date())
+    const currentPeriodKey = getCardPeriodKey(card)
+    if (!currentPeriodKey) return
     const checklistId = card.id
     const taskId = task.id
-
-    // If the task is completed for a *previous* period, treat it as reset before applying the toggle.
-    if (
-      task.state === 'completed' &&
-      task.completedForPeriodKey &&
-      task.completedForPeriodKey !== currentPeriodKey
-    ) {
-      task.state = 'todo'
-      task.completedForPeriodKey = null
-    }
 
     const previous = { ...task }
     if (task.state === 'completed') {
@@ -78,13 +76,8 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
         periodKey: currentPeriodKey,
         completedAt: task.state === 'completed' ? task.completedAt : null
       })
-      if (resp && typeof resp === 'object') {
-        task.state = resp.state ?? task.state
-        task.highlighted = Boolean(resp.highlighted)
-        task.completedForPeriodKey = resp.completedForPeriodKey ?? null
-        task.completedAt = resp.completedAt ?? null
-        task.pendingForPeriodKey = resp.pendingForPeriodKey ?? null
-      }
+      syncTaskWithResponse(task, resp)
+      recalcCardProgress(card)
     } catch (err) {
       Object.assign(task, previous)
       recalcCardProgress(card)
@@ -101,16 +94,10 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     const task = section && Array.isArray(section.items) ? section.items[taskIndex] : null
     if (!task) return
 
-    const currentPeriodKey = getCardPeriodKey(card, new Date())
+    const currentPeriodKey = getCardPeriodKey(card)
+    if (!currentPeriodKey) return
     const checklistId = card.id
     const taskId = task.id
-
-    // If the pending flag belonged to a *previous* period, treat it as reset before applying the toggle.
-    if (task.state === 'pending' && task.pendingForPeriodKey && task.pendingForPeriodKey !== currentPeriodKey) {
-      task.state = 'todo'
-      task.pendingForPeriodKey = null
-      task.highlighted = false
-    }
 
     const previous = { ...task }
     const isPending = task.state === 'pending'
@@ -132,16 +119,10 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
         checklistId,
         taskId,
         state: task.state === 'pending' ? 'pending' : 'todo',
-        periodKey: currentPeriodKey,
-        flaggedAt: task.state === 'pending' ? new Date().toISOString() : null
+        periodKey: currentPeriodKey
       })
-      if (resp && typeof resp === 'object') {
-        task.state = resp.state ?? task.state
-        task.highlighted = Boolean(resp.highlighted)
-        task.completedForPeriodKey = resp.completedForPeriodKey ?? null
-        task.completedAt = resp.completedAt ?? null
-        task.pendingForPeriodKey = resp.pendingForPeriodKey ?? null
-      }
+      syncTaskWithResponse(task, resp)
+      recalcCardProgress(card)
     } catch (err) {
       Object.assign(task, previous)
       recalcCardProgress(card)
@@ -153,14 +134,36 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
   async function logTemperatureMeasurement({ checklistId, taskId, valueC }) {
     if (!checklistId || !taskId) return null
 
-    const card = cards.value.find((c) => c?.id === checklistId)
-    const periodKey = card ? getCardPeriodKey(card, new Date()) : null
+    const card = cards.value.find((entry) => String(entry?.id) === String(checklistId))
+    const periodKey = card ? getCardPeriodKey(card) : null
 
-    // Frontend behavior:
-    // - Log immediately so it can be "reported" in the UI for IC-Food/IC-Alcohol.
-    // Backend behavior (later):
-    // - Persist and return created measurement id/timestamp.
-    return await logTemperature({ checklistId, taskId, valueC, periodKey })
+    try {
+      const created = await createTemperatureMeasurement({ module, checklistId, taskId, valueC, periodKey })
+      if (card) {
+        for (const section of Array.isArray(card.sections) ? card.sections : []) {
+          for (const task of Array.isArray(section.items) ? section.items : []) {
+            if (String(task?.id) === String(taskId)) {
+              task.latestMeasurement = created
+                ? {
+                    id: created.id,
+                    valueC: created.valueC,
+                    measuredAt: created.measuredAt,
+                    periodKey: created.periodKey,
+                    deviation: Boolean(created.deviation)
+                  }
+                : task.latestMeasurement
+              break
+            }
+          }
+        }
+      }
+      toast.success('Temperature reading saved.')
+      return created
+    } catch (err) {
+      console.error('Failed to persist temperature measurement', err)
+      toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not save temperature reading.')
+      return null
+    }
   }
 
   async function submitCard({ cardIndex }) {
@@ -189,8 +192,6 @@ export function useChecklistDashboard({ initialCards, defaultActivePeriod = 'Dai
     toggleTask,
     submitCard,
     logTemperatureMeasurement,
-    temperatureMeasurements,
-    temperatureLatestByTaskId,
     now
   }
 }
