@@ -6,7 +6,6 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-
 public class UnresolvedItemDto {
   private String name;
   private LocalDateTime notDoneBy;
