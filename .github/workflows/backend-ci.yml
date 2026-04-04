@@ -1,15 +1,15 @@
-name: Backend CI
+name: backend CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "dev" ]
     paths:
-      - "Backend/**"
+      - "backend/**"
       - ".github/workflows/backend-ci.yml"
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "dev" ]
     paths:
-      - "Backend/**"
+      - "backend/**"
       - ".github/workflows/backend-ci.yml"
 
 permissions:
@@ -18,10 +18,6 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: Backend
 
     steps:
       - name: Checkout repository
@@ -34,8 +30,14 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Debug paths
+        run: |
+          pwd
+          ls -la
+          ls -la backend
+
       - name: Make Maven wrapper executable
-        run: chmod +x mvnw
+        run: chmod +x backend/mvnw
 
       - name: Verify build
-        run: ./mvnw verify
+        run: backend/mvnw -f backend/pom.xml verify

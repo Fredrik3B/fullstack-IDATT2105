@@ -17,6 +17,9 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "axios": "^1.13.6",
+    "chart.js": "^4.5.1",
+    "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.30",
     "vue-router": "^5.0.3"
@@ -24,6 +27,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitejs/plugin-vue": "^6.0.4",
+    "@vitest/coverage-v8": "^4.1.2",
     "@vitest/eslint-plugin": "^1.6.10",
     "@vue/test-utils": "^2.4.6",
     "cypress": "^15.11.0",
