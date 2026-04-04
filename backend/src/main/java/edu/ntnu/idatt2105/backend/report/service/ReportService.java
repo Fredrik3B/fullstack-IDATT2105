@@ -91,9 +91,9 @@ public class ReportService {
 
     List<ChecklistRecord> records = checklists.stream()
         .map(cl -> {
-          int total = tasksRepository.countByChecklistAndPeriod(cl.getId(), from, to);
-          int completed = tasksRepository.countCompletedByChecklistAndPeriod(cl.getId(), from, to);
-          int deviated = tasksRepository.countDeviatedByChecklistAndPeriod(cl.getId(), from, to);
+          int total = tasksRepository.countByChecklistInPeriod(cl.getId(), from, to);
+          int completed = tasksRepository.countCompletedByChecklistInPeriod(cl.getId(), from, to);
+          int deviated = tasksRepository.countDeviatedByChecklistInPeriod(cl.getId(), from, to);
 
           return ChecklistRecord.builder()
               .name(cl.getName())
