@@ -121,15 +121,16 @@ public class ReportService {
           TaskTemplate template = m.getTask().getTaskTemplate();
           BigDecimal min = template.getTargetMin();
           BigDecimal max = template.getTargetMax();
-          double value = m.getValueC();
+          BigDecimal value = m.getValueC();
 
           return TemperaturePoint.builder()
-              .measuredAt()
+              .measuredAt(m.getMeasuredAt())
               .taskName(template.getTitle())
               .valueC(value)
               .targetMin(min)
               .targetMax(max)
-              .withinRange((min == null || value >= min) && (max == null || value <= max))
+              .withinRange((min == null || m.getValueC().compareTo(min) >= 0) &&
+                  (max == null || m.getValueC().compareTo(max) <= 0))
               .recordedBy(m.getRecordedBy().getFirstName() + " " + m.getRecordedBy().getLastName())
               .build();
         })

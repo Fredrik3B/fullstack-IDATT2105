@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.report.dto.shared;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Data;
@@ -9,9 +10,9 @@ import lombok.Data;
 public class TemperaturePoint {
   private LocalDateTime measuredAt;
   private String taskName;
-  private double valueC;
-  private Double targetMin;
-  private Double targetMax;
+  private BigDecimal valueC;
+  private BigDecimal targetMin;
+  private BigDecimal targetMax;
   private boolean withinRange;
   private String recordedBy;
 
