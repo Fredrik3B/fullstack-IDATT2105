@@ -9,6 +9,8 @@ import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
@@ -166,5 +168,12 @@ public class ReportService {
         .foodStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
         .alcoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
         .build();
+  }
+
+  public DeviationCreatedResponse createDeviationReport(
+      DeviationReport request, UUID userId, UUID organizationId
+  ) {
+
+    return new DeviationCreatedResponse(saved.getID, saved.getCreatedAt())
   }
 }
