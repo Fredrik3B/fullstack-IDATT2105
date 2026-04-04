@@ -15,3 +15,8 @@ export async function fetchSummaryReport({ from, to } = {}) {
   const { data } = await api.get('/api/reports/summary', { params })
   return data
 }
+
+export async function createDeviationReport(report) {
+  const { data } = await api.post('/api/reports/deviations', report)
+  return data
+}

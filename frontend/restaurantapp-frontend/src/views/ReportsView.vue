@@ -26,6 +26,9 @@
             {{ loading ? 'Generating...' : 'Generate report' }}
           </button>
           <button v-if="report" class="btn-export" @click="printReport">Export PDF</button>
+          <button class="btn-deviation" type="button" @click="showDeviationForm = true">
+            Report deviation
+          </button>
         </div>
 
         <div v-if="loading" class="empty-state">
@@ -45,6 +48,13 @@
 
         <InspectionReport v-else-if="reportType === 'inspection'" :report="report" />
         <SummaryReport v-else :report="report" />
+
+        <div v-if="showDeviationForm" class="modal-overlay" @click.self="showDeviationForm = false">
+          <DeviationReportForm
+            @cancel="showDeviationForm = false"
+            @submitted="onDeviationSubmitted"
+          />
+        </div>
       </div>
     </main>
   </div>
@@ -53,8 +63,16 @@
 <script setup>
 import { ref } from 'vue'
 import { fetchInspectionReport, fetchSummaryReport } from '../api/reports'
-import InspectionReport from '../components/reports/InspectionReport.vue'
-import SummaryReport from '../components/reports/SummaryReport.vue'
+import InspectionReport from '@/components/reports/InspectionReport.vue'
+import SummaryReport from '@/components/reports/SummaryReport.vue'
+import DeviationReportForm from '@/components/reports/DeviationReportForm.vue'
+
+const showDeviationForm = ref(false)
+
+function onDeviationSubmitted() {
+  showDeviationForm.value = false
+  if (report.value) loadReport()
+}
 
 const reportType = ref('inspection')
 const report = ref(null)
@@ -230,6 +248,40 @@ function printReport() {
   color: var(--color-text-muted);
   max-width: 400px;
   margin-inline: auto;
+}
+.btn-deviation {
+  height: 36px;
+  padding: 0 var(--space-5);
+  background: var(--color-bg-primary);
+  color: var(--color-danger, #dc2626);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border: 1px solid var(--color-danger, #dc2626);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.btn-deviation:hover {
+  background: var(--color-danger, #dc2626);
+  color: white;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-6);
+}
+.modal-overlay > * {
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 @media print {
