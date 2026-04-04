@@ -11,7 +11,7 @@ import lombok.Data;
 @Builder
 public class InternalSummary {
   private ReportPeriod period;
-  private ComplianceStats matStats;
-  private ComplianceStats alkoholStats;
+  private ComplianceStats foodStats;
+  private ComplianceStats alcoholStats;
   private List<UnresolvedItemDto> unresolvedItems;
 }

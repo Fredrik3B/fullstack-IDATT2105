@@ -146,8 +146,8 @@ public class ReportService {
   public InternalSummary generateSummary(UUID orgId, LocalDateTime from, LocalDateTime to) {
     return InternalSummary.builder()
         .period(new ReportPeriod(from, to))
-        .matStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
-        .alkoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
+        .foodStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
+        .alcoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
         .unresolvedItems(getUnresolvedItems(orgId, from, to))
         .build();
   }
