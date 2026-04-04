@@ -203,6 +203,11 @@
             </div>
           </section>
 
+            <section v-if="report.temperatureLog.length">
+              <h2 class="section-heading">Temperature trend</h2>
+              <TemperatureChart :log="report.temperatureLog" />
+            </section>
+
           <!-- Deviations -->
           <section>
             <h2 class="section-heading">Deviations ({{ report.deviations.length }})</h2>
@@ -234,6 +239,7 @@
 <script setup>
 import { ref } from 'vue'
 import { fetchInspectionReport } from '../api/reports'
+import TemperatureChart from '../components/ui/TemperatureChart.vue'
 
 const report = ref(null)
 const loading = ref(false)
