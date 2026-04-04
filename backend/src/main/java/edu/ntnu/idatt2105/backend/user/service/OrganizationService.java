@@ -191,7 +191,7 @@ public class OrganizationService {
   public List<MemberDto> getMembers(UUID organizationId) {
     return userRepository.findAllByOrganizationId(organizationId).stream()
         .map(organizationMapper::toMemberDto)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   public void removeMember(UUID organizationId, UUID targetUserId, UUID requestingUserId) {

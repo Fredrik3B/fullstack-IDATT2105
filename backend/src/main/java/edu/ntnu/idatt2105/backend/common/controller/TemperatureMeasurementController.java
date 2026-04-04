@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +72,8 @@ public class TemperatureMeasurementController {
 	@ApiResponse(responseCode = "200", description = "Temperature measurements returned")
 	public List<TemperatureMeasurementResponse> fetchMeasurements(
 		@RequestParam IcModule module,
-		@RequestParam(required = false) Instant from,
-		@RequestParam(required = false) Instant to,
+		@RequestParam(required = false) LocalDateTime from,
+		@RequestParam(required = false) LocalDateTime to,
 		Authentication auth
 	) {
 		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();

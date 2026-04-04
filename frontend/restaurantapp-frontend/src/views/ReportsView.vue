@@ -1,116 +1,112 @@
 <template>
   <div class="page-root">
-    <!-- Page banner -->
     <section class="page-banner">
-      <div class="page-banner-inner">
-        <span class="page-tag">Reports</span>
-        <h1 class="page-heading">Audit and <span class="page-accent">inspection reports</span></h1>
-        <p class="page-sub">Automatically generated reports for internal audits and external inspections</p>
-      </div>
+      <!-- ... same banner ... -->
     </section>
 
     <main class="page-main">
       <div class="page-content">
-
-        <!-- Summary row -->
-        <div class="summary-grid">
-          <div class="summary-card">
-            <span class="summary-label">Total this month</span>
-            <span class="summary-value">0</span>
-            <span class="summary-hint">No reports generated</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Internal audits</span>
-            <span class="summary-value summary-value--accent">0</span>
-            <span class="summary-hint">IC-Food and IC-Alcohol</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">External inspections</span>
-            <span class="summary-value">0</span>
-            <span class="summary-hint">Mattilsynet / Skjenkekontrollen</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">Pending export</span>
-            <span class="summary-value summary-value--warning">0</span>
-            <span class="summary-hint">Not exported yet</span>
-          </div>
-        </div>
-
-        <!-- Filter bar -->
         <div class="filter-bar">
           <div class="filter-group">
-            <label class="filter-label" for="filter-type">Type</label>
-            <select class="filter-select" id="filter-type">
-              <option value="">All types</option>
-              <option value="internal">Internal audit</option>
-              <option value="external">External inspection</option>
+            <label class="filter-label">Report type</label>
+            <select class="filter-select" v-model="reportType">
+              <option value="inspection">Full inspection report</option>
+              <option value="summary">Internal summary</option>
             </select>
           </div>
           <div class="filter-group">
-            <label class="filter-label" for="filter-module">Modul</label>
-            <select class="filter-select" id="filter-module">
-              <option value="">All modules</option>
-              <option value="food">IC-Food</option>
-              <option value="alcohol">IC-Alcohol</option>
-            </select>
+            <label class="filter-label">From</label>
+            <input class="filter-input" type="date" v-model="fromDate" />
           </div>
           <div class="filter-group">
-            <label class="filter-label" for="filter-from">From date</label>
-            <input class="filter-input" id="filter-from" type="date" />
+            <label class="filter-label">To</label>
+            <input class="filter-input" type="date" v-model="toDate" />
           </div>
-          <div class="filter-group">
-            <label class="filter-label" for="filter-to">To date</label>
-            <input class="filter-input" id="filter-to" type="date" />
-          </div>
-          <button class="btn-generate" type="button">+ Generate report</button>
+          <button class="btn-generate" @click="loadReport" :disabled="loading">
+            {{ loading ? 'Generating...' : 'Generate report' }}
+          </button>
+          <button v-if="report" class="btn-export" @click="printReport">Export PDF</button>
+          <button class="btn-deviation" type="button" @click="showDeviationForm = true">
+            Report deviation
+          </button>
         </div>
 
-        <!-- Report list -->
-        <section>
-          <h2 class="section-heading">Reports</h2>
+        <div v-if="loading" class="empty-state">
+          <p class="empty-title">Generating report...</p>
+        </div>
 
-          <!-- Empty state -->
-          <div class="empty-state">
-            <div class="empty-icon">&#128196;</div>
-            <p class="empty-title">No reports yet</p>
-            <p class="empty-sub">Reports are generated automatically after completed checklists and audits.</p>
-          </div>
+        <div v-else-if="error" class="empty-state">
+          <p class="empty-title">Failed to load report</p>
+          <p class="empty-sub">{{ error }}</p>
+        </div>
 
-          <!-- Report table (hidden when empty, shown when data exists) -->
-          <div class="report-table" aria-hidden="true" style="display: none;">
-            <div class="report-table-head">
-              <span>Name</span>
-              <span>Type</span>
-              <span>Module</span>
-              <span>Date</span>
-              <span>Status</span>
-              <span>Export</span>
-            </div>
-            <!-- Example row structure (will be rendered by v-for later) -->
-            <div class="report-row">
-              <span class="report-name">Weekly report week 12</span>
-              <span class="report-type">Internal audit</span>
-              <span class="report-module">
-                <span class="module-badge module-badge--food">IC-Food</span>
-              </span>
-              <span class="report-date">20 March 2026</span>
-              <span class="report-status">
-                <span class="status-pill status-pill--ok">Completed</span>
-              </span>
-              <span class="report-actions">
-                <button class="export-btn" type="button">PDF</button>
-                <button class="export-btn" type="button">JSON</button>
-              </span>
-            </div>
-          </div>
-        </section>
+        <div v-else-if="!report" class="empty-state">
+          <div class="empty-icon">&#128196;</div>
+          <p class="empty-title">No report generated</p>
+          <p class="empty-sub">Select a date range and click generate.</p>
+        </div>
 
+        <InspectionReport v-else-if="reportType === 'inspection'" :report="report" />
+        <SummaryReport v-else :report="report" />
+
+        <div v-if="showDeviationForm" class="modal-overlay" @click.self="showDeviationForm = false">
+          <DeviationReportForm
+            @cancel="showDeviationForm = false"
+            @submitted="onDeviationSubmitted"
+          />
+        </div>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { fetchInspectionReport, fetchSummaryReport } from '../api/reports'
+import InspectionReport from '@/components/reports/InspectionReport.vue'
+import SummaryReport from '@/components/reports/SummaryReport.vue'
+import DeviationReportForm from '@/components/reports/DeviationReportForm.vue'
+
+const showDeviationForm = ref(false)
+
+function onDeviationSubmitted() {
+  showDeviationForm.value = false
+  if (report.value) loadReport()
+}
+
+const reportType = ref('inspection')
+const report = ref(null)
+const loading = ref(false)
+const error = ref('')
+
+const today = new Date()
+const monthAgo = new Date(today)
+monthAgo.setMonth(monthAgo.getMonth() - 1)
+const fromDate = ref(monthAgo.toISOString().slice(0, 10))
+const toDate = ref(today.toISOString().slice(0, 10))
+
+async function loadReport() {
+  loading.value = true
+  error.value = ''
+  report.value = null
+  try {
+    const params = {
+      from: fromDate.value + 'T00:00:00',
+      to: toDate.value + 'T23:59:59'
+    }
+    report.value = reportType.value === 'inspection'
+      ? await fetchInspectionReport(params)
+      : await fetchSummaryReport(params)
+  } catch (e) {
+    error.value = e.response?.data?.detail || e.message || 'Unknown error'
+  } finally {
+    loading.value = false
+  }
+}
+
+function printReport() {
+  window.print()
+}
 </script>
 
 <style scoped>
@@ -119,13 +115,11 @@
   background: var(--color-bg-secondary);
 }
 
-/* ── Page banner ── */
 .page-banner {
   background: var(--color-dark-primary);
   border-bottom: 1px solid var(--color-dark-secondary);
   padding: var(--space-10) var(--space-6);
 }
-
 .page-banner-inner {
   max-width: 960px;
   margin: 0 auto;
@@ -133,7 +127,6 @@
   flex-direction: column;
   gap: var(--space-3);
 }
-
 .page-tag {
   display: inline-block;
   font-size: var(--font-size-xs);
@@ -146,7 +139,6 @@
   padding: 3px var(--space-3);
   align-self: flex-start;
 }
-
 .page-heading {
   margin: 0;
   font-size: var(--font-size-3xl);
@@ -154,22 +146,14 @@
   color: #ffffff;
   line-height: var(--line-height-tight);
 }
-
-.page-accent {
-  color: var(--color-accent);
-}
-
+.page-accent { color: var(--color-accent); }
 .page-sub {
   margin: 0;
   font-size: var(--font-size-md);
   color: var(--color-dark-border);
 }
 
-/* ── Main ── */
-.page-main {
-  padding: var(--space-10) var(--space-6);
-}
-
+.page-main { padding: var(--space-10) var(--space-6); }
 .page-content {
   max-width: 960px;
   margin: 0 auto;
@@ -178,45 +162,6 @@
   gap: var(--space-8);
 }
 
-/* ── Summary row ── */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
-}
-
-.summary-card {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  box-shadow: var(--shadow-sm);
-}
-
-.summary-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-}
-
-.summary-value {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.summary-value--accent  { color: var(--color-accent-text); }
-.summary-value--warning { color: var(--color-warning); }
-
-.summary-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-hint);
-}
-
-/* ── Filter bar ── */
 .filter-bar {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -228,19 +173,16 @@
   flex-wrap: wrap;
   box-shadow: var(--shadow-sm);
 }
-
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
-
 .filter-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
 }
-
 .filter-select,
 .filter-input {
   height: 36px;
@@ -252,14 +194,9 @@
   background: var(--color-bg-primary);
   font-family: inherit;
   outline: none;
-  transition: border-color var(--transition-fast);
 }
-
 .filter-select:focus,
-.filter-input:focus {
-  border-color: var(--color-dark-secondary);
-}
-
+.filter-input:focus { border-color: var(--color-dark-secondary); }
 .btn-generate {
   margin-left: auto;
   height: 36px;
@@ -272,23 +209,24 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   font-family: inherit;
-  transition: opacity var(--transition-fast);
   white-space: nowrap;
 }
-
-.btn-generate:hover {
-  opacity: 0.85;
-}
-
-/* ── Section heading ── */
-.section-heading {
-  margin: 0 0 var(--space-4) 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
+.btn-generate:hover { opacity: 0.85; }
+.btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-export {
+  height: 36px;
+  padding: 0 var(--space-5);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
 }
+.btn-export:hover { border-color: var(--color-dark-primary); }
 
-/* ── Empty state ── */
 .empty-state {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -297,19 +235,13 @@
   text-align: center;
   box-shadow: var(--shadow-sm);
 }
-
-.empty-icon {
-  font-size: 40px;
-  margin-bottom: var(--space-4);
-}
-
+.empty-icon { font-size: 40px; margin-bottom: var(--space-4); }
 .empty-title {
-  margin: 0 0 var(--space-2) 0;
+  margin: 0 0 var(--space-2);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
-
 .empty-sub {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -317,121 +249,49 @@
   max-width: 400px;
   margin-inline: auto;
 }
-
-/* ── Report table ── */
-.report-table {
+.btn-deviation {
+  height: 36px;
+  padding: 0 var(--space-5);
   background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-.report-table-head {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-bg-tertiary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.report-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
-  padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--color-border-subtle);
-  align-items: center;
+  color: var(--color-danger, #dc2626);
   font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-}
-
-.report-row:last-child {
-  border-bottom: none;
-}
-
-.report-name {
-  font-weight: var(--font-weight-medium);
-}
-
-.report-date {
-  color: var(--color-text-muted);
-}
-
-.module-badge {
-  display: inline-block;
-  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-}
-
-.module-badge--food {
-  background: var(--color-accent-light);
-  color: var(--color-accent-text);
-}
-
-.module-badge--alcohol {
-  background: var(--color-bg-subtle);
-  color: var(--color-dark-tertiary);
-}
-
-.status-pill {
-  display: inline-block;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-}
-
-.status-pill--ok {
-  background: var(--color-success-bg);
-  color: var(--color-success-text);
-}
-
-.status-pill--pending {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-
-.report-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.export-btn {
-  padding: 3px var(--space-3);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-primary);
-  color: var(--color-text-secondary);
+  border: 1px solid var(--color-danger, #dc2626);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-family: inherit;
-  transition: border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+.btn-deviation:hover {
+  background: var(--color-danger, #dc2626);
+  color: white;
 }
 
-.export-btn:hover {
-  border-color: var(--color-dark-primary);
-  color: var(--color-dark-primary);
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-6);
+}
+.modal-overlay > * {
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-/* ── Responsive ── */
+@media print {
+  .page-banner, .filter-bar { display: none; }
+  .page-root { background: white; }
+  .page-main { padding: 0; }
+}
+
 @media (max-width: 900px) {
-  .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .btn-generate {
-    margin-left: 0;
-  }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .btn-generate { margin-left: 0; }
 }
 </style>

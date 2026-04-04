@@ -1,5 +1,7 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
+import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import java.util.Set;
 import java.util.UUID;
 
@@ -103,30 +105,33 @@ public class UserService {
     );
   }
 
+  // With new relationship this can be shortened
+  // might have screwed things up here, org join code gone
+  // use enums
   public MeResponse getMe(UUID userId) {
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
     String name = (user.getFirstName() + " " + user.getLastName()).trim();
-    UUID orgId = user.getOrganization() != null ? user.getOrganization().getId() : null;
+    UUID orgId = user.getOrganization().getId();
 
     if (orgId != null) {
-      return organizationRepository.findById(orgId)
-          .map(org -> new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "active", orgId, org.getName(), org.getJoinCode()))
-          .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "active", orgId, null, null));
+      OrganizationModel org = organizationRepository.findById(orgId)
+          .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+      return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
+          "active", org.getId(), org.getName(), org.getJoinCode());
     }
 
     return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
         .map(request -> {
-          String orgName = organizationRepository.findById(request.getOrganizationId())
-              .map(org -> org.getName())
-              .orElse(null);
+          OrganizationModel org = organizationRepository.findById(orgId)
+              .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
           return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "pending", request.getOrganizationId(), orgName, null);
+              "pending", org.getId(), org.getName(), null);
         })
         .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
             null, null, null, null));
+
   }
+
 }

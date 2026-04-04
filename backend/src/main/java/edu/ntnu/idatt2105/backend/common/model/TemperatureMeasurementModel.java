@@ -13,9 +13,13 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "temperature_measurements")
 public class TemperatureMeasurementModel extends AuditableEntity {
 
@@ -38,7 +42,7 @@ public class TemperatureMeasurementModel extends AuditableEntity {
 	private BigDecimal valueC;
 
 	@Column(name = "measured_at", nullable = false)
-	private Instant measuredAt;
+	private LocalDateTime measuredAt;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "organization_id", nullable = false)
@@ -51,71 +55,7 @@ public class TemperatureMeasurementModel extends AuditableEntity {
 	@PrePersist
 	public void setDefaultMeasuredAt() {
 		if (measuredAt == null) {
-			measuredAt = Instant.now();
+			measuredAt = LocalDateTime.now();
 		}
-	}
-
-	public ComplianceArea getComplianceArea() {
-		return complianceArea;
-	}
-
-	public void setComplianceArea(ComplianceArea complianceArea) {
-		this.complianceArea = complianceArea;
-	}
-
-	public ChecklistModel getChecklist() {
-		return checklist;
-	}
-
-	public void setChecklist(ChecklistModel checklist) {
-		this.checklist = checklist;
-	}
-
-	public TasksModel getTask() {
-		return task;
-	}
-
-	public void setTask(TasksModel task) {
-		this.task = task;
-	}
-
-	public String getPeriodKey() {
-		return periodKey;
-	}
-
-	public void setPeriodKey(String periodKey) {
-		this.periodKey = periodKey;
-	}
-
-	public BigDecimal getValueC() {
-		return valueC;
-	}
-
-	public void setValueC(BigDecimal valueC) {
-		this.valueC = valueC;
-	}
-
-	public Instant getMeasuredAt() {
-		return measuredAt;
-	}
-
-	public void setMeasuredAt(Instant measuredAt) {
-		this.measuredAt = measuredAt;
-	}
-
-	public OrganizationModel getOrganization() {
-		return organization;
-	}
-
-	public void setOrganization(OrganizationModel organization) {
-		this.organization = organization;
-	}
-
-	public UserModel getRecordedBy() {
-		return recordedBy;
-	}
-
-	public void setRecordedBy(UserModel recordedBy) {
-		this.recordedBy = recordedBy;
 	}
 }

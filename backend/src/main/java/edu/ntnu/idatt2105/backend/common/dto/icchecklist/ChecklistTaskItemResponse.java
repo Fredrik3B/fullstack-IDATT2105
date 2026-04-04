@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.common.dto.icchecklist;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 public record ChecklistTaskItemResponse(
 	Long id,
@@ -15,7 +16,7 @@ public record ChecklistTaskItemResponse(
 	String state,
 	Boolean highlighted,
 	String completedForPeriodKey,
-	Instant completedAt,
+	LocalDateTime completedAt,
 	String pendingForPeriodKey,
 	TemperatureMeasurementSummaryResponse latestMeasurement
 ) {
