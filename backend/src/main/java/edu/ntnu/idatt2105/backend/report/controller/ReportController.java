@@ -66,10 +66,10 @@ public class ReportController {
     if (from == null) from = LocalDateTime.now().minusMonths(1);
     if (to == null) to = LocalDateTime.now();
 
-//    InspectionReport report = reportService.generateInspection(orgId, from, to);
+    InspectionReport report = reportService.generateInspection(orgId, from, to);
 
     // export to pdf
 
-    return ResponseEntity.ok().build();
+    return ResponseEntity.ok(report);
   }
 }
