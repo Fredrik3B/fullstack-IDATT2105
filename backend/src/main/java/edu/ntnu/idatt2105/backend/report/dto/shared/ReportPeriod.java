@@ -1,6 +1,5 @@
-package edu.ntnu.idatt2105.backend.report.dto;
+package edu.ntnu.idatt2105.backend.report.dto.shared;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

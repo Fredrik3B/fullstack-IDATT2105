@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.report.dto;
+package edu.ntnu.idatt2105.backend.report.dto.shared;
 
 import lombok.Builder;
 import lombok.Data;
