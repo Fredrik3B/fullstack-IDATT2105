@@ -42,7 +42,7 @@ public class ReportController {
   }
 
   @Operation(summary = "Full inspection report data")
-  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+//  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
   @GetMapping("/full-report")
   public ResponseEntity<InspectionReport> getInspection(
       @RequestParam(required = false) LocalDateTime from,

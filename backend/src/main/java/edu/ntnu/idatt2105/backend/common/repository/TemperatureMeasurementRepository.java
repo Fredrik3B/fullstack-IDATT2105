@@ -28,14 +28,12 @@ public interface TemperatureMeasurementRepository extends JpaRepository<Temperat
 
 	@Query("SELECT COUNT(m) FROM TemperatureMeasurementModel m " +
 			"WHERE m.organization.id = :orgId " +
-			"AND m.measuredAt BETWEEN :from AND :to " +
-			"AND m.complianceArea = :area")
+			"AND m.measuredAt BETWEEN :from AND :to ")
 	int countReadingsInPeriod(UUID orgId, LocalDateTime from, LocalDateTime to);
 
 	@Query("SELECT COUNT(m) FROM TemperatureMeasurementModel m " +
 			"WHERE m.organization.id = :orgId " +
 			"AND m.measuredAt BETWEEN :from AND :to " +
-			"AND m.complianceArea = :area " +
 			"AND (m.valueC < m.task.taskTemplate.targetMin OR m.valueC > m.task.taskTemplate.targetMax)")
 	int countOutOfRangeInPeriod(UUID orgId, LocalDateTime from, LocalDateTime to);
 
