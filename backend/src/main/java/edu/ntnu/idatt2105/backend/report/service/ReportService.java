@@ -20,6 +20,8 @@ import edu.ntnu.idatt2105.backend.report.dto.shared.OrgSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ReportPeriod;
 import edu.ntnu.idatt2105.backend.report.dto.shared.TemperaturePoint;
 import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
+import edu.ntnu.idatt2105.backend.report.model.DeviationReportModel;
+import edu.ntnu.idatt2105.backend.report.repository.DeviationReportRepository;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
@@ -42,6 +44,7 @@ public class ReportService {
   private final UserRepository userRepository;
   private final OrganizationRepository organizationRepository;
   private final TaskMapper taskMapper;
+  private final DeviationReportRepository deviationReportRepository;
 
   private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to, ComplianceArea area) {
     int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
@@ -173,7 +176,26 @@ public class ReportService {
   public DeviationCreatedResponse createDeviationReport(
       DeviationReport request, UUID userId, UUID organizationId
   ) {
+    OrganizationModel org = organizationRepository.findById(organizationId)
+        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+    UserModel user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-    return new DeviationCreatedResponse(saved.getID, saved.getCreatedAt())
+    DeviationReportModel entity = new DeviationReportModel();
+    entity.setOrganization(org);
+    entity.setReportedByUser(user);
+    entity.setDeviationName(request.getDeviationName());
+    entity.setSeverity(request.getSeverity());
+    entity.setOccurredAt(request.getOccurredAt());
+    entity.setNoticedBy(request.getNoticedBy());
+    entity.setReportedTo(request.getReportedTo());
+    entity.setProcessedBy(request.getProcessedBy());
+    entity.setDescription(request.getDescription());
+    entity.setImmediateAction(request.getImmediateAction());
+    entity.setCorrectiveMeasures(request.getCorrectiveMeasures());
+    entity.setCorrectiveMeasuresDone(request.getCorrectiveMeasuresDone());
+
+    DeviationReportModel saved = deviationReportRepository.save(entity);
+    return new DeviationCreatedResponse(saved.getId(), saved.getCreatedAt());
   }
 }

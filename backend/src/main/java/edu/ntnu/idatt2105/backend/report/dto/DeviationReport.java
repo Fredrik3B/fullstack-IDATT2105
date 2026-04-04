@@ -27,7 +27,7 @@ public class DeviationReport {
 
   @NotNull
   @Schema(description = "Time of when the deviation happened")
-  private LocalDateTime timestamp;
+  private LocalDateTime occurredAt;
 
   @NotBlank
   @Schema(description = "Deviation noticed by")

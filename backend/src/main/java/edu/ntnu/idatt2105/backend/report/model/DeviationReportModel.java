@@ -1,13 +1,18 @@
 package edu.ntnu.idatt2105.backend.report.model;
 
 import edu.ntnu.idatt2105.backend.common.model.enums.DeviationSeverity;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
+import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -25,11 +30,13 @@ public class DeviationReportModel {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(nullable = false)
-  private UUID organizationId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "organization_id", nullable = false)
+  private OrganizationModel organization;
 
-  @Column(nullable = false)
-  private UUID reportedByUserId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "reported_by_user_id", nullable = false)
+  private UserModel reportedByUser;
 
   @Column(nullable = false, length = 200)
   private String deviationName;
@@ -39,7 +46,7 @@ public class DeviationReportModel {
   private DeviationSeverity severity;
 
   @Column(nullable = false)
-  private LocalDateTime timestamp;
+  private LocalDateTime occurredAt;
 
   @Column(nullable = false)
   private String noticedBy;
