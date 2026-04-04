@@ -84,6 +84,8 @@ public class ReportController {
         (JwtAuthenticatedPrincipal) auth.getPrincipal();
     DeviationCreatedResponse response = reportService.createDeviationReport(
         request, principal.getUserId(), principal.getOrganizationId());
+
+    return ResponseEntity.ok(response);
   }
 
 }
