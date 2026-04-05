@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {
     "edu.ntnu.idatt2105.backend",
-    "no.ntnu.resturant_manager"
 })
 @EntityScan(basePackages = {
     "edu.ntnu.idatt2105.backend",
@@ -15,7 +14,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 })
 @EnableJpaRepositories(basePackages = {
     "edu.ntnu.idatt2105.backend",
-    "no.ntnu.resturant_manager"
 })
 public class BackendApplication {
 
