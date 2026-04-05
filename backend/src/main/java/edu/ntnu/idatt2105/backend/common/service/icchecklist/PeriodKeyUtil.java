@@ -109,6 +109,27 @@ public final class PeriodKeyUtil {
 		return LocalDate.parse(key, DateTimeFormatter.ISO_LOCAL_DATE).plusDays(1).toString();
 	}
 
+	public static LocalDate periodStartDate(ChecklistFrequency frequency, String periodKey) {
+		validatePeriodKey(periodKey, frequency);
+		ChecklistFrequency freq = frequency != null ? frequency : ChecklistFrequency.DAILY;
+		String key = periodKey.trim();
+
+		if (freq == ChecklistFrequency.MONTHLY) {
+			return YearMonth.parse(key, MONTH_FORMATTER).atDay(1);
+		}
+
+		if (freq == ChecklistFrequency.WEEKLY) {
+			int isoYear = Integer.parseInt(key.substring(0, 4));
+			int week = Integer.parseInt(key.substring(6, 8));
+			return LocalDate.of(isoYear, 1, 4)
+				.with(IsoFields.WEEK_BASED_YEAR, isoYear)
+				.with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, week)
+				.with(WeekFields.ISO.dayOfWeek(), 1);
+		}
+
+		return LocalDate.parse(key, DateTimeFormatter.ISO_LOCAL_DATE);
+	}
+
 	private static String normalizePeriod(String period) {
 		String raw = String.valueOf(period == null ? "" : period).trim();
 		if (raw.isEmpty()) return "daily";

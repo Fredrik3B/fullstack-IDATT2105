@@ -103,19 +103,35 @@
       </ul>
     </div>
 
-    <footer class="submit-bar" :class="{ overdue: periodExpired }">
+    <footer class="submit-bar" :class="{ overdue: periodExpired, blocked: !canSubmitCurrentPeriod }">
       <div class="submit-copy">
         <div class="submit-title">
           {{
-            periodExpired
+            !canSubmitCurrentPeriod
+              ? 'Submission locked until the next real period starts'
+              : periodExpired
               ? 'This checklist period has ended'
               : 'Submit when this checklist is ready'
           }}
         </div>
+        <div v-if="!canSubmitCurrentPeriod" class="submit-state-chip">
+          Waiting for {{ activePeriodKey }}
+        </div>
         <p class="submit-text">{{ submitWarning }}</p>
       </div>
-      <button type="button" class="submit-button" @click="handleSubmitChecklist">
-        {{ periodExpired ? 'Submit and load next period' : 'Submit checklist' }}
+      <button
+        type="button"
+        class="submit-button"
+        :disabled="!canSubmitCurrentPeriod"
+        @click="handleSubmitChecklist"
+      >
+        {{
+          !canSubmitCurrentPeriod
+            ? 'Waiting for next period'
+            : periodExpired
+            ? 'Submit and load next period'
+            : 'Submit checklist'
+        }}
       </button>
     </footer>
 
@@ -146,7 +162,7 @@
 
 <script setup>
 import { computed, reactive } from 'vue'
-import { getPeriodEnd, isPeriodExpired, normalizePeriodEnum } from './recurrence'
+import { getPeriodEnd, getPeriodKey, isPeriodExpired, normalizePeriodEnum } from './recurrence'
 import { formatTemperatureTarget, isTemperatureTask } from './temperature'
 
 const temperatureDraftByTaskId = reactive({})
@@ -237,6 +253,12 @@ const periodEnd = computed(() => getPeriodEnd(props.period, props.activePeriodKe
 const periodExpired = computed(() =>
   isPeriodExpired(props.period, props.activePeriodKey, activeDate.value),
 )
+const currentPeriodKey = computed(() => getPeriodKey(props.period, activeDate.value))
+const canSubmitCurrentPeriod = computed(() => {
+  const activeKey = String(props.activePeriodKey ?? '').trim()
+  const currentKey = String(currentPeriodKey.value ?? '').trim()
+  return Boolean(activeKey) && activeKey === currentKey
+})
 const periodLabel = computed(() => {
   const normalized = normalizePeriodEnum(props.period)
   if (normalized === 'weekly') return 'weekly'
@@ -254,6 +276,9 @@ const formattedPeriodEnd = computed(() => {
   }).format(periodEnd.value)
 })
 const submitWarning = computed(() => {
+  if (!canSubmitCurrentPeriod.value) {
+    return `This checklist was already submitted once, so the system has prepared the next ${periodLabel.value} run with period key ${props.activePeriodKey}. To prevent skipping ahead, submit stays locked until that real ${periodLabel.value} period actually begins.`
+  }
   if (periodExpired.value) {
     return `The current ${periodLabel.value} run ended${formattedPeriodEnd.value ? ` at ${formattedPeriodEnd.value}` : ''}. Submit it to lock the entries and load a fresh set of tasks with new ids.`
   }
@@ -273,6 +298,7 @@ function handleEditChecklist() {
 }
 
 function handleSubmitChecklist() {
+  if (!canSubmitCurrentPeriod.value) return
   openConfirmDialog({
     kicker: periodExpired.value ? 'Period Ended' : 'Submit Checklist',
     title: periodExpired.value ? 'Start the next checklist period?' : 'Submit this checklist now?',
@@ -714,6 +740,12 @@ p {
   background: var(--color-warning-bg);
 }
 
+.submit-bar.blocked {
+  background:
+    linear-gradient(135deg, rgba(218, 228, 246, 0.92), rgba(242, 245, 250, 0.98));
+  border-top-color: rgba(68, 92, 133, 0.22);
+}
+
 .submit-copy {
   min-width: 0;
 }
@@ -730,8 +762,23 @@ p {
   color: var(--color-text-muted);
 }
 
+.submit-state-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(68, 92, 133, 0.12);
+  color: #31496d;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+}
+
 .submit-button {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: var(--radius-md);
   min-height: 40px;
@@ -741,7 +788,19 @@ p {
   font: inherit;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
+  text-align: center;
+  white-space: normal;
   cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease;
+}
+
+.submit-button:disabled {
+  background: #c7d1e0;
+  color: #53657f;
+  cursor: not-allowed;
 }
 
 .confirm-overlay {
@@ -847,6 +906,10 @@ p {
   .progress-track,
   .submit-button {
     width: 100%;
+  }
+
+  .submit-button {
+    min-height: 44px;
   }
 
   .task-row {

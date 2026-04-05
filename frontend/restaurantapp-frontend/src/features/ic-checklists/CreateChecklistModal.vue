@@ -13,6 +13,28 @@
       </header>
 
       <form class="modal-body" @submit.prevent="handleSubmit">
+        <div class="editor-actions">
+          <button
+            v-if="isEditMode && displayedOnWorkbench"
+            type="button"
+            class="ghost"
+            :disabled="submitting"
+            @click="openRemoveFromWorkbenchConfirm"
+          >
+            Remove from workbench
+          </button>
+          <div class="editor-actions-spacer"></div>
+          <button v-if="isEditMode" type="button" class="danger" :disabled="submitting" @click="emitDelete">
+            Delete checklist
+          </button>
+          <button type="button" class="secondary" :disabled="submitting" @click="handleClose">
+            Cancel
+          </button>
+          <button type="submit" class="primary" :disabled="submitting">
+            {{ submitButtonLabel }}
+          </button>
+        </div>
+
         <section class="section-card">
           <div class="section-heading">
             <h3>Checklist details</h3>
@@ -82,12 +104,12 @@
                 <span class="setting-text">
                   {{
                     recurring
-                      ? 'Keep the checklist active for the next scheduled run.'
-                      : 'Return the checklist to the library after submission.'
+                      ? 'Prepare the next scheduled run as soon as this checklist is submitted.'
+                      : 'Keep it on the workbench, but wait for the next real period before opening a fresh run.'
                   }}
                 </span>
               </span>
-              <span class="setting-value">{{ recurring ? 'Repeats' : 'Library only' }}</span>
+              <span class="setting-value">{{ recurring ? 'Auto-starts' : 'Waits' }}</span>
             </button>
           </div>
         </section>
@@ -127,18 +149,34 @@
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
 
-        <footer class="modal-footer">
-          <button v-if="isEditMode" type="button" class="danger" @click="emitDelete">
-            Delete checklist
-          </button>
-          <button type="button" class="secondary" :disabled="submitting" @click="handleClose">
-            Cancel
-          </button>
-          <button type="submit" class="primary" :disabled="submitting">
-            {{ submitButtonLabel }}
-          </button>
-        </footer>
       </form>
+
+      <div
+        v-if="removeWorkbenchConfirm.open"
+        class="confirm-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Remove from workbench"
+      >
+        <div class="confirm-dialog warning">
+          <div class="confirm-kicker">{{ moduleLabel }}</div>
+          <h3>Remove checklist from workbench?</h3>
+          <p>"{{ removeWorkbenchConfirm.title }}" will be removed from the workbench.</p>
+          <div class="confirm-detail">
+            This deletes the current active task entries for this checklist and any temperature
+            measurements attached to that active run. The checklist itself stays in the library and
+            can be opened again later.
+          </div>
+          <div class="confirm-actions">
+            <button type="button" class="confirm-secondary" @click="closeRemoveFromWorkbenchConfirm">
+              Cancel
+            </button>
+            <button type="button" class="confirm-warning" @click="confirmRemoveFromWorkbench">
+              Remove from workbench
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -160,7 +198,15 @@ const props = defineProps({
   moduleLabel: { type: String, default: '' },
 })
 
-const emit = defineEmits(['update:open', 'close', 'created', 'updated', 'delete', 'manage-tasks'])
+const emit = defineEmits([
+  'update:open',
+  'close',
+  'created',
+  'updated',
+  'delete',
+  'manage-tasks',
+  'remove-from-workbench',
+])
 
 const title = ref('')
 const subtitle = ref('')
@@ -172,6 +218,10 @@ const poolTasks = ref([])
 const selectedTaskIds = ref([])
 const loadingTasks = ref(false)
 const submitting = ref(false)
+const removeWorkbenchConfirm = ref({
+  open: false,
+  title: '',
+})
 
 const isEditMode = computed(() => props.mode === 'edit')
 const modalTitle = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
@@ -285,6 +335,7 @@ watch(
 
 function handleClose() {
   if (submitting.value) return
+  closeRemoveFromWorkbenchConfirm()
   emit('update:open', false)
   emit('close')
 }
@@ -330,6 +381,32 @@ function emitDelete() {
     title: title.value.trim() || props.initialCard?.title || 'this checklist',
   })
 }
+
+function emitRemoveFromWorkbench() {
+  emit('remove-from-workbench', {
+    id: props.initialCard?.id ?? null,
+    title: title.value.trim() || props.initialCard?.title || 'this checklist',
+  })
+}
+
+function openRemoveFromWorkbenchConfirm() {
+  removeWorkbenchConfirm.value = {
+    open: true,
+    title: title.value.trim() || props.initialCard?.title || 'this checklist',
+  }
+}
+
+function closeRemoveFromWorkbenchConfirm() {
+  removeWorkbenchConfirm.value = {
+    open: false,
+    title: '',
+  }
+}
+
+function confirmRemoveFromWorkbench() {
+  closeRemoveFromWorkbenchConfirm()
+  emitRemoveFromWorkbench()
+}
 </script>
 
 <style scoped>
@@ -355,6 +432,7 @@ function emitDelete() {
   border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
+  position: relative;
 }
 
 .modal-header {
@@ -404,6 +482,22 @@ h2 {
   overflow: auto;
   display: grid;
   gap: var(--space-4);
+}
+
+.editor-actions {
+  position: sticky;
+  top: -24px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 8px;
+  background: linear-gradient(to bottom, var(--color-bg-primary) 80%, rgba(255, 255, 255, 0));
+}
+
+.editor-actions-spacer {
+  flex: 1 1 auto;
 }
 
 .section-card {
@@ -599,32 +693,63 @@ h2 {
   color: #a11d2d;
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
+.ghost,
 .danger,
 .primary,
 .secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
   padding: 0 16px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
+  text-align: center;
+  white-space: normal;
   cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.primary,
+.secondary {
+  min-width: 132px;
+}
+
+.ghost {
+  background: #eef3fb;
+  border-color: #cad7ea;
+  color: #39516d;
+}
+
+.ghost:hover {
+  background: #dde8f7;
+  border-color: #afc4e0;
+  color: #233c58;
 }
 
 .danger {
-  margin-right: auto;
   background: rgba(255, 232, 232, 0.98);
   color: #a11d2d;
+}
+
+.danger:hover {
+  background: rgba(255, 214, 214, 0.98);
+  border-color: rgba(161, 29, 45, 0.24);
+  color: #861625;
 }
 
 .primary {
   background: var(--color-dark-secondary);
   color: white;
+}
+
+.primary:hover {
+  background: #1c3653;
 }
 
 .secondary {
@@ -633,15 +758,181 @@ h2 {
   color: var(--color-text-primary);
 }
 
+.secondary:hover {
+  background: #e9eef4;
+  border-color: #b7c2d0;
+  color: #21344b;
+}
+
+.ghost:hover,
+.danger:hover,
+.primary:hover,
+.secondary:hover {
+  transform: translateY(-1px);
+}
+
+.ghost:focus-visible,
+.danger:focus-visible,
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(58, 91, 132, 0.18);
+}
+
+.ghost:disabled,
+.danger:disabled,
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.confirm-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(16, 18, 33, 0.48);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-dialog {
+  width: min(460px, 100%);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  box-shadow: 0 28px 60px rgba(10, 14, 24, 0.28);
+  padding: var(--space-5);
+}
+
+.confirm-dialog.warning {
+  border-color: var(--color-warning-border);
+  background: #fffdf5;
+}
+
+.confirm-kicker {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.confirm-dialog h3 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--color-text-primary);
+}
+
+.confirm-dialog p {
+  margin: 10px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.confirm-detail {
+  margin-top: 12px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.confirm-secondary,
+.confirm-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    transform 140ms ease;
+}
+
+.confirm-secondary {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.confirm-warning {
+  background: #d6723b;
+  color: #ffffff;
+}
+
+.confirm-secondary:hover,
+.confirm-warning:hover {
+  transform: translateY(-1px);
+}
+
+.confirm-secondary:hover {
+  background: #e9eef4;
+}
+
+.confirm-warning:hover {
+  background: #bc5c28;
+}
+
 @media (max-width: 720px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .editor-actions {
+    flex-direction: column;
+    align-items: stretch;
+    position: static;
+    padding-bottom: 0;
+    background: transparent;
+  }
+
+  .editor-actions-spacer {
+    display: none;
   }
 
   .setting-row,
   .task-pool-linkbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .ghost,
+  .danger,
+  .primary,
+  .secondary {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-secondary,
+  .confirm-warning {
+    width: 100%;
   }
 }
 </style>

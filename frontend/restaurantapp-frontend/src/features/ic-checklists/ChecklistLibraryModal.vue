@@ -46,7 +46,7 @@
                 {{ card.displayedOnWorkbench !== false ? 'On workbench' : 'In library' }}
               </span>
               <span class="mode-pill" :class="{ recurring: card.recurring !== false }">
-                {{ card.recurring !== false ? 'Repeats after submit' : 'Returns to library' }}
+                {{ card.recurring !== false ? 'Auto-starts next period' : 'Waits for next period' }}
               </span>
               <button
                 type="button"

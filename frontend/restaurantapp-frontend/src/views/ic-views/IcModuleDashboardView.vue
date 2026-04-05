@@ -47,6 +47,7 @@ const {
   handleUpdatedChecklist,
   handleDeleteChecklist,
   openChecklistOnWorkbench,
+  removeChecklistFromWorkbench,
 } = useIcModulePage(config)
 </script>
 
@@ -91,6 +92,7 @@ const {
     @manage-tasks="openTaskPoolModal"
     @close="closeEditModal"
     @delete="requestDeleteChecklist"
+    @remove-from-workbench="removeChecklistFromWorkbench"
     @updated="handleUpdatedChecklist"
   />
 

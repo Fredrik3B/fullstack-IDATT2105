@@ -283,6 +283,33 @@ export function useIcModulePage({ module, moduleLabel }) {
     }
   }
 
+  async function removeChecklistFromWorkbench(card) {
+    if (!card?.id) return
+
+    try {
+      await setChecklistWorkbenchState({
+        checklistId: card.id,
+        displayedOnWorkbench: false,
+      })
+      await reloadChecklists()
+      isEditOpen.value = false
+      editingCardIndex.value = null
+      toast.success('Checklist removed from workbench.')
+    } catch (err) {
+      console.error('Failed to remove checklist from workbench', err)
+      if (isChecklistMissing(err)) {
+        await reloadChecklists()
+        isEditOpen.value = false
+        editingCardIndex.value = null
+      }
+      toast.warning(
+        err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not remove checklist from workbench.',
+      )
+    }
+  }
+
   return {
     activePeriod,
     cards,
@@ -315,5 +342,6 @@ export function useIcModulePage({ module, moduleLabel }) {
     handleUpdatedChecklist,
     handleDeleteChecklist,
     openChecklistOnWorkbench,
+    removeChecklistFromWorkbench,
   }
 }

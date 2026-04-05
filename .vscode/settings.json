@@ -1,5 +1,22 @@
 {
     "java.compile.nullAnalysis.mode": "automatic",
     "java.format.settings.url": ".vscode/java-formatter.xml",
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "internkontroll.site",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "Fullstack",
+            "password": "password",
+            "database": "fullstack",
+            "username": "boss"
+        }
+    ]
 }
