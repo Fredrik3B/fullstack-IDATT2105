@@ -3,6 +3,7 @@ package edu.ntnu.idatt2105.backend.user.dto;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
