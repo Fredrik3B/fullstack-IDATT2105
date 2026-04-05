@@ -192,6 +192,7 @@ public class ReportService {
     entity.setProcessedBy(request.getProcessedBy());
     entity.setDescription(request.getDescription());
     entity.setImmediateAction(request.getImmediateAction());
+    entity.setBelievedCause(request.getBelievedCause());
     entity.setCorrectiveMeasures(request.getCorrectiveMeasures());
     entity.setCorrectiveMeasuresDone(request.getCorrectiveMeasuresDone());
 

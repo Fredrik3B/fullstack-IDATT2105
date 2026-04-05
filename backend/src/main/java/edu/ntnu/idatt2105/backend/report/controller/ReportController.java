@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -84,6 +85,7 @@ public class ReportController {
         (JwtAuthenticatedPrincipal) auth.getPrincipal();
     DeviationCreatedResponse response = reportService.createDeviationReport(
         request, principal.getUserId(), principal.getOrganizationId());
+    return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
 
 }
