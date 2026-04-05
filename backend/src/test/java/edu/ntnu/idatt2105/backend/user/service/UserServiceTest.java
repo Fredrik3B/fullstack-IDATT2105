@@ -1,11 +1,15 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
+import edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException;
 import edu.ntnu.idatt2105.backend.security.JwtService;
 import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
+import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
@@ -13,21 +17,29 @@ import edu.ntnu.idatt2105.backend.user.repository.JoinRequestRepository;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
+
+  @InjectMocks
   private UserService userService;
   @Mock private UserRepository userRepository;
   @Mock private RoleRepository roleRepository;
@@ -37,42 +49,202 @@ class UserServiceTest {
   @Mock private OrganizationRepository organizationRepository;
   @Mock private JoinRequestRepository joinRequestRepository;
 
-  @BeforeEach
-  void setUp() {
+    private UUID userId;
+    private RoleModel staffRole;
+    private UserModel user;
+    private OrganizationModel org;
+
+    @BeforeEach
+    void setUp() {
+      userId = UUID.randomUUID();
+
+      staffRole = new RoleModel();
+      staffRole.setName(RoleEnum.STAFF);
+
+      user = new UserModel();
+      user.setId(userId);
+      user.setEmail("test@example.com");
+      user.setPassword("hashed123");
+      user.setFirstName("Test");
+      user.setLastName("User");
+      user.setRoles(new HashSet<>());
+
+      org = new OrganizationModel();
+      org.setId(UUID.randomUUID());
+      org.setName("Restaurant");
+      org.setJoinCode("RES-1234");
+    }
+
+  @Test
+  void loginSuccess() {
+    LoginRequest request = new LoginRequest();
+    request.setEmail("test@example.com");
+    request.setPassword("pass");
+
+    when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+    when(passwordEncoder.matches("pass", user.getPassword())).thenReturn(true);
+    when(jwtService.generateToken(any())).thenReturn("token");
+    when(jwtService.generateRefreshToken(any())).thenReturn("refresh");
+
+    AuthDto result = userService.login(request);
+
+    assertThat(result)
+        .isNotNull()
+        .extracting(a -> a.getUser().getEmail(), AuthDto::getAccessToken, AuthDto::getRefreshToken)
+        .containsExactly("test@example.com", "token", "refresh");
   }
 
   @Test
   void registerSuccess() {
 
-      CreateUserRequest request = new CreateUserRequest("mail@test.com", "pass", "Ole", "Hansen");
-      when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
-      when(passwordEncoder.encode("pass")).thenReturn("encoded");
-      when(jwtService.generateToken(any())).thenReturn("token");
-      when(jwtService.generateRefreshToken(any())).thenReturn("refresh");
+    CreateUserRequest request = new CreateUserRequest("mail@test.com", "pass", "Ole", "Hansen");
+    when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+    when(passwordEncoder.encode("pass")).thenReturn("encoded");
+    when(jwtService.generateToken(any())).thenReturn("token");
+    when(jwtService.generateRefreshToken(any())).thenReturn("refresh");
 
-      UserModel saved = new UserModel();
-      saved.setEmail(request.getEmail());
+    RoleModel staffRole = new RoleModel();
+    staffRole.setName(RoleEnum.STAFF);
+    when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(staffRole));
 
-      when(userRepository.save(any())).thenReturn(saved);
+    UserModel saved = new UserModel();
+    saved.setEmail(request.getEmail());
 
-      AuthDto result = userService.register(request);
+    when(userRepository.save(any())).thenReturn(saved);
 
-      assertThat(result)
-          .isNotNull()
-          .extracting(AuthDto::getEmail, AuthDto::getAccessToken, AuthDto::getRefreshToken)
-          .containsExactly("mail@test.com", "token", "refresh");
+    AuthDto result = userService.register(request);
+
+    assertThat(result)
+        .isNotNull()
+        .extracting(a -> a.getUser().getEmail(), AuthDto::getAccessToken, AuthDto::getRefreshToken)
+        .containsExactly("mail@test.com", "token", "refresh");
 
   }
 
-  @Test
-  void login() {
-  }
+    @Test
+    void register_assignsStaffRole() {
+      CreateUserRequest request = CreateUserRequest.builder()
+          .email("new@example.com").password("pass").firstName("A").lastName("B").build();
 
-  @Test
-  void refreshToken() {
-  }
+      when(userRepository.findByEmail(any())).thenReturn(Optional.empty());
+      when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(staffRole));
+      when(passwordEncoder.encode(any())).thenReturn("hashed");
+      when(userRepository.save(any(UserModel.class))).thenAnswer(inv -> inv.getArgument(0));
+      when(jwtService.generateToken(any())).thenReturn("t");
+      when(jwtService.generateRefreshToken(any())).thenReturn("r");
 
-  @Test
-  void getMe() {
-  }
+      userService.register(request);
+
+      verify(userRepository).save(argThat(u -> u.getRoles().contains(staffRole)));
+    }
+
+    @Test
+    void register_duplicateEmail_throwsException() {
+      CreateUserRequest request = CreateUserRequest.builder()
+          .email("exists@example.com").password("pass")
+          .firstName("A").lastName("B").build();
+
+      when(userRepository.findByEmail("exists@example.com"))
+          .thenReturn(Optional.of(new UserModel()));
+
+      assertThatThrownBy(() -> userService.register(request))
+          .isInstanceOf(UserAlreadyExistsException.class);
+    }
+
+    @Test
+    void register_staffRoleMissing_throwsException() {
+      CreateUserRequest request = CreateUserRequest.builder()
+          .email("new@example.com").password("pass")
+          .firstName("A").lastName("B").build();
+
+      when(userRepository.findByEmail(any())).thenReturn(Optional.empty());
+      when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.empty());
+
+      assertThatThrownBy(() -> userService.register(request))
+          .isInstanceOf(RuntimeException.class)
+          .hasMessage("STAFF role not found in database");
+    }
+
+    @Test
+    void login_wrongPassword_throwsBadCredentials() {
+      LoginRequest request = new LoginRequest();
+      request.setEmail("test@example.com");
+      request.setPassword("wrong");
+
+      when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+      when(passwordEncoder.matches("wrong", "hashed123")).thenReturn(false);
+
+      assertThatThrownBy(() -> userService.login(request))
+          .isInstanceOf(BadCredentialsException.class)
+          .hasMessage("Invalid credentials");
+    }
+
+    @Test
+    void login_unknownEmail_throwsBadCredentials() {
+      LoginRequest request = new LoginRequest();
+      request.setEmail("unknown@example.com");
+      request.setPassword("pass");
+
+      when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+
+      assertThatThrownBy(() -> userService.login(request))
+          .isInstanceOf(BadCredentialsException.class)
+          .hasMessage("Invalid credentials");
+    }
+
+    @Test
+    void login_sameErrorForWrongEmailAndWrongPassword() {
+      LoginRequest wrongEmail = new LoginRequest();
+      wrongEmail.setEmail("no@example.com");
+      wrongEmail.setPassword("pass");
+
+      LoginRequest wrongPass = new LoginRequest();
+      wrongPass.setEmail("test@example.com");
+      wrongPass.setPassword("wrong");
+
+      when(userRepository.findByEmail("no@example.com")).thenReturn(Optional.empty());
+      when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+      when(passwordEncoder.matches("wrong", "hashed123")).thenReturn(false);
+
+      assertThatThrownBy(() -> userService.login(wrongEmail))
+          .hasMessage("Invalid credentials");
+      assertThatThrownBy(() -> userService.login(wrongPass))
+          .hasMessage("Invalid credentials");
+    }
+
+
+    @Test
+    void refreshToken_success_returnsNewTokens() {
+      when(jwtService.tokenExpired("old-refresh")).thenReturn(false);
+      when(jwtService.extractEmail("old-refresh")).thenReturn("test@example.com");
+      when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+      when(jwtService.generateToken(any())).thenReturn("new-access");
+      when(jwtService.generateRefreshToken(any())).thenReturn("new-refresh");
+
+      AuthDto result = userService.refreshToken("old-refresh");
+
+      assertThat(result.getAccessToken()).isEqualTo("new-access");
+      assertThat(result.getRefreshToken()).isEqualTo("new-refresh");
+    }
+
+    @Test
+    void refreshToken_expired_throwsBadCredentials() {
+      when(jwtService.tokenExpired("expired")).thenReturn(true);
+
+      assertThatThrownBy(() -> userService.refreshToken("expired"))
+          .isInstanceOf(BadCredentialsException.class)
+          .hasMessage("Refresh token expired");
+    }
+
+    @Test
+    void refreshToken_userNotFound_throwsBadCredentials() {
+      when(jwtService.tokenExpired("valid")).thenReturn(false);
+      when(jwtService.extractEmail("valid")).thenReturn("gone@example.com");
+      when(userRepository.findByEmail("gone@example.com")).thenReturn(Optional.empty());
+
+      assertThatThrownBy(() -> userService.refreshToken("valid"))
+          .isInstanceOf(BadCredentialsException.class)
+          .hasMessage("Invalid refresh token");
+    }
+
 }
