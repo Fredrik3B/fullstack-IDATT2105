@@ -38,7 +38,7 @@
 
         <section>
           <h2 class="section-heading">Today's status</h2>
-          <div class="stat-grid">
+          <div class="stat-grid" :class="auth.isAdminOrManager ? 'stat-grid--admin' : 'stat-grid--staff'">
             <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openNextChecklistModule" @keydown.enter="openNextChecklistModule" @keydown.space.prevent="openNextChecklistModule">
               <span class="stat-label">Tasks remaining</span>
               <span class="stat-value">{{ remainingTasksToday }}</span>
@@ -212,6 +212,44 @@
           </button>
           <button class="secondary-btn secondary-btn--refresh" type="button" @click="refreshDashboard">Refresh data</button>
         </section>
+
+        <section v-if="auth.isAdminOrManager" class="team-panel">
+          <div class="team-panel__header">
+            <div>
+              <h2 class="section-heading section-heading--compact">Team management</h2>
+              <p class="team-panel__sub">
+                Manage access, keep an eye on member roles, and jump straight to pending join requests.
+              </p>
+            </div>
+            <button class="secondary-btn" type="button" @click="goToRoute('admin-requests')">Open admin panel</button>
+          </div>
+
+          <div class="team-panel__grid">
+            <article class="team-stat-card">
+              <span class="team-stat-label">Members</span>
+              <span class="team-stat-value">{{ teamMemberCount }}</span>
+              <span class="team-stat-hint">Total people in the organization</span>
+            </article>
+
+            <article class="team-stat-card">
+              <span class="team-stat-label">Pending requests</span>
+              <span class="team-stat-value team-stat-value--warning">{{ pendingJoinRequests }}</span>
+              <span class="team-stat-hint">{{ requestsHint }}</span>
+            </article>
+
+            <article class="team-stat-card">
+              <span class="team-stat-label">Join code</span>
+              <span class="team-stat-value team-stat-value--code">{{ auth.restaurantJoinCode ?? '—' }}</span>
+              <span class="team-stat-hint">Share this with new team members</span>
+            </article>
+
+            <article class="team-stat-card">
+              <span class="team-stat-label">Role spread</span>
+              <span class="team-stat-value">{{ roleSpreadLabel }}</span>
+              <span class="team-stat-hint">{{ roleSpreadHint }}</span>
+            </article>
+          </div>
+        </section>
       </div>
     </main>
   </div>
@@ -247,6 +285,9 @@ const isLoadingRequests = ref(false)
 const requestsError = ref('')
 const isLoadingTemperatureActivity = ref(false)
 const temperatureActivityError = ref('')
+const teamMembers = ref([])
+const isLoadingTeam = ref(false)
+const teamError = ref('')
 
 const { latestByTaskId: foodTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_FOOD' })
 const { latestByTaskId: alcoholTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_ALCOHOL' })
@@ -316,6 +357,34 @@ const requestsHint = computed(() => {
   if (requestsError.value) return requestsError.value
   if (pendingJoinRequests.value === 0) return 'No pending access requests'
   return 'Team access requests'
+})
+
+const teamMemberCount = computed(() => teamMembers.value.length)
+
+const roleCounts = computed(() => {
+  const counts = { ADMIN: 0, MANAGER: 0, HR: 0, STAFF: 0 }
+  teamMembers.value.forEach((member) => {
+    const role = primaryRole(member?.roles)
+    if (counts[role] != null) counts[role] += 1
+  })
+  return counts
+})
+
+const roleSpreadLabel = computed(() => {
+  const parts = [
+    `A ${roleCounts.value.ADMIN}`,
+    `M ${roleCounts.value.MANAGER}`,
+    `H ${roleCounts.value.HR}`,
+    `S ${roleCounts.value.STAFF}`
+  ]
+  return parts.join(' · ')
+})
+
+const roleSpreadHint = computed(() => {
+  if (isLoadingTeam.value) return 'Loading member breakdown...'
+  if (teamError.value) return teamError.value
+  if (teamMembers.value.length === 0) return 'No members loaded yet'
+  return 'Role distribution across your organization'
 })
 
 const operationalHealthLabel = computed(() => {
@@ -405,6 +474,14 @@ function countTemperatureDeviations(cards, latestByTaskId) {
   })
 
   return count
+}
+
+function primaryRole(roles) {
+  const roleList = Array.isArray(roles) ? roles : []
+  if (roleList.includes('ADMIN')) return 'ADMIN'
+  if (roleList.includes('MANAGER')) return 'MANAGER'
+  if (roleList.includes('HR')) return 'HR'
+  return 'STAFF'
 }
 
 function getCompletionRate(done, total) {
@@ -558,6 +635,27 @@ async function loadPendingRequests() {
   }
 }
 
+async function loadTeamMembers() {
+  if (!auth.isAdminOrManager) {
+    teamMembers.value = []
+    teamError.value = ''
+    return
+  }
+
+  isLoadingTeam.value = true
+  teamError.value = ''
+
+  try {
+    const members = await auth.fetchMembers()
+    teamMembers.value = Array.isArray(members) ? members : []
+  } catch {
+    teamMembers.value = []
+    teamError.value = 'Could not load team overview'
+  } finally {
+    isLoadingTeam.value = false
+  }
+}
+
 async function loadLatestTemperatureActivity() {
   isLoadingTemperatureActivity.value = true
   temperatureActivityError.value = ''
@@ -596,7 +694,7 @@ async function loadLatestTemperatureActivity() {
 }
 
 async function refreshDashboard() {
-  await Promise.all([loadChecklistData(), loadDocumentInsights(), loadPendingRequests(), loadLatestTemperatureActivity()])
+  await Promise.all([loadChecklistData(), loadDocumentInsights(), loadPendingRequests(), loadTeamMembers(), loadLatestTemperatureActivity()])
   lastRefreshAt.value = new Date()
 }
 
@@ -751,8 +849,15 @@ onMounted(async () => {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-3);
+}
+
+.stat-grid--staff {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat-grid--admin {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .stat-card {
@@ -1045,6 +1150,75 @@ onMounted(async () => {
   gap: var(--space-3);
 }
 
+.team-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.team-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.team-panel__sub {
+  margin: 0;
+  max-width: 64ch;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.team-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.team-stat-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.team-stat-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.team-stat-value {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.team-stat-value--warning {
+  color: var(--color-warning-text);
+}
+
+.team-stat-value--code {
+  color: var(--color-dark-secondary);
+  letter-spacing: 0.08em;
+}
+
+.team-stat-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+
 .secondary-btn {
   min-height: 36px;
   padding: 0 var(--space-4);
@@ -1070,7 +1244,8 @@ onMounted(async () => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .stat-grid {
+  .stat-grid--staff,
+  .stat-grid--admin {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -1081,12 +1256,21 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
-  .stat-grid {
+  .stat-grid--staff,
+  .stat-grid--admin {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .secondary-btn--refresh {
     margin-left: 0;
+  }
+
+  .team-panel__header {
+    flex-direction: column;
+  }
+
+  .team-panel__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1096,7 +1280,9 @@ onMounted(async () => {
   }
 
   .quick-action-grid,
-  .stat-grid {
+  .stat-grid--staff,
+  .stat-grid--admin,
+  .team-panel__grid {
     grid-template-columns: 1fr;
   }
 }
