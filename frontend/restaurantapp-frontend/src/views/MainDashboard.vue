@@ -8,18 +8,94 @@
           Good day, <span class="welcome-accent">{{ displayUserName }}</span>
         </h1>
         <p class="welcome-sub">{{ restaurantDisplayName }} - {{ todayLabel }}</p>
+        <p class="welcome-health">{{ operationalHealthLabel }}</p>
       </div>
     </section>
+
     <main class="dashboard-main">
       <div class="dashboard-content">
+        <section class="quick-actions">
+          <h2 class="section-heading">Quick actions</h2>
+          <div class="quick-action-grid">
+            <button class="quick-action-card" type="button" @click="openChecklistModule('IC_FOOD')">
+              <span class="quick-action-title">Start IC-Food</span>
+              <span class="quick-action-hint">Open daily food controls</span>
+            </button>
+            <button class="quick-action-card" type="button" @click="openChecklistModule('IC_ALCOHOL')">
+              <span class="quick-action-title">Start IC-Alcohol</span>
+              <span class="quick-action-hint">Open alcohol compliance controls</span>
+            </button>
+            <button class="quick-action-card" type="button" @click="goToRoute('reports')">
+              <span class="quick-action-title">Report deviation</span>
+              <span class="quick-action-hint">Register incidents and follow-up</span>
+            </button>
+            <button class="quick-action-card" type="button" @click="goToRoute('documents')">
+              <span class="quick-action-title">Open documents</span>
+              <span class="quick-action-hint">View certificates and guidelines</span>
+            </button>
+          </div>
+        </section>
+
         <section>
-          <h2 class="section-heading">Today's Checklists</h2>
+          <h2 class="section-heading">Today's status</h2>
+          <div class="stat-grid">
+            <article class="stat-card">
+              <span class="stat-label">Tasks remaining</span>
+              <span class="stat-value">{{ remainingTasksToday }}</span>
+              <span class="stat-hint">{{ tasksTodayHint }}</span>
+            </article>
+
+            <article class="stat-card">
+              <span class="stat-label">Tasks completed</span>
+              <span class="stat-value">{{ completedTasksToday }}</span>
+              <span class="stat-hint">{{ completionLabel }}</span>
+            </article>
+
+            <article class="stat-card">
+              <span class="stat-label">Active deviations</span>
+              <span class="stat-value" :class="activeDeviationCount > 0 ? 'stat-value--danger' : ''">
+                {{ activeDeviationCount }}
+              </span>
+              <span class="stat-hint">{{ activeDeviationHint }}</span>
+            </article>
+
+            <article class="stat-card">
+              <span class="stat-label">Expiring certificates</span>
+              <span class="stat-value" :class="expiringCertificatesCount > 0 ? 'stat-value--warning' : ''">
+                {{ expiringCertificatesCount }}
+              </span>
+              <span class="stat-hint">Within 30 days</span>
+            </article>
+
+            <article v-if="auth.isAdminOrManager" class="stat-card">
+              <span class="stat-label">Pending requests</span>
+              <span class="stat-value" :class="pendingJoinRequests > 0 ? 'stat-value--warning' : ''">
+                {{ pendingJoinRequests }}
+              </span>
+              <span class="stat-hint">Team access requests</span>
+            </article>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="section-heading">Today's checklists</h2>
           <div class="checklist-grid">
-            <div class="checklist-placeholder">
+            <article class="checklist-module-card">
               <div class="checklist-header">
-                <span class="checklist-dot checklist-dot--food"></span>
-                <h3 class="checklist-title">IC-Food</h3>
+                <div class="checklist-header__left">
+                  <span class="checklist-dot checklist-dot--food"></span>
+                  <h3 class="checklist-title">IC-Food</h3>
+                </div>
+                <button class="module-open-btn" type="button" @click="openChecklistModule('IC_FOOD')">Open</button>
               </div>
+
+              <div class="module-progress">
+                <div class="module-progress__bar">
+                  <div class="module-progress__fill" :style="{ width: `${foodCompletionRate}%` }"></div>
+                </div>
+                <p class="module-progress__text">{{ foodCompletedTasks }} / {{ foodTotalTasks }} tasks completed</p>
+              </div>
+
               <div class="checklist-body">
                 <p v-if="isLoadingFood" class="checklist-hint">Loading checklists...</p>
                 <p v-else-if="foodError" class="checklist-hint">{{ foodError }}</p>
@@ -44,13 +120,24 @@
                 </template>
                 <p v-else class="checklist-hint">No daily IC-Food checklists found.</p>
               </div>
-            </div>
+            </article>
 
-            <div class="checklist-placeholder">
+            <article class="checklist-module-card">
               <div class="checklist-header">
-                <span class="checklist-dot checklist-dot--alcohol"></span>
-                <h3 class="checklist-title">IC-Alcohol</h3>
+                <div class="checklist-header__left">
+                  <span class="checklist-dot checklist-dot--alcohol"></span>
+                  <h3 class="checklist-title">IC-Alcohol</h3>
+                </div>
+                <button class="module-open-btn" type="button" @click="openChecklistModule('IC_ALCOHOL')">Open</button>
               </div>
+
+              <div class="module-progress">
+                <div class="module-progress__bar">
+                  <div class="module-progress__fill module-progress__fill--alcohol" :style="{ width: `${alcoholCompletionRate}%` }"></div>
+                </div>
+                <p class="module-progress__text">{{ alcoholCompletedTasks }} / {{ alcoholTotalTasks }} tasks completed</p>
+              </div>
+
               <div class="checklist-body">
                 <p v-if="isLoadingAlcohol" class="checklist-hint">Loading checklists...</p>
                 <p v-else-if="alcoholError" class="checklist-hint">{{ alcoholError }}</p>
@@ -75,36 +162,53 @@
                 </template>
                 <p v-else class="checklist-hint">No daily IC-Alcohol checklists found.</p>
               </div>
-            </div>
+            </article>
           </div>
         </section>
 
-        <section>
-          <h2 class="section-heading">Overview</h2>
-          <div class="stat-grid">
-            <div class="stat-card">
-              <span class="stat-label">Active Deviations</span>
-              <span class="stat-value stat-value--danger">{{ activeDeviationCount }}</span>
-              <span class="stat-hint">{{ activeDeviationHint }}</span>
-            </div>
-            <div class="stat-card">
-              <span class="stat-label">Tasks Today</span>
-              <span class="stat-value">{{ remainingTasksToday }}</span>
-              <span class="stat-hint">{{ tasksTodayHint }}</span>
-            </div>
-            <div class="stat-card">
-              <span class="stat-label">Last Check</span>
-              <span class="stat-value stat-value--muted">-</span>
-              <span class="stat-hint">Not completed</span>
-            </div>
-            <div class="stat-card">
-              <span class="stat-label">Reports</span>
-              <span class="stat-label">Reports</span>
-              <span class="stat-value stat-value--muted">0</span>
-              <span class="stat-hint">No reports</span>
-              <span class="stat-hint">No reports</span>
-            </div>
-          </div>
+        <section class="insight-grid">
+          <article class="insight-card">
+            <h2 class="section-heading section-heading--compact">Alerts and follow-up</h2>
+            <ul v-if="alerts.length" class="insight-list">
+              <li v-for="alert in alerts" :key="alert.label" class="insight-list__item">
+                <span class="insight-list__dot" :class="`insight-list__dot--${alert.level}`"></span>
+                <span>{{ alert.label }}</span>
+              </li>
+            </ul>
+            <p v-else class="empty-hint">No critical alerts right now.</p>
+          </article>
+
+          <article class="insight-card">
+            <h2 class="section-heading section-heading--compact">Recent activity</h2>
+            <ul class="insight-list">
+              <li class="insight-list__item">
+                <span class="insight-list__dot"></span>
+                <span>{{ latestChecklistLabel }}</span>
+              </li>
+              <li class="insight-list__item">
+                <span class="insight-list__dot"></span>
+                <span>{{ expiringCertificatesCount }} certificate(s) need review soon</span>
+              </li>
+              <li class="insight-list__item">
+                <span class="insight-list__dot"></span>
+                <span>Last refresh {{ lastRefreshLabel }}</span>
+              </li>
+            </ul>
+          </article>
+        </section>
+
+        <section class="section-footer-actions">
+          <button class="secondary-btn" type="button" @click="goToRoute('reports')">Open reports</button>
+          <button class="secondary-btn" type="button" @click="goToRoute('documents')">Open documents</button>
+          <button
+            v-if="auth.isAdminOrManager"
+            class="secondary-btn"
+            type="button"
+            @click="goToRoute('admin-requests')"
+          >
+            Open admin panel
+          </button>
+          <button class="secondary-btn secondary-btn--refresh" type="button" @click="refreshDashboard">Refresh data</button>
         </section>
       </div>
     </main>
@@ -115,6 +219,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchChecklists } from '../api/checklists'
+import { fetchDocuments } from '../api/documents'
 import { isTemperatureDeviation, isTemperatureTask } from '../features/ic-checklists/temperature'
 import { useTemperatureLog } from '../features/ic-checklists/useTemperatureLog'
 import { useAuthStore } from '../stores/auth'
@@ -128,6 +233,9 @@ const isLoadingFood = ref(true)
 const isLoadingAlcohol = ref(true)
 const foodError = ref('')
 const alcoholError = ref('')
+const expiringCertificatesCount = ref(0)
+const pendingJoinRequests = ref(0)
+const lastRefreshAt = ref(new Date())
 
 const { latestByTaskId: foodTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_FOOD' })
 const { latestByTaskId: alcoholTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_ALCOHOL' })
@@ -146,19 +254,73 @@ const todayLabel = computed(() =>
     year: 'numeric'
   }).format(new Date())
 )
+
 const remainingTasksToday = computed(() => countRemainingTasks(dailyChecklists.value))
 const totalTasksToday = computed(() => countAllTasks(dailyChecklists.value))
+const completedTasksToday = computed(() => Math.max(totalTasksToday.value - remainingTasksToday.value, 0))
+
+const foodTotalTasks = computed(() => countAllTasks(dailyFoodChecklists.value))
+const foodCompletedTasks = computed(() => Math.max(foodTotalTasks.value - countRemainingTasks(dailyFoodChecklists.value), 0))
+const foodCompletionRate = computed(() => getCompletionRate(foodCompletedTasks.value, foodTotalTasks.value))
+
+const alcoholTotalTasks = computed(() => countAllTasks(dailyAlcoholChecklists.value))
+const alcoholCompletedTasks = computed(() =>
+  Math.max(alcoholTotalTasks.value - countRemainingTasks(dailyAlcoholChecklists.value), 0)
+)
+const alcoholCompletionRate = computed(() => getCompletionRate(alcoholCompletedTasks.value, alcoholTotalTasks.value))
+
 const activeDeviationCount = computed(() =>
   countTemperatureDeviations(dailyFoodChecklists.value, foodTemperatureLatestByTaskId.value) +
   countTemperatureDeviations(dailyAlcoholChecklists.value, alcoholTemperatureLatestByTaskId.value)
 )
+
+const completionLabel = computed(() => {
+  if (totalTasksToday.value === 0) return 'No daily tasks yet'
+  const rate = getCompletionRate(completedTasksToday.value, totalTasksToday.value)
+  return `${rate}% complete today`
+})
+
 const tasksTodayHint = computed(() => {
-  if (totalTasksToday.value === 0) return 'No daily tasks'
+  if (totalTasksToday.value === 0) return 'No daily tasks assigned'
   return `${remainingTasksToday.value} remaining out of ${totalTasksToday.value}`
 })
+
 const activeDeviationHint = computed(() => {
   if (activeDeviationCount.value === 0) return 'No temperature deviations recorded'
   return `${activeDeviationCount.value} temperature deviations need follow-up`
+})
+
+const operationalHealthLabel = computed(() => {
+  if (activeDeviationCount.value > 0) return 'Operational focus: active deviations require follow-up.'
+  if (remainingTasksToday.value > 0) return 'Operational focus: continue daily checklists to close all tasks.'
+  return 'Operational status: all tracked daily tasks are currently complete.'
+})
+
+const latestChecklistLabel = computed(() => {
+  const candidate = dailyChecklists.value.find((card) => typeof card?.title === 'string' && card.title.trim().length > 0)
+  if (!candidate) return 'No daily checklist opened yet'
+  return `Latest checklist in focus: ${candidate.title}`
+})
+
+const lastRefreshLabel = computed(() =>
+  new Intl.DateTimeFormat('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(lastRefreshAt.value)
+)
+
+const alerts = computed(() => {
+  const items = []
+  if (activeDeviationCount.value > 0) {
+    items.push({ level: 'danger', label: `${activeDeviationCount.value} active temperature deviation(s)` })
+  }
+  if (expiringCertificatesCount.value > 0) {
+    items.push({ level: 'warning', label: `${expiringCertificatesCount.value} certificate(s) expiring within 30 days` })
+  }
+  if (remainingTasksToday.value > 0) {
+    items.push({ level: 'neutral', label: `${remainingTasksToday.value} task(s) still open today` })
+  }
+  return items
 })
 
 function isDailyChecklist(card) {
@@ -201,6 +363,11 @@ function countTemperatureDeviations(cards, latestByTaskId) {
   return count
 }
 
+function getCompletionRate(done, total) {
+  if (!Number.isFinite(done) || !Number.isFinite(total) || total <= 0) return 0
+  return Math.round((done / total) * 100)
+}
+
 function formatPeriod(period) {
   if (!period) return 'Unknown'
   return String(period).charAt(0).toUpperCase() + String(period).slice(1).toLowerCase()
@@ -211,7 +378,16 @@ function openChecklistModule(module) {
   router.push({ name: routeName })
 }
 
-onMounted(async () => {
+function goToRoute(name) {
+  router.push({ name })
+}
+
+async function loadChecklistData() {
+  isLoadingFood.value = true
+  isLoadingAlcohol.value = true
+  foodError.value = ''
+  alcoholError.value = ''
+
   try {
     const data = await fetchChecklists({ module: 'IC_FOOD' })
     foodChecklists.value = Array.isArray(data) ? data : []
@@ -231,6 +407,50 @@ onMounted(async () => {
   } finally {
     isLoadingAlcohol.value = false
   }
+}
+
+async function loadExpiringCertificates() {
+  try {
+    const docs = await fetchDocuments({ category: 'CERTIFICATE' })
+    if (!Array.isArray(docs)) {
+      expiringCertificatesCount.value = 0
+      return
+    }
+
+    const today = new Date()
+    expiringCertificatesCount.value = docs.filter((doc) => {
+      if (!doc?.expiryDate) return false
+      const expiry = new Date(doc.expiryDate)
+      if (Number.isNaN(expiry.getTime())) return false
+      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+      return daysLeft <= 30
+    }).length
+  } catch {
+    expiringCertificatesCount.value = 0
+  }
+}
+
+async function loadPendingRequests() {
+  if (!auth.isAdminOrManager) {
+    pendingJoinRequests.value = 0
+    return
+  }
+
+  try {
+    const pending = await auth.fetchJoinRequests('PENDING')
+    pendingJoinRequests.value = Array.isArray(pending) ? pending.length : 0
+  } catch {
+    pendingJoinRequests.value = 0
+  }
+}
+
+async function refreshDashboard() {
+  await Promise.all([loadChecklistData(), loadExpiringCertificates(), loadPendingRequests()])
+  lastRefreshAt.value = new Date()
+}
+
+onMounted(async () => {
+  await refreshDashboard()
 })
 </script>
 
@@ -244,7 +464,7 @@ onMounted(async () => {
   position: relative;
   overflow: hidden;
   background: var(--color-dark-primary);
-  padding: var(--space-16) var(--space-6);
+  padding: var(--space-12) var(--space-6);
 }
 
 .welcome-glow {
@@ -267,13 +487,13 @@ onMounted(async () => {
 .welcome-inner {
   position: relative;
   z-index: 1;
-  max-width: 680px;
+  max-width: 760px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .welcome-tag {
@@ -306,16 +526,26 @@ onMounted(async () => {
   color: var(--color-dark-border);
 }
 
+.welcome-health {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background: rgba(212, 232, 53, 0.14);
+  border: 1px solid rgba(212, 232, 53, 0.45);
+  color: #f5f8d1;
+  font-size: var(--font-size-sm);
+}
+
 .dashboard-main {
-  padding: var(--space-12) var(--space-6);
+  padding: var(--space-10) var(--space-6) var(--space-12);
 }
 
 .dashboard-content {
-  max-width: 960px;
+  max-width: 1040px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-10);
+  gap: var(--space-8);
 }
 
 .section-heading {
@@ -325,6 +555,93 @@ onMounted(async () => {
   color: var(--color-text-primary);
 }
 
+.section-heading--compact {
+  margin-bottom: var(--space-3);
+}
+
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.quick-action-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, #ffffff 0%, #f8f8fc 100%);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.quick-action-card:hover,
+.quick-action-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--color-dark-tertiary);
+  box-shadow: var(--shadow-md);
+  outline: none;
+}
+
+.quick-action-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.quick-action-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.stat-card {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.stat-value--danger {
+  color: var(--color-danger);
+}
+
+.stat-value--warning {
+  color: var(--color-warning-text);
+}
+
+.stat-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-hint);
+}
+
 .checklist-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -332,24 +649,29 @@ onMounted(async () => {
   align-items: stretch;
 }
 
-.checklist-placeholder {
+.checklist-module-card {
   background: var(--color-bg-primary);
-  border: 2px dashed var(--color-border-strong);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-8) var(--space-6);
+  padding: var(--space-6);
   min-height: 300px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
   box-shadow: var(--shadow-sm);
 }
 
 .checklist-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.checklist-header__left {
+  display: flex;
+  align-items: center;
   gap: var(--space-2);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .checklist-dot {
@@ -359,14 +681,65 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.checklist-dot--food { background: var(--color-accent); }
-.checklist-dot--alcohol { background: var(--color-dark-tertiary); }
+.checklist-dot--food {
+  background: var(--color-accent);
+}
+
+.checklist-dot--alcohol {
+  background: var(--color-dark-tertiary);
+}
 
 .checklist-title {
   margin: 0;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
+}
+
+.module-open-btn {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.module-open-btn:hover {
+  border-color: var(--color-dark-tertiary);
+}
+
+.module-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.module-progress__bar {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-tertiary);
+  overflow: hidden;
+}
+
+.module-progress__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+.module-progress__fill--alcohol {
+  background: var(--color-dark-tertiary);
+}
+
+.module-progress__text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .checklist-body {
@@ -388,7 +761,7 @@ onMounted(async () => {
 .checklist-preview:focus-visible {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: var(--color-accent);
+  border-color: var(--color-dark-tertiary);
   outline: none;
 }
 
@@ -426,50 +799,121 @@ onMounted(async () => {
   color: var(--color-text-hint);
 }
 
-.stat-grid {
+.insight-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
 }
 
-.stat-card {
+.insight-card {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  padding: var(--space-5);
   box-shadow: var(--shadow-sm);
 }
 
-.stat-label {
+.insight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.insight-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
 }
 
-.stat-value {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+.insight-list__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-dark-tertiary);
 }
 
-.stat-value--danger { color: var(--color-danger); }
-.stat-value--muted { color: var(--color-text-hint); }
+.insight-list__dot--danger {
+  background: var(--color-danger);
+}
 
-.stat-hint {
-  font-size: var(--font-size-xs);
+.insight-list__dot--warning {
+  background: var(--color-warning);
+}
+
+.insight-list__dot--neutral {
+  background: var(--color-dark-tertiary);
+}
+
+.empty-hint {
+  margin: 0;
+  font-size: var(--font-size-sm);
   color: var(--color-text-hint);
 }
 
+.section-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.secondary-btn {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.secondary-btn:hover {
+  border-color: var(--color-dark-tertiary);
+}
+
+.secondary-btn--refresh {
+  margin-left: auto;
+}
+
+@media (max-width: 1080px) {
+  .quick-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
-  .checklist-grid {
+  .checklist-grid,
+  .insight-grid {
     grid-template-columns: 1fr;
   }
 
   .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .secondary-btn--refresh {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-main {
+    padding-inline: var(--space-4);
+  }
+
+  .quick-action-grid,
+  .stat-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
