@@ -17,6 +17,7 @@ import edu.ntnu.idatt2105.backend.user.repository.JoinRequestRepository;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import io.jsonwebtoken.ExpiredJwtException;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
@@ -215,7 +216,6 @@ class UserServiceTest {
 
     @Test
     void refreshToken_success_returnsNewTokens() {
-      when(jwtService.tokenExpired("old-refresh")).thenReturn(false);
       when(jwtService.extractEmail("old-refresh")).thenReturn("test@example.com");
       when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
       when(jwtService.generateToken(any())).thenReturn("new-access");
@@ -229,16 +229,16 @@ class UserServiceTest {
 
     @Test
     void refreshToken_expired_throwsBadCredentials() {
-      when(jwtService.tokenExpired("expired")).thenReturn(true);
+      when(jwtService.extractEmail("expired"))
+          .thenThrow(new ExpiredJwtException(null, null, "expired"));
 
       assertThatThrownBy(() -> userService.refreshToken("expired"))
-          .isInstanceOf(BadCredentialsException.class)
-          .hasMessage("Refresh token expired");
+          .isInstanceOf(ExpiredJwtException.class)
+          .hasMessage("expired");
     }
 
     @Test
     void refreshToken_userNotFound_throwsBadCredentials() {
-      when(jwtService.tokenExpired("valid")).thenReturn(false);
       when(jwtService.extractEmail("valid")).thenReturn("gone@example.com");
       when(userRepository.findByEmail("gone@example.com")).thenReturn(Optional.empty());
 

@@ -1,10 +1,12 @@
 package edu.ntnu.idatt2105.backend.security;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
+import io.jsonwebtoken.ExpiredJwtException;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -95,7 +97,8 @@ class JwtServiceTest {
   void validateExpiredToken() {
     ReflectionTestUtils.setField(jwtService, "expiration", 0);
     String token = jwtService.generateToken(principal);
-    assertThat(jwtService.tokenExpired(token)).isTrue();
+    assertThatThrownBy(() -> jwtService.extractEmail(token))
+        .isInstanceOf(ExpiredJwtException.class);
   }
 
   @Test

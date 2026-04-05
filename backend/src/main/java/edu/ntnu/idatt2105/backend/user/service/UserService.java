@@ -89,9 +89,6 @@ public class UserService {
   }
 
   public AuthDto refreshToken(String refreshToken) {
-    if (jwtService.tokenExpired(refreshToken)) {
-      throw new BadCredentialsException("Refresh token expired");
-    }
     String email = jwtService.extractEmail(refreshToken);
     UserModel user = userRepository.findByEmail(email)
         .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
