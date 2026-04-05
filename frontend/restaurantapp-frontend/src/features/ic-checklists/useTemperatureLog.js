@@ -35,9 +35,16 @@ function normalizeMeasurement(raw) {
     checklistId: raw.checklistId != null ? String(raw.checklistId) : null,
     taskId: raw.taskId != null ? String(raw.taskId) : null,
     valueC,
-    measuredAt: raw.measuredAt ?? new Date().toISOString(),
+    measuredAt: raw.measuredAt ?? toBackendDateTime(new Date()),
     periodKey: raw.periodKey ?? null
   }
+}
+
+function toBackendDateTime(value) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 19)
+  // Backend expects LocalDateTime-like payloads without timezone suffix.
+  return date.toISOString().slice(0, 19)
 }
 
 export function useTemperatureLog({ module }) {
@@ -47,14 +54,13 @@ export function useTemperatureLog({ module }) {
   if (USE_BACKEND) {
     const to = new Date()
     const from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-    void fetchTemperatureMeasurements({ module, from: from.toISOString(), to: to.toISOString() })
+    void fetchTemperatureMeasurements({ module, from: toBackendDateTime(from), to: toBackendDateTime(to) })
       .then((rows) => {
         const parsed = Array.isArray(rows) ? rows.map(normalizeMeasurement).filter(Boolean) : []
         measurements.value = parsed
       })
       .catch((err) => {
         console.error('Failed to fetch temperature measurements', err)
-        toast.error(err?.response?.data?.detail ?? err?.response?.data?.message ?? 'Could not load temperature readings.')
         measurements.value = []
       })
   } else {
@@ -84,7 +90,7 @@ export function useTemperatureLog({ module }) {
       checklistId,
       taskId,
       valueC,
-      measuredAt: measuredAt ?? new Date().toISOString(),
+      measuredAt: measuredAt ?? toBackendDateTime(new Date()),
       periodKey
     })
     if (!entry) return null

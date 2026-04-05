@@ -306,13 +306,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Search, AlertTriangle, ChevronDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
+const route = useRoute()
 const isAdminOrManager = computed(() => auth.isAdminOrManager)
 const toast = useToast()
 
@@ -401,7 +403,39 @@ async function loadDocuments() {
   }
 }
 
-onMounted(loadDocuments)
+function applyRouteFilters(query) {
+  const category = String(query?.category ?? '').toUpperCase()
+  const module = String(query?.module ?? '').toUpperCase()
+  const search = String(query?.search ?? '')
+
+  if (category && CATEGORIES.some((item) => item.value === category)) {
+    activeCategory.value = category
+  } else if (!category) {
+    activeCategory.value = ''
+  }
+
+  if (module && MODULES.some((item) => item.value === module)) {
+    activeModule.value = module
+  } else if (!module) {
+    activeModule.value = ''
+  }
+
+  if (search) {
+    searchQuery.value = search
+  }
+}
+
+onMounted(async () => {
+  applyRouteFilters(route.query)
+  await loadDocuments()
+})
+
+watch(
+  () => route.query,
+  (query) => {
+    applyRouteFilters(query)
+  }
+)
 
 // ── Filtering ──────────────────────────────────────────────────────────────
 
