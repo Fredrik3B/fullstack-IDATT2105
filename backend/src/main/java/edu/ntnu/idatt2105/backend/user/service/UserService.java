@@ -63,7 +63,7 @@ public class UserService {
     return new AuthDto(
         jwtService.generateToken(principal),
         jwtService.generateRefreshToken(principal),
-        savedUser.getEmail()
+        savedUser
     );
 
   }
@@ -84,14 +84,11 @@ public class UserService {
     return new AuthDto(
         jwtService.generateToken(principal),
         jwtService.generateRefreshToken(principal),
-        user.getEmail()
+        user
     );
   }
 
   public AuthDto refreshToken(String refreshToken) {
-    if (jwtService.tokenExpired(refreshToken)) {
-      throw new BadCredentialsException("Refresh token expired");
-    }
     String email = jwtService.extractEmail(refreshToken);
     UserModel user = userRepository.findByEmail(email)
         .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
@@ -101,7 +98,7 @@ public class UserService {
     return new AuthDto(
         jwtService.generateToken(principal),
         jwtService.generateRefreshToken(principal),
-        user.getEmail()
+        user
     );
   }
 

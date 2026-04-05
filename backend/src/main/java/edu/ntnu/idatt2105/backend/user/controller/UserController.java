@@ -6,7 +6,10 @@ import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
+import edu.ntnu.idatt2105.backend.user.dto.LoginResponse.UserInfo;
 import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
+import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -39,7 +42,7 @@ public class UserController {
 
   private final UserService userService;
 
-  @GetMapping("/me")
+  @GetMapping("/not-in-use")
   public ResponseEntity<MeResponse> getMe(Authentication authentication) {
     JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(authentication);
     return ResponseEntity.ok(userService.getMe(principal.getUserId()));
@@ -91,9 +94,22 @@ public class UserController {
 
   private ResponseEntity<LoginResponse> buildLoginResponse(AuthDto result) {
     ResponseCookie cookie = createRefreshTokenCookie(result.getRefreshToken());
+    UserModel user = result.getUser();
+
+
+    LoginResponse.RestaurantInfo restaurant = null;
+    OrganizationModel org = user.getOrganization();
+    if (org != null) {
+      restaurant = new LoginResponse.RestaurantInfo(org.getId(), org.getName(), org.getJoinCode());
+    }
+
+    LoginResponse response = new LoginResponse(result.getAccessToken(),
+        new UserInfo(user.getEmail(), user.getFirstName() + " " + user.getLastName()),
+        restaurant);
+
     return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, cookie.toString())
-        .body(new LoginResponse( result.getEmail(), result.getAccessToken()));
+        .body(response);
   }
 
   private ResponseCookie createRefreshTokenCookie(String refreshToken) {

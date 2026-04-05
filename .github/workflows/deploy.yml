@@ -31,7 +31,6 @@ jobs:
       - name: Build frontend
         run: |
           npm ci
-          echo "VITE_API_BASE_URL=http://${{ secrets.VPS_HOST }}" > .env.production
           npm run build
         working-directory: ./frontend/restaurantapp-frontend
 
@@ -60,8 +59,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            sudo cp /home/${{ secrets.VPS_USER }}/backend/target/*.jar /opt/fullstack-ic/backend.jar
-            sudo rm -rf /var/www/fullstack-ic/*
-            sudo cp -r /home/${{ secrets.VPS_USER }}/frontend/restaurantapp-frontend/dist/* /var/www/fullstack-ic/
+            cp /home/${{ secrets.VPS_USER }}/backend/target/*.jar /opt/fullstack-ic/backend.jar
+            rm -rf /var/www/fullstack-ic/*
+            cp -r /home/${{ secrets.VPS_USER }}/frontend/restaurantapp-frontend/dist/* /var/www/fullstack-ic/
             sudo systemctl restart fullstack-ic
             rm -rf /home/${{ secrets.VPS_USER }}/backend /home/${{ secrets.VPS_USER }}/frontend
