@@ -25,11 +25,11 @@
               <span class="quick-action-title">Start IC-Alcohol</span>
               <span class="quick-action-hint">Open alcohol compliance controls</span>
             </button>
-            <button class="quick-action-card" type="button" @click="goToRoute('reports')">
+            <button class="quick-action-card" type="button" @click="openDeviationReport">
               <span class="quick-action-title">Report deviation</span>
               <span class="quick-action-hint">Register incidents and follow-up</span>
             </button>
-            <button class="quick-action-card" type="button" @click="goToRoute('documents')">
+            <button class="quick-action-card" type="button" @click="openDocuments">
               <span class="quick-action-title">Open documents</span>
               <span class="quick-action-hint">View certificates and guidelines</span>
             </button>
@@ -39,19 +39,19 @@
         <section>
           <h2 class="section-heading">Today's status</h2>
           <div class="stat-grid">
-            <article class="stat-card">
+            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openNextChecklistModule" @keydown.enter="openNextChecklistModule" @keydown.space.prevent="openNextChecklistModule">
               <span class="stat-label">Tasks remaining</span>
               <span class="stat-value">{{ remainingTasksToday }}</span>
               <span class="stat-hint">{{ tasksTodayHint }}</span>
             </article>
 
-            <article class="stat-card">
+            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openNextChecklistModule" @keydown.enter="openNextChecklistModule" @keydown.space.prevent="openNextChecklistModule">
               <span class="stat-label">Tasks completed</span>
               <span class="stat-value">{{ completedTasksToday }}</span>
               <span class="stat-hint">{{ completionLabel }}</span>
             </article>
 
-            <article class="stat-card">
+            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openDeviationReport" @keydown.enter="openDeviationReport" @keydown.space.prevent="openDeviationReport">
               <span class="stat-label">Active deviations</span>
               <span class="stat-value" :class="activeDeviationCount > 0 ? 'stat-value--danger' : ''">
                 {{ activeDeviationCount }}
@@ -59,20 +59,20 @@
               <span class="stat-hint">{{ activeDeviationHint }}</span>
             </article>
 
-            <article class="stat-card">
+            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openCertificateDocuments" @keydown.enter="openCertificateDocuments" @keydown.space.prevent="openCertificateDocuments">
               <span class="stat-label">Expiring certificates</span>
               <span class="stat-value" :class="expiringCertificatesCount > 0 ? 'stat-value--warning' : ''">
                 {{ expiringCertificatesCount }}
               </span>
-              <span class="stat-hint">Within 30 days</span>
+              <span class="stat-hint">{{ certificateHint }}</span>
             </article>
 
-            <article v-if="auth.isAdminOrManager" class="stat-card">
+            <article v-if="auth.isAdminOrManager" class="stat-card stat-card--interactive" role="button" tabindex="0" @click="goToRoute('admin-requests')" @keydown.enter="goToRoute('admin-requests')" @keydown.space.prevent="goToRoute('admin-requests')">
               <span class="stat-label">Pending requests</span>
               <span class="stat-value" :class="pendingJoinRequests > 0 ? 'stat-value--warning' : ''">
                 {{ pendingJoinRequests }}
               </span>
-              <span class="stat-hint">Team access requests</span>
+              <span class="stat-hint">{{ requestsHint }}</span>
             </article>
           </div>
         </section>
@@ -171,8 +171,10 @@
             <h2 class="section-heading section-heading--compact">Alerts and follow-up</h2>
             <ul v-if="alerts.length" class="insight-list">
               <li v-for="alert in alerts" :key="alert.label" class="insight-list__item">
-                <span class="insight-list__dot" :class="`insight-list__dot--${alert.level}`"></span>
-                <span>{{ alert.label }}</span>
+                <button class="insight-link" type="button" @click="handleAlertAction(alert)">
+                  <span class="insight-list__dot" :class="`insight-list__dot--${alert.level}`"></span>
+                  <span>{{ alert.label }}</span>
+                </button>
               </li>
             </ul>
             <p v-else class="empty-hint">No critical alerts right now.</p>
@@ -183,23 +185,23 @@
             <ul class="insight-list">
               <li class="insight-list__item">
                 <span class="insight-list__dot"></span>
-                <span>{{ latestChecklistLabel }}</span>
+                <span>{{ latestTemperatureLabel }}</span>
               </li>
               <li class="insight-list__item">
                 <span class="insight-list__dot"></span>
-                <span>{{ expiringCertificatesCount }} certificate(s) need review soon</span>
+                <span>{{ latestDocumentLabel }}</span>
               </li>
               <li class="insight-list__item">
                 <span class="insight-list__dot"></span>
-                <span>Last refresh {{ lastRefreshLabel }}</span>
+                <span>{{ latestChecklistLabel }} - Last refresh {{ lastRefreshLabel }}</span>
               </li>
             </ul>
           </article>
         </section>
 
         <section class="section-footer-actions">
-          <button class="secondary-btn" type="button" @click="goToRoute('reports')">Open reports</button>
-          <button class="secondary-btn" type="button" @click="goToRoute('documents')">Open documents</button>
+          <button class="secondary-btn" type="button" @click="goToRoute('reports', { preset: 'week', autoload: '1' })">Open reports</button>
+          <button class="secondary-btn" type="button" @click="openDocuments">Open documents</button>
           <button
             v-if="auth.isAdminOrManager"
             class="secondary-btn"
@@ -220,6 +222,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchChecklists } from '../api/checklists'
 import { fetchDocuments } from '../api/documents'
+import { fetchTemperatureMeasurements } from '../api/temperatureMeasurements'
 import { isTemperatureDeviation, isTemperatureTask } from '../features/ic-checklists/temperature'
 import { useTemperatureLog } from '../features/ic-checklists/useTemperatureLog'
 import { useAuthStore } from '../stores/auth'
@@ -236,6 +239,14 @@ const alcoholError = ref('')
 const expiringCertificatesCount = ref(0)
 const pendingJoinRequests = ref(0)
 const lastRefreshAt = ref(new Date())
+const latestUploadedDocument = ref(null)
+const latestTemperatureActivity = ref(null)
+const isLoadingDocuments = ref(false)
+const documentsError = ref('')
+const isLoadingRequests = ref(false)
+const requestsError = ref('')
+const isLoadingTemperatureActivity = ref(false)
+const temperatureActivityError = ref('')
 
 const { latestByTaskId: foodTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_FOOD' })
 const { latestByTaskId: alcoholTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_ALCOHOL' })
@@ -261,12 +272,14 @@ const completedTasksToday = computed(() => Math.max(totalTasksToday.value - rema
 
 const foodTotalTasks = computed(() => countAllTasks(dailyFoodChecklists.value))
 const foodCompletedTasks = computed(() => Math.max(foodTotalTasks.value - countRemainingTasks(dailyFoodChecklists.value), 0))
+const foodRemainingTasks = computed(() => countRemainingTasks(dailyFoodChecklists.value))
 const foodCompletionRate = computed(() => getCompletionRate(foodCompletedTasks.value, foodTotalTasks.value))
 
 const alcoholTotalTasks = computed(() => countAllTasks(dailyAlcoholChecklists.value))
 const alcoholCompletedTasks = computed(() =>
   Math.max(alcoholTotalTasks.value - countRemainingTasks(dailyAlcoholChecklists.value), 0)
 )
+const alcoholRemainingTasks = computed(() => countRemainingTasks(dailyAlcoholChecklists.value))
 const alcoholCompletionRate = computed(() => getCompletionRate(alcoholCompletedTasks.value, alcoholTotalTasks.value))
 
 const activeDeviationCount = computed(() =>
@@ -290,6 +303,21 @@ const activeDeviationHint = computed(() => {
   return `${activeDeviationCount.value} temperature deviations need follow-up`
 })
 
+const certificateHint = computed(() => {
+  if (isLoadingDocuments.value) return 'Checking certificate expiry...'
+  if (documentsError.value) return documentsError.value
+  if (expiringCertificatesCount.value === 0) return 'No certificates expiring soon'
+  return 'Within 30 days'
+})
+
+const requestsHint = computed(() => {
+  if (!auth.isAdminOrManager) return ''
+  if (isLoadingRequests.value) return 'Checking team requests...'
+  if (requestsError.value) return requestsError.value
+  if (pendingJoinRequests.value === 0) return 'No pending access requests'
+  return 'Team access requests'
+})
+
 const operationalHealthLabel = computed(() => {
   if (activeDeviationCount.value > 0) return 'Operational focus: active deviations require follow-up.'
   if (remainingTasksToday.value > 0) return 'Operational focus: continue daily checklists to close all tasks.'
@@ -299,7 +327,23 @@ const operationalHealthLabel = computed(() => {
 const latestChecklistLabel = computed(() => {
   const candidate = dailyChecklists.value.find((card) => typeof card?.title === 'string' && card.title.trim().length > 0)
   if (!candidate) return 'No daily checklist opened yet'
-  return `Latest checklist in focus: ${candidate.title}`
+  return `Checklist focus: ${candidate.title}`
+})
+
+const latestDocumentLabel = computed(() => {
+  if (isLoadingDocuments.value) return 'Loading recent document activity...'
+  if (documentsError.value) return `Documents: ${documentsError.value}`
+  const doc = latestUploadedDocument.value
+  if (!doc) return 'No recent document upload detected'
+  return `Latest document upload: ${doc.name || 'Document'} (${formatDateTimeShort(doc.uploadedAt)})`
+})
+
+const latestTemperatureLabel = computed(() => {
+  if (isLoadingTemperatureActivity.value) return 'Loading latest temperature log...'
+  if (temperatureActivityError.value) return `Temperature log: ${temperatureActivityError.value}`
+  const activity = latestTemperatureActivity.value
+  if (!activity) return 'No temperature measurements logged today'
+  return `${activity.moduleLabel}: ${activity.valueC}C measured ${formatDateTimeShort(activity.measuredAt)}`
 })
 
 const lastRefreshLabel = computed(() =>
@@ -312,13 +356,13 @@ const lastRefreshLabel = computed(() =>
 const alerts = computed(() => {
   const items = []
   if (activeDeviationCount.value > 0) {
-    items.push({ level: 'danger', label: `${activeDeviationCount.value} active temperature deviation(s)` })
+    items.push({ level: 'danger', label: `${activeDeviationCount.value} active temperature deviation(s)`, action: 'deviation' })
   }
   if (expiringCertificatesCount.value > 0) {
-    items.push({ level: 'warning', label: `${expiringCertificatesCount.value} certificate(s) expiring within 30 days` })
+    items.push({ level: 'warning', label: `${expiringCertificatesCount.value} certificate(s) expiring within 30 days`, action: 'certificates' })
   }
   if (remainingTasksToday.value > 0) {
-    items.push({ level: 'neutral', label: `${remainingTasksToday.value} task(s) still open today` })
+    items.push({ level: 'neutral', label: `${remainingTasksToday.value} task(s) still open today`, action: 'tasks' })
   }
   return items
 })
@@ -373,13 +417,63 @@ function formatPeriod(period) {
   return String(period).charAt(0).toUpperCase() + String(period).slice(1).toLowerCase()
 }
 
+function formatDateTimeShort(value) {
+  if (!value) return 'unknown time'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'unknown time'
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
+
+function toBackendDateTime(value) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 19)
+  return date.toISOString().slice(0, 19)
+}
+
 function openChecklistModule(module) {
   const routeName = module === 'IC_ALCOHOL' ? 'ic-alcohol-dashboard' : 'ic-food-dashboard'
   router.push({ name: routeName })
 }
 
-function goToRoute(name) {
-  router.push({ name })
+function goToRoute(name, query = undefined) {
+  router.push({ name, query })
+}
+
+function openDeviationReport() {
+  goToRoute('reports', { action: 'deviation' })
+}
+
+function openCertificateDocuments() {
+  goToRoute('documents', { category: 'CERTIFICATE' })
+}
+
+function openDocuments() {
+  goToRoute('documents')
+}
+
+function openNextChecklistModule() {
+  if (alcoholRemainingTasks.value > foodRemainingTasks.value) {
+    openChecklistModule('IC_ALCOHOL')
+    return
+  }
+  openChecklistModule('IC_FOOD')
+}
+
+function handleAlertAction(alert) {
+  if (alert?.action === 'deviation') {
+    openDeviationReport()
+    return
+  }
+  if (alert?.action === 'certificates') {
+    openCertificateDocuments()
+    return
+  }
+  openNextChecklistModule()
 }
 
 async function loadChecklistData() {
@@ -409,30 +503,47 @@ async function loadChecklistData() {
   }
 }
 
-async function loadExpiringCertificates() {
+async function loadDocumentInsights() {
+  isLoadingDocuments.value = true
+  documentsError.value = ''
+
   try {
-    const docs = await fetchDocuments({ category: 'CERTIFICATE' })
+    const docs = await fetchDocuments()
     if (!Array.isArray(docs)) {
       expiringCertificatesCount.value = 0
+      latestUploadedDocument.value = null
       return
     }
 
     const today = new Date()
     expiringCertificatesCount.value = docs.filter((doc) => {
+      if (doc?.category !== 'CERTIFICATE') return false
       if (!doc?.expiryDate) return false
       const expiry = new Date(doc.expiryDate)
       if (Number.isNaN(expiry.getTime())) return false
       const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
       return daysLeft <= 30
     }).length
+
+    latestUploadedDocument.value = docs
+      .filter((doc) => doc?.uploadedAt)
+      .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())[0] ?? null
   } catch {
     expiringCertificatesCount.value = 0
+    latestUploadedDocument.value = null
+    documentsError.value = 'Could not load document insights'
+  } finally {
+    isLoadingDocuments.value = false
   }
 }
 
 async function loadPendingRequests() {
+  isLoadingRequests.value = true
+  requestsError.value = ''
+
   if (!auth.isAdminOrManager) {
     pendingJoinRequests.value = 0
+    isLoadingRequests.value = false
     return
   }
 
@@ -441,11 +552,51 @@ async function loadPendingRequests() {
     pendingJoinRequests.value = Array.isArray(pending) ? pending.length : 0
   } catch {
     pendingJoinRequests.value = 0
+    requestsError.value = 'Could not load request status'
+  } finally {
+    isLoadingRequests.value = false
+  }
+}
+
+async function loadLatestTemperatureActivity() {
+  isLoadingTemperatureActivity.value = true
+  temperatureActivityError.value = ''
+  latestTemperatureActivity.value = null
+
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date()
+  const from = toBackendDateTime(start)
+  const to = toBackendDateTime(end)
+
+  try {
+    const [food, alcohol] = await Promise.all([
+      fetchTemperatureMeasurements({ module: 'IC_FOOD', from, to }),
+      fetchTemperatureMeasurements({ module: 'IC_ALCOHOL', from, to })
+    ])
+
+    const candidates = [...(Array.isArray(food) ? food : []), ...(Array.isArray(alcohol) ? alcohol : [])]
+      .map((item) => {
+        const measuredAt = item?.measuredAt || item?.createdAt || item?.updatedAt || null
+        return {
+          valueC: Number(item?.valueC),
+          measuredAt,
+          moduleLabel: item?.module === 'IC_ALCOHOL' ? 'IC-Alcohol' : 'IC-Food'
+        }
+      })
+      .filter((item) => item.measuredAt && Number.isFinite(item.valueC))
+      .sort((a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime())
+
+    latestTemperatureActivity.value = candidates[0] ?? null
+  } catch {
+    temperatureActivityError.value = 'Could not load temperature activity'
+  } finally {
+    isLoadingTemperatureActivity.value = false
   }
 }
 
 async function refreshDashboard() {
-  await Promise.all([loadChecklistData(), loadExpiringCertificates(), loadPendingRequests()])
+  await Promise.all([loadChecklistData(), loadDocumentInsights(), loadPendingRequests(), loadLatestTemperatureActivity()])
   lastRefreshAt.value = new Date()
 }
 
@@ -613,6 +764,19 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--space-1);
   box-shadow: var(--shadow-sm);
+}
+
+.stat-card--interactive {
+  cursor: pointer;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.stat-card--interactive:hover,
+.stat-card--interactive:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--color-dark-tertiary);
+  box-shadow: var(--shadow-md);
+  outline: none;
 }
 
 .stat-label {
@@ -824,10 +988,30 @@ onMounted(async () => {
 
 .insight-list__item {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  align-items: stretch;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+.insight-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+}
+
+.insight-link:hover,
+.insight-link:focus-visible {
+  background: var(--color-bg-secondary);
+  outline: none;
 }
 
 .insight-list__dot {
