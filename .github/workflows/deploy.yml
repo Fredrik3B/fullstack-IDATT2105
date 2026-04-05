@@ -31,7 +31,6 @@ jobs:
       - name: Build frontend
         run: |
           npm ci
-          echo "VITE_API_BASE_URL=http://${{ secrets.VPS_HOST }}" > .env.production
           npm run build
         working-directory: ./frontend/restaurantapp-frontend
 
