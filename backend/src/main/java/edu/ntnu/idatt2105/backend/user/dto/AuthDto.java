@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.user.dto;
 
+import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import lombok.Data;
 
 /**
@@ -9,5 +10,4 @@ import lombok.Data;
 public class AuthDto {
   private final String accessToken;
   private final String refreshToken;
-  private final String email;
-}
+  private final UserModel user;}

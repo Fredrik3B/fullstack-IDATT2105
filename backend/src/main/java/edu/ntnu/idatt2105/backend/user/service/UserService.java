@@ -63,7 +63,7 @@ public class UserService {
     return new AuthDto(
         jwtService.generateToken(principal),
         jwtService.generateRefreshToken(principal),
-        savedUser.getEmail()
+        savedUser
     );
 
   }
@@ -84,7 +84,7 @@ public class UserService {
     return new AuthDto(
         jwtService.generateToken(principal),
         jwtService.generateRefreshToken(principal),
-        user.getEmail()
+        user
     );
   }
 
@@ -101,7 +101,7 @@ public class UserService {
     return new AuthDto(
         jwtService.generateToken(principal),
         jwtService.generateRefreshToken(principal),
-        user.getEmail()
+        user
     );
   }
 
