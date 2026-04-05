@@ -6,6 +6,45 @@ import { createTemperatureMeasurement } from '../../api/temperatureMeasurements'
 import { setTaskCompletion, setTaskFlag, submitChecklist } from '../../api/checklists'
 import { useToast } from '@/composables/useToast'
 
+function normalizeChecklistCardIds(card) {
+  if (!card || typeof card !== 'object') return card
+
+  return {
+    ...card,
+    id: card.id != null ? String(card.id) : card.id,
+    sections: Array.isArray(card.sections)
+      ? card.sections.map((section) => ({
+          ...section,
+          items: Array.isArray(section.items)
+            ? section.items.map((item) => ({
+                ...item,
+                id: item?.id != null ? String(item.id) : item?.id,
+                templateId:
+                  item?.templateId != null ? String(item.templateId) : item?.templateId,
+                latestMeasurement: item?.latestMeasurement
+                  ? {
+                      ...item.latestMeasurement,
+                      id:
+                        item.latestMeasurement.id != null
+                          ? String(item.latestMeasurement.id)
+                          : item.latestMeasurement.id,
+                      checklistId:
+                        item.latestMeasurement.checklistId != null
+                          ? String(item.latestMeasurement.checklistId)
+                          : item.latestMeasurement.checklistId,
+                      taskId:
+                        item.latestMeasurement.taskId != null
+                          ? String(item.latestMeasurement.taskId)
+                          : item.latestMeasurement.taskId,
+                    }
+                  : item?.latestMeasurement,
+              }))
+            : section.items,
+        }))
+      : card.sections,
+  }
+}
+
 export function useChecklistDashboard({
   initialCards,
   defaultActivePeriod = 'Daily',
@@ -87,7 +126,6 @@ export function useChecklistDashboard({
     } catch (err) {
       Object.assign(task, previous)
       recalcCardProgress(card)
-      // eslint-disable-next-line no-console
       console.error('Failed to persist task completion', err)
     } finally {
       task.isSaving = false
@@ -136,7 +174,6 @@ export function useChecklistDashboard({
     } catch (err) {
       Object.assign(task, previous)
       recalcCardProgress(card)
-      // eslint-disable-next-line no-console
       console.error('Failed to persist task flag', err)
     } finally {
       task.isSaving = false
@@ -195,7 +232,7 @@ export function useChecklistDashboard({
     try {
       const refreshed = await submitChecklist({ checklistId: card.id })
       if (refreshed) {
-        cards.value.splice(cardIndex, 1, refreshed)
+        cards.value.splice(cardIndex, 1, normalizeChecklistCardIds(refreshed))
         toast.success(`Started a fresh ${card.title} checklist period.`)
       }
       return refreshed

@@ -1,14 +1,12 @@
 package edu.ntnu.idatt2105.backend.user.mapper;
 
-import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
-import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
-import edu.ntnu.idatt2105.backend.user.dto.OrganizationDto;
+import edu.ntnu.idatt2105.backend.user.dto.MemberDto;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
-import edu.ntnu.idatt2105.backend.user.dto.UserDto;
 import edu.ntnu.idatt2105.backend.user.model.JoinRequestModel;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -30,6 +28,18 @@ public class OrganizationMapper {
         .lastName(user.getLastName())
         .status(request.getStatus())
         .createdAt(request.getCreatedAt())
+        .build();
+  }
+
+  public MemberDto toMemberDto(UserModel user) {
+    return MemberDto.builder()
+        .userId(user.getId())
+        .firstName(user.getFirstName())
+        .lastName(user.getLastName())
+        .email(user.getEmail())
+        .roles(user.getRoles().stream()
+            .map(role -> role.getName().name())
+            .collect(Collectors.toSet()))
         .build();
   }
 }

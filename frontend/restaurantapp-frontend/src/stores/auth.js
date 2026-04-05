@@ -18,6 +18,12 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const user = ref(null)
 
+  const restaurant = ref({
+    id: null,
+    name: null,
+    joinCode: null
+})
+
   /**
    * Short-lived JWT used as the Authorization header on every API request.
    * Populated from localStorage on app boot via initAuth().
@@ -36,19 +42,19 @@ export const useAuthStore = defineStore('auth', () => {
    * ID of the restaurant the user is connected to (active or pending).
    * Null when restaurantStatus is null.
    */
-  const restaurantId = ref(null)
+  const restaurantId = computed(() => restaurant.value?.id)
 
   /**
    * Display name of the restaurant the user is connected to.
    * Populated on createRestaurant, joinRestaurant, and initAuth.
    */
-  const restaurantName = ref(null)
+  const restaurantName = computed(() => restaurant.value?.name)
 
   /**
    * Join code for the restaurant. Only populated for active ADMIN/MANAGER users.
    * Used on the admin requests page so the admin can share the code with staff.
    */
-  const restaurantJoinCode = ref(null)
+  const restaurantJoinCode = computed(() => restaurant.value?.joinCode)
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
@@ -56,18 +62,14 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!accessToken.value)
 
   /** True when the user is logged in AND connected to an active restaurant. */
-  const hasActiveRestaurant = computed(() => restaurantStatus.value === 'active')
+  const hasActiveRestaurant = computed(() => !!restaurant.value.id)
 
   /** Roles extracted from the JWT payload (e.g. ["ROLE_ADMIN", "ROLE_STAFF"]). */
-  const userRoles = computed(() => {
-    if (!accessToken.value) return []
-    try {
-      return JSON.parse(atob(accessToken.value.split('.')[1])).roles ?? []
-    } catch {
-      return []
-    }
-  })
 
+  const userRoles = computed(() => {
+    const claims = _decodeToken()
+    return claims?.roles ?? []
+  })
   /** True when the user holds ADMIN or MANAGER role. */
   const isAdminOrManager = computed(() =>
     userRoles.value.some(r => r === 'ROLE_ADMIN' || r === 'ROLE_MANAGER'))
@@ -85,48 +87,83 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ── Internal helpers ───────────────────────────────────────────────────────
 
-  /** Remove access token from state and localStorage. */
-  function _clearTokens() {
-    accessToken.value = null
-    localStorage.removeItem(ACCESS_TOKEN_KEY)
+  /** Decode JWT payload without verification. */
+  function _decodeToken() {
+    if (!accessToken.value) return null
+    try {
+      return JSON.parse(atob(accessToken.value.split('.')[1]))
+    } catch {
+      return null
+    }
   }
 
-  /** Reset all state to initial/logged-out values. */
+  /**
+   * Populate state from a LoginResponse.
+   * Shape: { accessToken, user: { email, name }, restaurant: { id, name, joinCode } | null }
+   */
+  function _saveSession(data) {
+      accessToken.value = data.accessToken
+      localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
+      localStorage.setItem('iksystem_session', JSON.stringify({
+          user: data.user,
+          restaurant: data.restaurant
+      }))
+
+      user.value = data.user
+      if (data.restaurant) {
+          restaurant.value = data.restaurant
+      } else {
+          restaurant.value = { id: null, name: null, joinCode: null }
+      }
+  }
+
   function _resetState() {
-    user.value               = null
-    restaurantStatus.value   = null
-    restaurantId.value       = null
-    restaurantName.value     = null
-    restaurantJoinCode.value = null
-    _initPromise             = null   // allow initAuth() to re-run after next login
-    _clearTokens()
+      user.value = null
+      restaurant.value = { id: null, name: null, joinCode: null }
+      accessToken.value = null
+      _initPromise = null
+      localStorage.removeItem(ACCESS_TOKEN_KEY)
+      localStorage.removeItem('iksystem_session')
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
   /**
-   Called once on app boot (main.js or App.vue).
-   If a token is already in localStorage, fetches the current user from the
-   backend to validate the token and repopulate state.
-   if he token is invalid/expired, or the refresh also fails, state is reset
+   * Called once on app boot by the router guard.
+   * Restores what we can from the JWT claims (email, orgId).
+   * Display values (name, restaurant name) are only available after login.
+   * NEEDS TO BE LOOKED INTO
    */
   let _initPromise = null
 
   async function initAuth() {
-    if (_initPromise) return _initPromise
-    if (!accessToken.value) return
+      if (_initPromise) return _initPromise
+      if (!accessToken.value) return
+      if (user.value) {
+          _initPromise = Promise.resolve()
+          return _initPromise
+      }
 
-    _initPromise = api.get('/api/auth/me').then(({ data }) => {
-      user.value               = data.user
-      restaurantStatus.value   = data.restaurantStatus
-      restaurantId.value       = data.restaurantId
-      restaurantName.value     = data.restaurantName ?? null
-      restaurantJoinCode.value = data.restaurantJoinCode ?? null
-    }).catch(() => {
-      _resetState()
-      _initPromise = null  // allow retry after reset
-    })
-    return _initPromise
+      _initPromise = Promise.resolve().then(() => {
+          try {
+              const saved = localStorage.getItem('iksystem_session')
+              if (saved) {
+                  const session = JSON.parse(saved)
+                  user.value = session.user
+                  restaurant.value = session.restaurant ?? null
+                  return
+              }
+          } catch { /* fall through */ }
+
+          // Fallback — decode JWT for essentials
+          const claims = _decodeToken()
+          if (!claims) { _resetState(); return }
+          user.value = { email: claims.sub, name: null }
+          restaurant.value = claims.organizationId
+              ? { id: claims.organizationId, name: null, joinCode: null }
+              : null
+      })
+      return _initPromise
   }
 
 
@@ -143,13 +180,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(email, password) {
     const { data } = await api.post('/api/auth/login', { email, password })
 
-    accessToken.value = data.accessToken
-    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
-
-    user.value             = { email: data.email, name: data.name ?? null, role: data.role ?? null }
-    restaurantStatus.value = null
-    restaurantId.value     = null
-
+    _saveSession(data)
     _redirectAfterAuth()
   }
 
@@ -164,13 +195,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const { data } = await api.post('/api/auth/register', { firstName, lastName, email, password })
 
-    accessToken.value = data.accessToken
-    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
-
-    user.value             = { email: data.email, name: `${firstName} ${lastName}`.trim(), role: null }
-    restaurantStatus.value = null
-    restaurantId.value     = null
-
+    _saveSession(data)
     router.push({ name: 'onboarding' })
   }
 
@@ -189,8 +214,7 @@ export const useAuthStore = defineStore('auth', () => {
       withCredentials: true,
     })
 
-    accessToken.value = data.accessToken
-    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
+    _saveSession(data)
     return data.accessToken
   }
 
@@ -218,8 +242,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function withdrawJoinRequest() {
     await api.delete('/api/organizations/join-request')
 
+
     restaurantStatus.value = null
-    restaurantId.value     = null
+    restaurantId.value = null
+    restaurantName.value = null
+    restaurantJoinCode.value = null
   }
 
   /**
@@ -287,6 +314,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // ── Member management ──────────────────────────────────────────────────────
+
+  async function fetchMembers() {
+    const { data } = await api.get('/api/organizations/members')
+    return data
+  }
+
+  async function removeMember(userId) {
+    await api.delete(`/api/organizations/members/${userId}`)
+  }
+
+  async function updateMemberRoles(userId, roles) {
+    await api.put(`/api/organizations/members/${userId}/roles`, { roles })
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
 
   return {
@@ -316,6 +358,9 @@ export const useAuthStore = defineStore('auth', () => {
     createRestaurant,
     fetchJoinRequests,
     resolveJoinRequest,
+    fetchMembers,
+    removeMember,
+    updateMemberRoles,
     logout,
   }
 })

@@ -46,6 +46,24 @@
   --color-success-text:      #5C6E10;   /* Text on light success background */
   --color-success-border:    #C8DC60;   /* Border on success cards */
 
+  /* File type colors */
+  --color-file-pdf-bg:       #FDE8E0;
+  --color-file-pdf-text:     #C0392B;
+  --color-file-doc-bg:       #DBEAFE;
+  --color-file-doc-text:     #1D4ED8;
+  --color-file-img-bg:       #F3E8FF;
+  --color-file-img-text:     #7C3AED;
+  --color-file-xls-bg:       #DCFCE7;
+  --color-file-xls-text:     #15803D;
+  --color-file-link-bg:      #E0F0FF;
+  --color-file-link-text:    #1A6BBF;
+
+  /* Module-specific colors */
+  --color-module-food-bg:    #DCFCE7;
+  --color-module-food-text:  #15803D;
+  --color-module-alcohol-bg: #FEF3C7;
+  --color-module-alcohol-text: #92400E;
+
   /*Texting config*/
   --font-sans:               -apple-system, BlinkMacSystemFont, 'Segoe UI',
                              Helvetica, Arial, sans-serif;

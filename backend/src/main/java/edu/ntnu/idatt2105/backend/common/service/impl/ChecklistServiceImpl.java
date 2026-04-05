@@ -166,10 +166,10 @@ public class ChecklistServiceImpl implements ChecklistService {
 		if (state.equals("completed")) {
 			task.setCompleted(true);
 			task.setFlagged(false);
-			task.setCompletedAt(request.completedAt());
+			task.setEndedAt(request.completedAt());
 		} else {
 			task.setCompleted(false);
-			task.setCompletedAt(null);
+			task.setEndedAt(null);
 		}
 
 		TasksModel savedTask = tasksRepository.save(task);
@@ -207,7 +207,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		if (state.equals("pending")) {
 			task.setFlagged(true);
 			task.setCompleted(false);
-			task.setCompletedAt(null);
+			task.setEndedAt(null);
 		} else {
 			task.setFlagged(false);
 		}
@@ -322,6 +322,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 				TasksModel task = new TasksModel();
 				task.setChecklist(checklist);
 				task.setTaskTemplate(template);
+				task.setMeta(template.getMeta());
 				task.setPeriodKey(activePeriodKey);
 				task.setActive(true);
 				task.setCompleted(false);
@@ -491,7 +492,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		if (task.isCompleted()) {
 			state = "completed";
 			completedForPeriodKey = task.getPeriodKey();
-			completedAt = task.getCompletedAt();
+			completedAt = task.getEndedAt();
 		} else if (task.isFlagged()) {
 			state = "pending";
 			pendingForPeriodKey = task.getPeriodKey();
@@ -521,7 +522,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			null,
 			template.getId(),
 			template.getTitle(),
-			null,
+			template.getMeta(),
 			isTemperatureTemplate(template) ? "temperature" : null,
 			template.getUnit(),
 			template.getTargetMin(),

@@ -6,7 +6,10 @@ import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
+import edu.ntnu.idatt2105.backend.user.dto.LoginResponse.UserInfo;
 import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
+import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -25,16 +29,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
 
 @Tag(name = "Authentication", description = "Register, login, refresh token, and logout")
 @RestController
 @RequestMapping("/auth")
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UserController {
+
+  @Value("${app.cookie-secure:true}")
+  private boolean cookieSecure;
 
   private final UserService userService;
 
-  @GetMapping("/me")
+  @GetMapping("/not-in-use")
   public ResponseEntity<MeResponse> getMe(Authentication authentication) {
     JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(authentication);
     return ResponseEntity.ok(userService.getMe(principal.getUserId()));
@@ -73,7 +81,7 @@ public class UserController {
   public ResponseEntity<Void> logout() {
     ResponseCookie cookie = ResponseCookie.from("refreshToken", null)
         .httpOnly(true)
-        .secure(false)
+        .secure(cookieSecure)
         .path("/api/auth/refresh")
         .maxAge(0)
         .sameSite("Lax")
@@ -86,15 +94,28 @@ public class UserController {
 
   private ResponseEntity<LoginResponse> buildLoginResponse(AuthDto result) {
     ResponseCookie cookie = createRefreshTokenCookie(result.getRefreshToken());
+    UserModel user = result.getUser();
+
+
+    LoginResponse.RestaurantInfo restaurant = null;
+    OrganizationModel org = user.getOrganization();
+    if (org != null) {
+      restaurant = new LoginResponse.RestaurantInfo(org.getId(), org.getName(), org.getJoinCode());
+    }
+
+    LoginResponse response = new LoginResponse(result.getAccessToken(),
+        new UserInfo(user.getEmail(), user.getFirstName() + " " + user.getLastName()),
+        restaurant);
+
     return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, cookie.toString())
-        .body(new LoginResponse( result.getEmail(), result.getAccessToken()));
+        .body(response);
   }
 
   private ResponseCookie createRefreshTokenCookie(String refreshToken) {
     return ResponseCookie.from("refreshToken", refreshToken)
         .httpOnly(true)
-        .secure(false) // should be changed
+        .secure(cookieSecure)
         .path("/api/auth/refresh")
         .maxAge(Duration.ofDays(7))
         .sameSite("Lax")

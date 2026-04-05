@@ -45,12 +45,40 @@ public class TaskServiceImpl implements TaskService {
 
 		TaskTemplate template = new TaskTemplate();
 		template.setTitle(request.title().trim());
+		template.setMeta(trimToNull(request.meta()));
 		template.setSectionType(request.sectionType());
 		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
 		template.setUnit(isTemperatureControl ? "C" : null);
 		template.setTargetMin(isTemperatureControl ? request.targetMin() : null);
 		template.setTargetMax(isTemperatureControl ? request.targetMax() : null);
 		template.setOrganisationId(safePrincipal.getOrganizationId());
+
+		return toResponse(taskTemplateRepository.save(template));
+	}
+
+	@Override
+	@Transactional
+	public TaskResponse updateTask(Long taskId, CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
+		validateRequest(request);
+		TaskTemplate template = getTemplate(taskId, safePrincipal);
+		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
+
+		template.setTitle(request.title().trim());
+		template.setMeta(trimToNull(request.meta()));
+		template.setSectionType(request.sectionType());
+		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
+		template.setUnit(isTemperatureControl ? "C" : null);
+		template.setTargetMin(isTemperatureControl ? request.targetMin() : null);
+		template.setTargetMax(isTemperatureControl ? request.targetMax() : null);
+
+		List<TasksModel> activatedTasks = tasksRepository.findAllByTaskTemplate_Id(taskId);
+		for (TasksModel task : activatedTasks) {
+			task.setMeta(template.getMeta());
+		}
+		if (!activatedTasks.isEmpty()) {
+			tasksRepository.saveAll(activatedTasks);
+		}
 
 		return toResponse(taskTemplateRepository.save(template));
 	}
@@ -109,6 +137,7 @@ public class TaskServiceImpl implements TaskService {
 			template.getId(),
 			toModule(template.getComplianceArea()),
 			template.getTitle(),
+			template.getMeta(),
 			template.getSectionType(),
 			template.getUnit(),
 			template.getTargetMin(),
@@ -144,6 +173,14 @@ public class TaskServiceImpl implements TaskService {
 
 	private boolean hasText(String value) {
 		return value != null && !value.trim().isEmpty();
+	}
+
+	private String trimToNull(String value) {
+		if (value == null) {
+			return null;
+		}
+		String trimmed = value.trim();
+		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	private IcModule toModule(ComplianceArea complianceArea) {

@@ -12,6 +12,8 @@ public interface TaskService {
 
 	TaskResponse createTask(CreateTaskRequest request, JwtAuthenticatedPrincipal principal);
 
+	TaskResponse updateTask(Long taskId, CreateTaskRequest request, JwtAuthenticatedPrincipal principal);
+
 	List<TaskResponse> getAllTasks(IcModule module, JwtAuthenticatedPrincipal principal);
 
 	TaskResponse getTaskById(Long taskId, JwtAuthenticatedPrincipal principal);

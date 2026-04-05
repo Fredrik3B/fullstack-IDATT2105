@@ -33,14 +33,17 @@
                 <div class="task-title">{{ task.title }}</div>
                 <div v-if="taskSummary(task)" class="task-meta">{{ taskSummary(task) }}</div>
               </div>
-              <button
-                type="button"
-                class="danger"
-                :disabled="deletingTaskId === task.id"
-                @click="removeTask(task)"
-              >
-                {{ deletingTaskId === task.id ? 'Deleting...' : 'Delete' }}
-              </button>
+              <div class="task-actions">
+                <button type="button" class="secondary" @click="openEditTask(task)">Edit</button>
+                <button
+                  type="button"
+                  class="danger"
+                  :disabled="deletingTaskId === task.id"
+                  @click="removeTask(task)"
+                >
+                  {{ deletingTaskId === task.id ? 'Deleting...' : 'Delete' }}
+                </button>
+              </div>
             </article>
           </section>
         </div>
@@ -53,13 +56,22 @@
       :module-label="moduleLabel"
       @created="handleCreatedTask"
     />
+
+    <CreateTaskTemplateModal
+      v-model:open="isEditOpen"
+      mode="edit"
+      :initial-task="selectedTask"
+      :module="module"
+      :module-label="moduleLabel"
+      @updated="handleUpdatedTask"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
-import { createTask, deleteTask, fetchTasks } from '../../api/tasks'
+import { createTask, deleteTask, fetchTasks, updateTask } from '../../api/tasks'
 import CreateTaskTemplateModal from './CreateTaskTemplateModal.vue'
 import { formatSectionType } from './taskTemplateOptions'
 
@@ -76,6 +88,8 @@ const tasks = ref([])
 const loading = ref(false)
 const error = ref('')
 const isCreateOpen = ref(false)
+const isEditOpen = ref(false)
+const selectedTask = ref(null)
 const deletingTaskId = ref(null)
 
 const groupedTasks = computed(() => {
@@ -96,10 +110,14 @@ const groupedTasks = computed(() => {
 })
 
 function taskSummary(task) {
-  if (task.targetMin != null || task.targetMax != null) {
-    return `Celsius range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`
+  const fragments = []
+  if (task.meta) {
+    fragments.push(task.meta)
   }
-  return ''
+  if (task.targetMin != null || task.targetMax != null) {
+    fragments.push(`Celsius range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)
+  }
+  return fragments.join(' - ')
 }
 
 async function loadTasks() {
@@ -128,18 +146,54 @@ function close() {
   emit('close')
 }
 
+function sortTasks(items) {
+  return [...items].sort(
+    (a, b) =>
+      formatSectionType(a.sectionType).localeCompare(formatSectionType(b.sectionType)) ||
+      String(a.title).localeCompare(String(b.title)),
+  )
+}
+
 async function handleCreatedTask(payload) {
   try {
     const created = await createTask(payload)
-    tasks.value = [...tasks.value, created].sort(
-      (a, b) =>
-        formatSectionType(a.sectionType).localeCompare(formatSectionType(b.sectionType)) ||
-        String(a.title).localeCompare(String(b.title)),
-    )
+    tasks.value = sortTasks([...tasks.value, created])
     emit('changed')
   } catch (err) {
     console.error('Failed to create task', err)
     error.value = 'Could not create task.'
+  }
+}
+
+function openEditTask(task) {
+  selectedTask.value = { ...task }
+  isEditOpen.value = true
+}
+
+async function handleUpdatedTask(payload) {
+  if (!payload?.id) {
+    error.value = 'Could not update task.'
+    return
+  }
+
+  try {
+    const updated = await updateTask({
+      taskId: payload.id,
+      module: payload.module,
+      title: payload.title,
+      meta: payload.meta,
+      sectionType: payload.sectionType,
+      targetMin: payload.targetMin,
+      targetMax: payload.targetMax,
+    })
+    tasks.value = sortTasks(tasks.value.map((task) => (task.id === updated.id ? updated : task)))
+    selectedTask.value = updated
+    emit('changed')
+    toast.success(`Updated "${updated.title}".`)
+  } catch (err) {
+    console.error('Failed to update task', err)
+    error.value = err?.response?.data?.message ?? 'Could not update task.'
+    toast.error(error.value)
   }
 }
 
@@ -261,6 +315,7 @@ h2 {
 }
 
 .primary,
+.secondary,
 .danger {
   min-height: 40px;
   padding: 0 14px;
@@ -275,6 +330,12 @@ h2 {
 .primary {
   background: var(--color-dark-secondary);
   color: white;
+}
+
+.secondary {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .danger {
@@ -351,6 +412,12 @@ h2 {
   gap: 4px;
 }
 
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .task-title {
   font-weight: 700;
   color: var(--color-text-primary);
@@ -363,7 +430,8 @@ h2 {
 
 @media (max-width: 720px) {
   .toolbar-panel,
-  .task-row {
+  .task-row,
+  .task-actions {
     flex-direction: column;
     align-items: flex-start;
   }

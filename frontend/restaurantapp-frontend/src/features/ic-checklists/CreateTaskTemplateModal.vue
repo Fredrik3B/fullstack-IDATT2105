@@ -10,8 +10,8 @@
       <header class="modal-header">
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
-          <h2>Create task</h2>
-          <p class="subtitle">Add a reusable task to the shared module task pool.</p>
+          <h2>{{ modalTitle }}</h2>
+          <p class="subtitle">{{ modalSubtitle }}</p>
         </div>
         <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
@@ -32,6 +32,17 @@
                 type="text"
                 placeholder="e.g. Check fridge 1"
                 required
+              />
+            </label>
+
+            <label class="field full">
+              <span class="label">Meta (optional)</span>
+              <input
+                v-model.trim="meta"
+                class="input"
+                type="text"
+                maxlength="255"
+                placeholder="e.g. Record in cleaning log"
               />
             </label>
 
@@ -63,7 +74,7 @@
 
         <footer class="modal-footer">
           <button type="button" class="secondary" @click="close">Cancel</button>
-          <button type="submit" class="primary">Save task</button>
+          <button type="submit" class="primary">{{ submitButtonLabel }}</button>
         </footer>
       </form>
     </div>
@@ -76,31 +87,73 @@ import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
+  mode: {
+    type: String,
+    default: 'create',
+    validator: (value) => ['create', 'edit'].includes(value),
+  },
+  initialTask: { type: Object, default: null },
   module: { type: String, required: true },
   moduleLabel: { type: String, default: '' },
 })
 
-const emit = defineEmits(['update:open', 'created', 'close'])
+const emit = defineEmits(['update:open', 'created', 'updated', 'close'])
 
 const title = ref('')
+const meta = ref('')
 const sectionType = ref('')
 const targetMin = ref(null)
 const targetMax = ref(null)
 const error = ref('')
+const isEditMode = computed(() => props.mode === 'edit')
+const modalTitle = computed(() => (isEditMode.value ? 'Edit task' : 'Create task'))
+const modalSubtitle = computed(() =>
+  isEditMode.value
+    ? 'Update the reusable task in the shared module task pool.'
+    : 'Add a reusable task to the shared module task pool.',
+)
+const submitButtonLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Save task'))
 const isTemperatureControl = computed(() => sectionType.value === 'TEMPERATURE_CONTROL')
 
 function reset() {
   title.value = ''
+  meta.value = ''
   sectionType.value = ''
   targetMin.value = null
   targetMax.value = null
   error.value = ''
 }
 
+function initFromTask(task) {
+  if (!task) {
+    reset()
+    return
+  }
+
+  title.value = String(task.title ?? '').trim()
+  meta.value = String(task.meta ?? '').trim()
+  sectionType.value = String(task.sectionType ?? '')
+  targetMin.value = task.targetMin ?? null
+  targetMax.value = task.targetMax ?? null
+  error.value = ''
+}
+
 watch(
   () => props.open,
   (isOpen) => {
-    if (isOpen) reset()
+    if (!isOpen) return
+    if (isEditMode.value) {
+      initFromTask(props.initialTask)
+      return
+    }
+    reset()
+  },
+)
+
+watch(
+  () => props.initialTask,
+  (task) => {
+    if (props.open && isEditMode.value) initFromTask(task)
   },
 )
 
@@ -135,9 +188,11 @@ function submit() {
     return
   }
 
-  emit('created', {
+  const payload = {
+    id: props.initialTask?.id ?? null,
     module: props.module,
     title: title.value.trim(),
+    meta: meta.value.trim(),
     sectionType: sectionType.value,
     targetMin:
       isTemperatureControl.value && Number.isFinite(Number(targetMin.value))
@@ -147,7 +202,13 @@ function submit() {
       isTemperatureControl.value && Number.isFinite(Number(targetMax.value))
         ? Number(targetMax.value)
         : null,
-  })
+  }
+
+  if (isEditMode.value) {
+    emit('updated', payload)
+  } else {
+    emit('created', payload)
+  }
   close()
 }
 </script>
@@ -167,6 +228,9 @@ function submit() {
 
 .modal {
   width: min(640px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-xl);
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -220,6 +284,7 @@ h2 {
 }
 
 .modal-body {
+  overflow: auto;
   display: grid;
   gap: var(--space-4);
 }
@@ -273,6 +338,24 @@ h2 {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-strong);
   background: white;
+  box-sizing: border-box;
+  font: inherit;
+  color: var(--color-text-primary);
+}
+
+select.input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 42px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.25 4.5L6 8.25L9.75 4.5' stroke='%2320203a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 12px;
+}
+
+select.input::-ms-expand {
+  display: none;
 }
 
 .error {
