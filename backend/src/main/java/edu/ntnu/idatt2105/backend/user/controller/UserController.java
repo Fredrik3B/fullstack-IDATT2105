@@ -39,7 +39,7 @@ public class UserController {
 
   private final UserService userService;
 
-  @GetMapping("/me")
+  @GetMapping("/not-in-use")
   public ResponseEntity<MeResponse> getMe(Authentication authentication) {
     JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(authentication);
     return ResponseEntity.ok(userService.getMe(principal.getUserId()));
