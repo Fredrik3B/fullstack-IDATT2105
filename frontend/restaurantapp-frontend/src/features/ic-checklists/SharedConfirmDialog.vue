@@ -12,13 +12,19 @@
       <p v-if="message">{{ message }}</p>
       <div v-if="detail" class="confirm-detail">{{ detail }}</div>
       <div class="confirm-actions">
-        <button type="button" class="confirm-secondary" @click="handleCancel">
+        <button
+          type="button"
+          class="confirm-secondary"
+          :disabled="isProcessing"
+          @click="handleCancel"
+        >
           {{ cancelLabel }}
         </button>
         <button
           type="button"
           class="confirm-primary"
-          :class="[`tone-${tone}`]"
+          :class="[`tone-${tone}`, { processing: isProcessing }]"
+          :disabled="isProcessing"
           @click="emit('confirm')"
         >
           {{ confirmLabel }}
@@ -37,6 +43,7 @@ defineProps({
   detail: { type: String, default: '' },
   confirmLabel: { type: String, default: 'Confirm' },
   cancelLabel: { type: String, default: 'Cancel' },
+  isProcessing: { type: Boolean, default: false },
   tone: {
     type: String,
     default: 'default',
@@ -151,6 +158,14 @@ function handleCancel() {
 
 .confirm-primary.tone-danger {
   background: var(--color-danger);
+}
+
+.confirm-secondary:disabled,
+.confirm-primary:disabled,
+.confirm-primary.processing {
+  opacity: 0.7;
+  cursor: wait;
+  filter: saturate(0.8);
 }
 
 @media (max-width: 720px) {

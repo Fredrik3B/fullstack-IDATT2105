@@ -51,11 +51,20 @@
               <button
                 type="button"
                 class="open-button"
-                :class="{ disabled: isLoaded(card) }"
-                :disabled="isLoaded(card)"
+                :class="{
+                  disabled: isLoaded(card),
+                  loading: String(openingChecklistId ?? '') === String(card.id),
+                }"
+                :disabled="isLoaded(card) || String(openingChecklistId ?? '') === String(card.id)"
                 @click="emit('open-checklist', card)"
               >
-                {{ isLoaded(card) ? 'Already loaded' : 'Open on workbench' }}
+                {{
+                  isLoaded(card)
+                    ? 'Already loaded'
+                    : String(openingChecklistId ?? '') === String(card.id)
+                      ? 'Opening...'
+                      : 'Open on workbench'
+                }}
               </button>
             </div>
           </article>
@@ -73,6 +82,7 @@ const props = defineProps({
   moduleLabel: { type: String, default: '' },
   cards: { type: Array, default: () => [] },
   loadedChecklistIds: { type: Array, default: () => [] },
+  openingChecklistId: { type: [String, Number], default: null },
 })
 
 const emit = defineEmits(['update:open', 'close', 'open-checklist'])
@@ -316,6 +326,12 @@ h2 {
   background: var(--color-bg-tertiary);
   color: var(--color-text-muted);
   cursor: not-allowed;
+}
+
+.open-button.loading {
+  opacity: 0.8;
+  cursor: wait;
+  box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 820px) {

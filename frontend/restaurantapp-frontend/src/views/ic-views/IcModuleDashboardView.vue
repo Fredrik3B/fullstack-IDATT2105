@@ -31,6 +31,11 @@ const {
   isEditOpen,
   isLibraryOpen,
   isTaskPoolOpen,
+  isCreatingChecklist,
+  isUpdatingChecklist,
+  openingChecklistId,
+  deletingChecklistId,
+  removingChecklistId,
   editingCard,
   deleteDialog,
   togglePending,
@@ -86,6 +91,7 @@ const deleteDialogMessage = computed(
     v-model:open="isCreateOpen"
     :module="config.module"
     :module-label="config.moduleLabel"
+    :save-pending="isCreatingChecklist"
     @manage-tasks="openTaskPoolModal"
     @created="handleCreatedChecklist"
   />
@@ -96,6 +102,9 @@ const deleteDialogMessage = computed(
     :initial-card="editingCard"
     :module="config.module"
     :module-label="config.moduleLabel"
+    :save-pending="isUpdatingChecklist"
+    :delete-pending="String(deletingChecklistId ?? '') === String(editingCard?.id ?? '')"
+    :remove-pending="String(removingChecklistId ?? '') === String(editingCard?.id ?? '')"
     @manage-tasks="openTaskPoolModal"
     @close="closeEditModal"
     @delete="requestDeleteChecklist"
@@ -108,6 +117,7 @@ const deleteDialogMessage = computed(
     :module-label="config.moduleLabel"
     :cards="cards"
     :loaded-checklist-ids="loadedChecklistIds"
+    :opening-checklist-id="openingChecklistId"
     @open-checklist="openChecklistOnWorkbench"
   />
 
@@ -124,6 +134,7 @@ const deleteDialogMessage = computed(
     :message="deleteDialogMessage"
     detail="This action cannot be undone."
     confirm-label="Delete checklist"
+    :is-processing="String(deletingChecklistId ?? '') === String(deleteDialog.checklist?.id ?? '')"
     tone="danger"
     @cancel="closeDeleteDialog"
     @confirm="handleDeleteChecklist(deleteDialog.checklist)"

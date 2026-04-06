@@ -73,15 +73,17 @@
                 step="0.1"
                 placeholder="C"
                 :aria-label="`Log temperature for ${task.label}`"
+                :disabled="task.isTemperatureSaving"
                 @keyup.enter="handleSaveTemperature(task)"
               />
               <button
                 type="button"
                 class="temp-save"
-                :disabled="!canSaveTemperature(task)"
+                :class="{ loading: task.isTemperatureSaving }"
+                :disabled="!canSaveTemperature(task) || task.isTemperatureSaving"
                 @click="handleSaveTemperature(task)"
               >
-                Save
+                {{ task.isTemperatureSaving ? 'Saving...' : 'Save' }}
               </button>
             </div>
 
@@ -125,15 +127,18 @@
       <button
         type="button"
         class="submit-button"
-        :disabled="!canSubmitCurrentPeriod"
+        :class="{ loading: isSubmitting }"
+        :disabled="!canSubmitCurrentPeriod || isSubmitting"
         @click="handleSubmitChecklist"
       >
         {{
-          !canSubmitCurrentPeriod
-            ? 'Waiting for next period'
-            : periodExpired
-              ? 'Submit and load next period'
-              : 'Submit checklist'
+          isSubmitting
+            ? 'Submitting...'
+            : !canSubmitCurrentPeriod
+              ? 'Waiting for next period'
+              : periodExpired
+                ? 'Submit and load next period'
+                : 'Submit checklist'
         }}
       </button>
     </footer>
@@ -145,9 +150,10 @@
       :message="confirmDialog.message"
       :detail="confirmDialog.detail"
       :confirm-label="confirmDialog.confirmLabel"
+      :is-processing="confirmDialog.isProcessing"
       :tone="confirmDialog.tone"
       @cancel="closeConfirmDialog"
-      @confirm="confirmDialog.onConfirm?.()"
+      @confirm="runConfirmDialogAction"
     />
   </article>
 </template>
@@ -167,6 +173,7 @@ const confirmDialog = reactive({
   detail: '',
   confirmLabel: 'Confirm',
   tone: 'default',
+  isProcessing: false,
   onConfirm: null,
 })
 
@@ -202,6 +209,10 @@ const props = defineProps({
   progress: {
     type: Number,
     default: null,
+  },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
   },
   sections: {
     type: Array,
@@ -277,6 +288,7 @@ const submitWarning = computed(() => {
   }
   return `Submitting locks the current ${periodLabel.value} run and immediately starts a fresh one with new task ids.`
 })
+const isSubmitting = computed(() => Boolean(props.isSubmitting))
 
 function handleToggle(sectionIndex, taskIndex) {
   emit('toggle-task', { sectionIndex, taskIndex })
@@ -291,7 +303,7 @@ function handleEditChecklist() {
 }
 
 function handleSubmitChecklist() {
-  if (!canSubmitCurrentPeriod.value) return
+  if (!canSubmitCurrentPeriod.value || isSubmitting.value) return
   openConfirmDialog({
     kicker: periodExpired.value ? 'Period ended' : 'Submit checklist',
     title: periodExpired.value ? 'Start the next checklist period?' : 'Submit this checklist now?',
@@ -324,12 +336,25 @@ function handleSaveTemperature(task) {
   if (!isTemperatureTask(task)) return
   const id = task?.id
   if (!id) return
+  if (task?.isTemperatureSaving) return
   const checklistId = props.id
   const valueC = Number(temperatureDraftByTaskId[id])
   if (!Number.isFinite(valueC)) return
 
-  emit('log-temperature', { checklistId, taskId: id, valueC })
-  temperatureDraftByTaskId[id] = ''
+  openConfirmDialog({
+    kicker: 'Confirm reading',
+    title: `Save ${valueC} C for ${task.label}?`,
+    message: 'Double-check the temperature before it is saved to the checklist log.',
+    detail:
+      'Temperature readings are stored for reporting and audit history, so confirm the value before saving.',
+    confirmLabel: 'Save reading',
+    tone: 'default',
+    onConfirm: () => {
+      closeConfirmDialog()
+      emit('log-temperature', { checklistId, taskId: id, valueC })
+      temperatureDraftByTaskId[id] = ''
+    },
+  })
 }
 
 function openConfirmDialog(config) {
@@ -340,7 +365,20 @@ function openConfirmDialog(config) {
   confirmDialog.detail = config?.detail ?? ''
   confirmDialog.confirmLabel = config?.confirmLabel ?? 'Confirm'
   confirmDialog.tone = config?.tone ?? 'default'
+  confirmDialog.isProcessing = false
   confirmDialog.onConfirm = typeof config?.onConfirm === 'function' ? config.onConfirm : null
+}
+
+function runConfirmDialogAction() {
+  if (confirmDialog.isProcessing) return
+  confirmDialog.isProcessing = true
+  try {
+    confirmDialog.onConfirm?.()
+  } finally {
+    if (confirmDialog.open) {
+      confirmDialog.isProcessing = false
+    }
+  }
 }
 
 function closeConfirmDialog() {
@@ -351,6 +389,7 @@ function closeConfirmDialog() {
   confirmDialog.detail = ''
   confirmDialog.confirmLabel = 'Confirm'
   confirmDialog.tone = 'default'
+  confirmDialog.isProcessing = false
   confirmDialog.onConfirm = null
 }
 </script>
@@ -556,7 +595,10 @@ p {
 }
 
 .task-marker:disabled,
-.flag-button:disabled {
+.flag-button:disabled,
+.temp-field:disabled,
+.temp-save:disabled,
+.submit-button:disabled {
   cursor: wait;
   opacity: 0.7;
 }
@@ -680,6 +722,12 @@ p {
 .temp-save:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.temp-save.loading,
+.submit-button.loading {
+  filter: saturate(0.82);
+  box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.08);
 }
 
 .submit-bar {

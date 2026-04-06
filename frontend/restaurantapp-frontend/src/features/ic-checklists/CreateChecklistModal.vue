@@ -168,6 +168,7 @@
                       class="input"
                       type="text"
                       placeholder="e.g. Check freezer 1"
+                      :disabled="creatingTask"
                     />
                   </label>
 
@@ -178,12 +179,13 @@
                       class="input"
                       type="text"
                       maxlength="255"
+                      :disabled="creatingTask"
                     />
                   </label>
 
                   <label class="field">
                     <span class="label">Section</span>
-                    <select v-model="quickTask.sectionType" class="input">
+                    <select v-model="quickTask.sectionType" class="input" :disabled="creatingTask">
                       <option disabled value="">Choose section</option>
                       <option v-for="option in SECTION_TYPE_OPTIONS" :key="option" :value="option">
                         {{ formatSectionType(option) }}
@@ -199,6 +201,7 @@
                         class="input"
                         type="number"
                         step="0.1"
+                        :disabled="creatingTask"
                       />
                     </label>
 
@@ -209,6 +212,7 @@
                         class="input"
                         type="number"
                         step="0.1"
+                        :disabled="creatingTask"
                       />
                     </label>
                   </template>
@@ -217,7 +221,14 @@
                 <p v-if="quickTaskError" class="error" role="alert">{{ quickTaskError }}</p>
 
                 <div class="quick-create__actions">
-                  <button type="button" class="secondary" @click="resetQuickCreate">Reset</button>
+                  <button
+                    type="button"
+                    class="secondary"
+                    :disabled="creatingTask"
+                    @click="resetQuickCreate"
+                  >
+                    Reset
+                  </button>
                   <button
                     type="button"
                     class="primary"
@@ -267,7 +278,7 @@
               v-if="activeStep === 'tasks'"
               type="button"
               class="secondary"
-              :disabled="submitting"
+              :disabled="isBusy"
               @click="activeStep = 'details'"
             >
               Back to details
@@ -276,15 +287,20 @@
               v-else
               type="button"
               class="secondary"
-              :disabled="submitting"
+              :disabled="isBusy"
               @click="activeStep = 'tasks'"
             >
               Continue to tasks
             </button>
-            <button type="button" class="secondary" :disabled="submitting" @click="handleClose">
+            <button type="button" class="secondary" :disabled="isBusy" @click="handleClose">
               Cancel
             </button>
-            <button type="submit" class="primary" :disabled="submitting">
+            <button
+              type="submit"
+              class="primary"
+              :class="{ loading: savePending }"
+              :disabled="isBusy"
+            >
               {{ submitButtonLabel }}
             </button>
           </div>
@@ -303,13 +319,20 @@
               v-if="displayedOnWorkbench"
               type="button"
               class="ghost"
-              :disabled="submitting"
+              :class="{ loading: removePending }"
+              :disabled="isBusy"
               @click="openRemoveFromWorkbenchConfirm"
             >
-              Remove from workbench
+              {{ removePending ? 'Removing...' : 'Remove from workbench' }}
             </button>
-            <button type="button" class="danger" :disabled="submitting" @click="emitDelete">
-              Delete checklist
+            <button
+              type="button"
+              class="danger"
+              :class="{ loading: deletePending }"
+              :disabled="isBusy"
+              @click="emitDelete"
+            >
+              {{ deletePending ? 'Deleting...' : 'Delete checklist' }}
             </button>
           </div>
         </section>
@@ -323,6 +346,7 @@
       :message="removeWorkbenchMessage"
       detail="The checklist stays in the library, but the current active run and any measurements attached to that run are removed."
       confirm-label="Remove from workbench"
+      :is-processing="removePending"
       tone="warning"
       @cancel="closeRemoveFromWorkbenchConfirm"
       @confirm="confirmRemoveFromWorkbench"
@@ -347,6 +371,9 @@ const props = defineProps({
   initialCard: { type: Object, default: null },
   module: { type: String, required: true },
   moduleLabel: { type: String, default: '' },
+  savePending: { type: Boolean, default: false },
+  deletePending: { type: Boolean, default: false },
+  removePending: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -369,7 +396,6 @@ const error = ref('')
 const poolTasks = ref([])
 const selectedTaskIds = ref([])
 const loadingTasks = ref(false)
-const submitting = ref(false)
 const creatingTask = ref(false)
 const activeStep = ref('details')
 const isQuickCreateOpen = ref(false)
@@ -395,13 +421,14 @@ const modalSubtitle = computed(() =>
 )
 const submitLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Create checklist'))
 const submitButtonLabel = computed(() => {
-  if (!submitting.value) return submitLabel.value
+  if (!props.savePending) return submitLabel.value
   return isEditMode.value ? 'Saving...' : 'Creating...'
 })
 const dialogAriaLabel = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
 const removeWorkbenchMessage = computed(
   () => `"${removeWorkbenchConfirm.value.title}" will be removed from the workbench.`,
 )
+const isBusy = computed(() => props.savePending || props.deletePending || props.removePending)
 
 const groupedTasks = computed(() => {
   const groups = new Map()
@@ -446,7 +473,6 @@ function resetForm() {
   activeStep.value = 'details'
   isQuickCreateOpen.value = false
   resetQuickCreate()
-  submitting.value = false
 }
 
 function resetQuickCreate() {
@@ -534,7 +560,7 @@ watch(
 )
 
 function handleClose() {
-  if (submitting.value) return
+  if (isBusy.value) return
   closeRemoveFromWorkbenchConfirm()
   emit('update:open', false)
   emit('close')
@@ -593,7 +619,7 @@ async function handleQuickCreateTask() {
 }
 
 async function handleSubmit() {
-  if (submitting.value) return
+  if (isBusy.value) return
   error.value = ''
 
   if (!title.value.trim()) {
@@ -617,15 +643,10 @@ async function handleSubmit() {
     taskTemplateIds: [...selectedTaskIds.value],
   }
 
-  submitting.value = true
-  try {
-    if (isEditMode.value) {
-      await emit('updated', payload)
-    } else {
-      await emit('created', payload)
-    }
-  } finally {
-    submitting.value = false
+  if (isEditMode.value) {
+    emit('updated', payload)
+  } else {
+    emit('created', payload)
   }
 }
 
@@ -1070,6 +1091,20 @@ h2 {
   text-align: center;
   white-space: normal;
   cursor: pointer;
+}
+
+.ghost.loading,
+.danger.loading,
+.primary.loading,
+.secondary.loading,
+.ghost:disabled,
+.danger:disabled,
+.primary:disabled,
+.secondary:disabled,
+.icon-button:disabled {
+  opacity: 0.72;
+  cursor: wait;
+  filter: saturate(0.85);
 }
 
 .ghost {
