@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.user.mapper;
 
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
+import edu.ntnu.idatt2105.backend.user.dto.JoinRequestResponse;
 import edu.ntnu.idatt2105.backend.user.dto.MemberDto;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
 import edu.ntnu.idatt2105.backend.user.model.JoinRequestModel;
@@ -26,6 +27,14 @@ public class OrganizationMapper {
         .email(user.getEmail())
         .firstName(user.getFirstName())
         .lastName(user.getLastName())
+        .status(request.getStatus())
+        .createdAt(request.getCreatedAt())
+        .build();
+  }
+
+  public JoinRequestResponse toJoinRequestResponse(JoinRequestModel request) {
+    return JoinRequestResponse.builder()
+        .requestId(request.getId())
         .status(request.getStatus())
         .createdAt(request.getCreatedAt())
         .build();
