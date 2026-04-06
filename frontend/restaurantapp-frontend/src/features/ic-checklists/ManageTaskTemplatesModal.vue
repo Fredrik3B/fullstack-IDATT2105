@@ -27,6 +27,14 @@
             </button>
             <button type="button" class="primary" @click="isCreateOpen = true">New task</button>
           </div>
+          <button
+            type="button"
+            class="primary"
+            :disabled="Boolean(savingTaskId)"
+            @click="isCreateOpen = true"
+          >
+            New task
+          </button>
         </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -47,10 +55,21 @@
                 <div v-if="taskSummary(task)" class="task-meta">{{ taskSummary(task) }}</div>
               </div>
               <div class="task-actions">
-                <button type="button" class="secondary" @click="openEditTask(task)">Edit</button>
+                <button
+                  type="button"
+                  class="secondary"
+                  :class="{ loading: String(savingTaskId ?? '') === String(task.id) }"
+                  :disabled="
+                    Boolean(deletingTaskId) || String(savingTaskId ?? '') === String(task.id)
+                  "
+                  @click="openEditTask(task)"
+                >
+                  {{ String(savingTaskId ?? '') === String(task.id) ? 'Saving...' : 'Edit' }}
+                </button>
                 <button
                   type="button"
                   class="danger"
+                  :class="{ loading: deletingTaskId === task.id }"
                   :disabled="deletingTaskId === task.id"
                   @click="requestRemoveTask(task)"
                 >
@@ -97,6 +116,7 @@
       :message="deleteDialogMessage"
       detail="Any checklist using this task will lose it as well, so this is best for tasks you no longer want anyone to reuse."
       confirm-label="Delete task"
+      :is-processing="Boolean(deletingTaskId)"
       tone="danger"
       @cancel="closeDeleteDialog"
       @confirm="confirmRemoveTask"
@@ -132,6 +152,7 @@ const isZoneManagerOpen = ref(false)
 const zoneRefreshToken = ref(0)
 const selectedTask = ref(null)
 const deletingTaskId = ref(null)
+const savingTaskId = ref(null)
 const deleteDialog = ref({
   open: false,
   task: null,
@@ -231,6 +252,9 @@ async function handleUpdatedTask(payload) {
     error.value = 'Could not update task.'
     return
   }
+  if (String(savingTaskId.value ?? '') === String(payload.id)) return
+
+  savingTaskId.value = payload.id
 
   try {
     const updated = await updateTask({
@@ -251,6 +275,8 @@ async function handleUpdatedTask(payload) {
     console.error('Failed to update task', err)
     error.value = err?.response?.data?.message ?? 'Could not update task.'
     toast.error(error.value)
+  } finally {
+    savingTaskId.value = null
   }
 }
 
@@ -379,6 +405,8 @@ h2 {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
 .toolbar-copy {
   min-width: 0;
 }
@@ -408,6 +436,17 @@ h2 {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   cursor: pointer;
+}
+
+.primary:disabled,
+.secondary:disabled,
+.danger:disabled,
+.primary.loading,
+.secondary.loading,
+.danger.loading {
+  opacity: 0.72;
+  cursor: wait;
+  filter: saturate(0.85);
 }
 
 .primary {

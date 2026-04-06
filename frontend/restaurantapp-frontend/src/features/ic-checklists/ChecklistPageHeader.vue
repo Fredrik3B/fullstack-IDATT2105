@@ -34,7 +34,15 @@
         <button type="button" class="ghost-button" @click="emit('open-library')">
           Open library
         </button>
-        <button type="button" class="ghost-button" @click="emit('refresh')">Refresh</button>
+        <button
+          type="button"
+          class="ghost-button"
+          :class="{ loading: isRefreshing }"
+          :disabled="isRefreshing"
+          @click="emit('refresh')"
+        >
+          {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
+        </button>
       </div>
 
       <div class="secondary-actions">
@@ -80,6 +88,10 @@ defineProps({
   manageLabel: {
     type: String,
     default: 'Task pool',
+  },
+  isRefreshing: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -239,6 +251,15 @@ h1 {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(200, 200, 216, 0.18);
   color: #ffffff;
+}
+
+.ghost-button.loading,
+.ghost-button:disabled,
+.create-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.72;
+  cursor: wait;
+  filter: saturate(0.85);
 }
 
 .create-button {
