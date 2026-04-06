@@ -154,6 +154,10 @@ describe('IC dashboard workbench actions', () => {
       cy.contains('button', 'Save').click()
     })
 
+    cy.get('[role="dialog"][aria-label="Save 5.7 C for Walk-in fridge?"]').within(() => {
+      cy.contains('button', 'Save reading').click()
+    })
+
     cy.wait('@createTemperatureMeasurement')
 
     getChecklistCard('Cold storage checks').within(() => {
