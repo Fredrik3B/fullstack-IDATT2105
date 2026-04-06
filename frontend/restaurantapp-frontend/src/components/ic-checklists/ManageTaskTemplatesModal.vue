@@ -27,14 +27,6 @@
             </button>
             <button type="button" class="primary" @click="isCreateOpen = true">New task</button>
           </div>
-          <button
-            type="button"
-            class="primary"
-            :disabled="Boolean(savingTaskId)"
-            @click="isCreateOpen = true"
-          >
-            New task
-          </button>
         </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -122,18 +114,6 @@
       @confirm="confirmRemoveTask"
     />
 
-    <SharedConfirmDialog
-      v-model:open="deleteDialog.open"
-      kicker="Task pool"
-      title="Delete shared task?"
-      :message="deleteDialogMessage"
-      detail="Any checklist using this task will lose it as well, so this is best for tasks you no longer want anyone to reuse."
-      confirm-label="Delete task"
-      :is-processing="Boolean(deletingTaskId)"
-      tone="danger"
-      @cancel="closeDeleteDialog"
-      @confirm="confirmRemoveTask"
-    />
   </div>
 </template>
 
@@ -142,8 +122,8 @@ import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, deleteTask, fetchTasks, updateTask } from '../../api/tasks'
 import CreateTaskTemplateModal from './CreateTaskTemplateModal.vue'
-import ManageTemperatureZonesModal from './ManageTemperatureZonesModal.vue'
-import { formatTemperatureZoneType } from './temperatureZoneOptions'
+import ManageTemperatureZonesModal from '../../composables/ic-checklists/ManageTemperatureZonesModal.vue'
+import { formatTemperatureZoneType } from '../../composables/ic-checklists/temperatureZoneOptions'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
 import { formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
 

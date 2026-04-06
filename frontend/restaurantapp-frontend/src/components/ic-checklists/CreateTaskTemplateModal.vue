@@ -68,10 +68,12 @@
                   <div class="zone-panel-title">{{ selectedTemperatureZone.name }}</div>
                   <div class="zone-panel-meta">
                     {{ formatTemperatureZoneType(selectedTemperatureZone.zoneType) }} ·
-                    {{ selectedTemperatureZone.targetMin }}°C to {{ selectedTemperatureZone.targetMax }}°C
+                    {{ selectedTemperatureZone.targetMin }}°C to
+                    {{ selectedTemperatureZone.targetMax }}°C
                   </div>
                   <p class="zone-panel-note">
-                    This task will reuse the selected fridge item's range. Edit the fridge item if the range should change.
+                    This task will reuse the selected fridge item's range. Edit the fridge item if
+                    the range should change.
                   </p>
                 </div>
                 <div v-else class="zone-panel-copy">
@@ -103,9 +105,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { fetchTemperatureZones } from '../../api/temperatureZones'
-import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
-import { formatTemperatureZoneType } from './temperatureZoneOptions'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
+import { formatTemperatureZoneType } from '../../composables/ic-checklists/temperatureZoneOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -141,8 +142,10 @@ const modalAriaLabel = computed(() =>
   isEditMode.value ? 'Edit task template' : 'Create task template',
 )
 const isTemperatureControl = computed(() => sectionType.value === 'TEMPERATURE_CONTROL')
-const selectedTemperatureZone = computed(() =>
-  temperatureZones.value.find((zone) => String(zone.id) === String(temperatureZoneId.value)) ?? null,
+const selectedTemperatureZone = computed(
+  () =>
+    temperatureZones.value.find((zone) => String(zone.id) === String(temperatureZoneId.value)) ??
+    null,
 )
 
 function reset() {

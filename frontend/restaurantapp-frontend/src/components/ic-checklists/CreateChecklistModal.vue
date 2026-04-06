@@ -199,27 +199,34 @@
                   </label>
 
                   <template v-if="quickTask.sectionType === 'TEMPERATURE_CONTROL'">
-                    <label class="field">
-                      <span class="label">Target min (optional)</span>
-                      <input
-                        v-model.number="quickTask.targetMin"
+                    <label class="field full">
+                      <span class="label">Fridge item</span>
+                      <select
+                        v-model="quickTask.temperatureZoneId"
                         class="input"
-                        type="number"
-                        step="0.1"
-                        :disabled="creatingTask"
-                      />
+                        :disabled="creatingTask || loadingTemperatureZones"
+                      >
+                        <option disabled value="">
+                          {{
+                            loadingTemperatureZones
+                              ? 'Loading fridge items...'
+                              : 'Choose fridge item'
+                          }}
+                        </option>
+                        <option
+                          v-for="zone in temperatureZones"
+                          :key="zone.id"
+                          :value="String(zone.id)"
+                        >
+                          {{ zone.name }} · {{ formatTemperatureZoneType(zone.zoneType) }}
+                        </option>
+                      </select>
                     </label>
 
-                    <label class="field">
-                      <span class="label">Target max (optional)</span>
-                      <input
-                        v-model.number="quickTask.targetMax"
-                        class="input"
-                        type="number"
-                        step="0.1"
-                        :disabled="creatingTask"
-                      />
-                    </label>
+                    <p class="quick-create-note full">
+                      Temperature ranges come from the selected fridge item. Add or edit fridge
+                      items from the full task pool.
+                    </p>
                   </template>
                 </div>
 
@@ -363,8 +370,10 @@
 import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, fetchTasks } from '../../api/tasks'
+import { fetchTemperatureZones } from '../../api/temperatureZones'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
+import { formatTemperatureZoneType } from '../../composables/ic-checklists/temperatureZoneOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -403,6 +412,8 @@ const error = ref('')
 const poolTasks = ref([])
 const selectedTaskIds = ref([])
 const loadingTasks = ref(false)
+const temperatureZones = ref([])
+const loadingTemperatureZones = ref(false)
 const creatingTask = ref(false)
 const activeStep = ref('details')
 const isQuickCreateOpen = ref(false)
@@ -464,8 +475,7 @@ function createEmptyQuickTask() {
     title: '',
     meta: '',
     sectionType: '',
-    targetMin: null,
-    targetMax: null,
+    temperatureZoneId: '',
   }
 }
 
@@ -496,6 +506,11 @@ function toggleQuickCreate() {
 function taskSummary(task) {
   const fragments = []
   if (task.meta) fragments.push(task.meta)
+  if (task.temperatureZoneName) {
+    fragments.push(
+      `${task.temperatureZoneName} · ${formatTemperatureZoneType(task.temperatureZoneType)}`,
+    )
+  }
   if (task.targetMin != null || task.targetMax != null) {
     fragments.push(`Range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)
   }
@@ -539,13 +554,26 @@ async function loadTasks() {
   }
 }
 
+async function loadTemperatureZones() {
+  loadingTemperatureZones.value = true
+  try {
+    const data = await fetchTemperatureZones({ module: props.module })
+    temperatureZones.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Failed to fetch temperature zones', err)
+    quickTaskError.value = 'Could not load fridge items.'
+  } finally {
+    loadingTemperatureZones.value = false
+  }
+}
+
 watch(
   () => props.open,
   async (isOpen) => {
     if (!isOpen) return
     resetForm()
     if (isEditMode.value) initFromCard(props.initialCard)
-    await loadTasks()
+    await Promise.all([loadTasks(), loadTemperatureZones()])
   },
 )
 
@@ -560,9 +588,10 @@ watch(
   () => quickTask.value.sectionType,
   (sectionType) => {
     if (sectionType !== 'TEMPERATURE_CONTROL') {
-      quickTask.value.targetMin = null
-      quickTask.value.targetMax = null
+      quickTask.value.temperatureZoneId = ''
+      return
     }
+    if (props.open && temperatureZones.value.length === 0) loadTemperatureZones()
   },
 )
 
@@ -584,12 +613,13 @@ async function handleQuickCreateTask() {
     quickTaskError.value = 'Section type is required.'
     return
   }
-  if (
-    Number.isFinite(Number(quickTask.value.targetMin)) &&
-    Number.isFinite(Number(quickTask.value.targetMax)) &&
-    Number(quickTask.value.targetMin) > Number(quickTask.value.targetMax)
-  ) {
-    quickTaskError.value = 'Target min cannot be greater than target max.'
+  const selectedZone =
+    temperatureZones.value.find(
+      (zone) => String(zone.id) === String(quickTask.value.temperatureZoneId),
+    ) ?? null
+
+  if (quickTask.value.sectionType === 'TEMPERATURE_CONTROL' && !selectedZone) {
+    quickTaskError.value = 'Choose a fridge item for temperature tasks.'
     return
   }
 
@@ -600,15 +630,15 @@ async function handleQuickCreateTask() {
       title: quickTask.value.title.trim(),
       meta: quickTask.value.meta.trim(),
       sectionType: quickTask.value.sectionType,
+      temperatureZoneId:
+        quickTask.value.sectionType === 'TEMPERATURE_CONTROL' ? selectedZone?.id ?? null : null,
       targetMin:
-        quickTask.value.sectionType === 'TEMPERATURE_CONTROL' &&
-        Number.isFinite(Number(quickTask.value.targetMin))
-          ? Number(quickTask.value.targetMin)
+        quickTask.value.sectionType === 'TEMPERATURE_CONTROL'
+          ? selectedZone?.targetMin ?? null
           : null,
       targetMax:
-        quickTask.value.sectionType === 'TEMPERATURE_CONTROL' &&
-        Number.isFinite(Number(quickTask.value.targetMax))
-          ? Number(quickTask.value.targetMax)
+        quickTask.value.sectionType === 'TEMPERATURE_CONTROL'
+          ? selectedZone?.targetMax ?? null
           : null,
     })
 
@@ -1064,6 +1094,12 @@ h2 {
 .error {
   margin: 0;
   color: #a11d2d;
+}
+
+.quick-create-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .modal-footer {
