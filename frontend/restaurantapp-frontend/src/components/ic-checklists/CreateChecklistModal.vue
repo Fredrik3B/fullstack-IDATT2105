@@ -364,7 +364,7 @@ import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, fetchTasks } from '../../api/tasks'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
-import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
+import { SECTION_TYPE_OPTIONS, formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },

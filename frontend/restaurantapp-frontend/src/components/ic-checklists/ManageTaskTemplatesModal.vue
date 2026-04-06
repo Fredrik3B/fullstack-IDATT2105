@@ -132,7 +132,7 @@ import CreateTaskTemplateModal from './CreateTaskTemplateModal.vue'
 import ManageTemperatureZonesModal from './ManageTemperatureZonesModal.vue'
 import { formatTemperatureZoneType } from './temperatureZoneOptions'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
-import { formatSectionType } from './taskTemplateOptions'
+import { formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },

@@ -47,7 +47,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { countTaskStates, getSummaryAriaLabel } from './checklistSummary'
+import { countTaskStates, getSummaryAriaLabel } from '../../composables/ic-checklists/checklistSummary'
 
 const props = defineProps({
   cards: {
