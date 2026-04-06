@@ -121,6 +121,19 @@
       @cancel="closeDeleteDialog"
       @confirm="confirmRemoveTask"
     />
+
+    <SharedConfirmDialog
+      v-model:open="deleteDialog.open"
+      kicker="Task pool"
+      title="Delete shared task?"
+      :message="deleteDialogMessage"
+      detail="Any checklist using this task will lose it as well, so this is best for tasks you no longer want anyone to reuse."
+      confirm-label="Delete task"
+      :is-processing="Boolean(deletingTaskId)"
+      tone="danger"
+      @cancel="closeDeleteDialog"
+      @confirm="confirmRemoveTask"
+    />
   </div>
 </template>
 
