@@ -1,4 +1,4 @@
-/* Shared styles for auth views (LoginView, RegisterView, CreateRestaurantView) */
+/* Shared styles for auth views (LoginView, RegisterView, CreateRestaurantView, RestaurantOnboardingView) */
 
 .auth-form {
   display: grid;
@@ -35,6 +35,18 @@
 
 .has-error .field-input {
   border-color: var(--color-danger);
+}
+
+/* Input without a leading icon (no left-padding offset needed) */
+.field-input--plain {
+  padding-left: 14px;
+}
+
+/* Special formatting for join codes */
+.field-input--code {
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: var(--font-weight-medium);
 }
 
 /* Password visibility toggle */

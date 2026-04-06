@@ -4,6 +4,10 @@ defineProps({
     type: String,
     required: true,
   },
+  labelHint: {
+    type: String,
+    default: '',
+  },
   error: {
     type: String,
     default: '',
@@ -17,7 +21,10 @@ defineProps({
 
 <template>
   <div class="field-group" :class="{ 'has-error': error }">
-    <label class="field-label" :for="inputId || undefined">{{ label }}</label>
+    <label class="field-label" :for="inputId || undefined">
+      {{ label }}
+      <span v-if="labelHint" class="field-label-hint">{{ labelHint }}</span>
+    </label>
     <div class="field-wrapper">
       <span v-if="$slots.icon" class="field-icon-wrap">
         <slot name="icon" />
@@ -36,9 +43,18 @@ defineProps({
 }
 
 .field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: #3f3d61;
+}
+
+.field-label-hint {
+  color: #9391b3;
+  font-size: 11px;
+  font-weight: var(--font-weight-normal);
 }
 
 .field-wrapper {

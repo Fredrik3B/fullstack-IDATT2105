@@ -1,188 +1,144 @@
 <template>
-  <div class="create-page">
-    <div class="ambient" aria-hidden="true">
-      <span class="blob blob--a"></span>
-      <span class="blob blob--b"></span>
-    </div>
+  <SetupShell subtitle="Restaurant setup">
+    <section class="intro">
+      <p class="intro-tag">Organization setup</p>
+      <h1 class="intro-title">Create your restaurant workspace</h1>
+      <p class="intro-subtitle">You can invite staff right after setup using your generated join code.</p>
+    </section>
 
-    <header class="topbar">
-      <div class="topbar-brand">
-        <div class="brand-logo"><span class="brand-icon">IC</span></div>
-        <div>
-          <span class="brand-name">ICSystem</span>
-          <p class="brand-sub">Restaurant setup</p>
+    <template v-if="submitted">
+      <section class="result-card">
+        <div class="result-icon"><CheckCircle /></div>
+        <h2 class="result-title">Workspace created</h2>
+        <p class="result-body">
+          <strong>{{ form.name }}</strong> is now active in ICSystem and your account is set as administrator.
+        </p>
+
+        <div class="join-code-display">
+          <span class="join-code-label">Restaurant join code</span>
+          <div class="join-code-value">{{ joinCode }}</div>
+          <span class="join-code-hint">Share this code with team members so they can request access.</span>
         </div>
-      </div>
-      <div class="topbar-user">
-        <div class="user-avatar">{{ userInitials }}</div>
-        <span class="user-name">{{ userEmail }}</span>
-        <button class="btn-logout" @click="handleLogout">Log out</button>
-      </div>
-    </header>
 
-    <main class="create-body">
-      <section class="intro">
-        <p class="intro-tag">Organization setup</p>
-        <h1 class="intro-title">Create your restaurant workspace</h1>
-        <p class="intro-subtitle">You can invite staff right after setup using your generated join code.</p>
+        <AppButton full-width @click="$router.push({ name: 'dashboard' })">
+          Go to dashboard
+          <ArrowRight />
+        </AppButton>
       </section>
+    </template>
 
-      <template v-if="submitted">
-        <section class="result-card">
-          <div class="result-icon"><CheckCircle /></div>
-          <h2 class="result-title">Workspace created</h2>
-          <p class="result-body">
-            <strong>{{ form.name }}</strong> is now active in ICSystem and your account is set as administrator.
-          </p>
+    <template v-else>
+      <section class="form-card">
+        <div class="form-head">
+          <RouterLink to="/onboarding" class="back-link">
+            <ChevronLeft />
+            Back to onboarding
+          </RouterLink>
 
-          <div class="join-code-display">
-            <span class="join-code-label">Restaurant join code</span>
-            <div class="join-code-value">{{ joinCode }}</div>
-            <span class="join-code-hint">Share this code with team members so they can request access.</span>
+          <div class="stepper" role="list" aria-label="Create restaurant progress">
+            <span class="step active">Business details</span>
+            <span class="step">Address</span>
+          </div>
+        </div>
+
+        <form class="restaurant-form" @submit.prevent="handleSubmit">
+          <div class="form-section">
+            <span class="section-label">Business details</span>
+
+            <FormField label="Restaurant name" input-id="restName" :error="errors.name">
+              <template #icon><Store /></template>
+              <input
+                id="restName"
+                v-model="form.name"
+                type="text"
+                class="field-input"
+                placeholder="Everest Sushi and Fusion AS"
+                autocomplete="organization"
+                @input="clearError('name')"
+              />
+            </FormField>
+
+            <FormField label="Organization number" label-hint="9 digits" input-id="orgNumber" :error="errors.orgNumber">
+              <template #icon><FileText /></template>
+              <input
+                id="orgNumber"
+                v-model="form.orgNumber"
+                type="text"
+                class="field-input"
+                placeholder="123 456 789"
+                maxlength="11"
+                inputmode="numeric"
+                @input="handleOrgInput"
+              />
+            </FormField>
           </div>
 
-          <button class="btn-primary" @click="$router.push({ name: 'dashboard' })">
-            Go to dashboard
-            <ArrowRight />
-          </button>
-        </section>
-      </template>
+          <div class="form-section">
+            <span class="section-label">Address</span>
 
-      <template v-else>
-        <section class="form-card">
-          <div class="form-head">
-            <RouterLink to="/onboarding" class="back-link">
-              <ChevronLeft />
-              Back to onboarding
-            </RouterLink>
+            <FormField label="Street address" input-id="address" :error="errors.address">
+              <template #icon><MapPin /></template>
+              <input
+                id="address"
+                v-model="form.address"
+                type="text"
+                class="field-input"
+                placeholder="Storgata 1"
+                autocomplete="street-address"
+                @input="clearError('address')"
+              />
+            </FormField>
 
-            <div class="stepper" role="list" aria-label="Create restaurant progress">
-              <span class="step active">Business details</span>
-              <span class="step">Address</span>
+            <div class="field-row">
+              <FormField label="Postal code" input-id="postalCode" :error="errors.postalCode">
+                <input
+                  id="postalCode"
+                  v-model="form.postalCode"
+                  type="text"
+                  class="field-input field-input--plain"
+                  placeholder="0150"
+                  maxlength="4"
+                  inputmode="numeric"
+                  @input="handlePostalInput"
+                />
+              </FormField>
+
+              <FormField label="City" input-id="city" :error="errors.city">
+                <input
+                  id="city"
+                  v-model="form.city"
+                  type="text"
+                  class="field-input field-input--plain"
+                  placeholder="Oslo"
+                  autocomplete="address-level2"
+                  @input="clearError('city')"
+                />
+              </FormField>
             </div>
           </div>
 
-          <form class="restaurant-form" @submit.prevent="handleSubmit">
-            <div class="form-section">
-              <span class="section-label">Business details</span>
+          <div v-if="submitError" class="alert alert--error">
+            <AlertCircle />
+            {{ submitError }}
+          </div>
 
-              <div class="field-group" :class="{ 'has-error': errors.name }">
-                <label class="field-label" for="restName">Restaurant name</label>
-                <div class="field-wrapper">
-                  <Store class="field-icon" />
-                  <input
-                    id="restName"
-                    v-model="form.name"
-                    type="text"
-                    class="field-input"
-                    placeholder="Everest Sushi and Fusion AS"
-                    autocomplete="organization"
-                    @input="clearError('name')"
-                  />
-                </div>
-                <span v-if="errors.name" class="field-error">{{ errors.name }}</span>
-              </div>
-
-              <div class="field-group" :class="{ 'has-error': errors.orgNumber }">
-                <label class="field-label" for="orgNumber">
-                  Organization number
-                  <span class="label-hint">9 digits</span>
-                </label>
-                <div class="field-wrapper">
-                  <FileText class="field-icon" />
-                  <input
-                    id="orgNumber"
-                    v-model="form.orgNumber"
-                    type="text"
-                    class="field-input"
-                    placeholder="123 456 789"
-                    maxlength="11"
-                    inputmode="numeric"
-                    @input="handleOrgInput"
-                  />
-                </div>
-                <span v-if="errors.orgNumber" class="field-error">{{ errors.orgNumber }}</span>
-              </div>
-            </div>
-
-            <div class="form-section">
-              <span class="section-label">Address</span>
-
-              <div class="field-group" :class="{ 'has-error': errors.address }">
-                <label class="field-label" for="address">Street address</label>
-                <div class="field-wrapper">
-                  <MapPin class="field-icon" />
-                  <input
-                    id="address"
-                    v-model="form.address"
-                    type="text"
-                    class="field-input"
-                    placeholder="Storgata 1"
-                    autocomplete="street-address"
-                    @input="clearError('address')"
-                  />
-                </div>
-                <span v-if="errors.address" class="field-error">{{ errors.address }}</span>
-              </div>
-
-              <div class="field-row">
-                <div class="field-group field-group--narrow" :class="{ 'has-error': errors.postalCode }">
-                  <label class="field-label" for="postalCode">Postal code</label>
-                  <input
-                    id="postalCode"
-                    v-model="form.postalCode"
-                    type="text"
-                    class="field-input field-input--plain"
-                    placeholder="0150"
-                    maxlength="4"
-                    inputmode="numeric"
-                    @input="handlePostalInput"
-                  />
-                  <span v-if="errors.postalCode" class="field-error">{{ errors.postalCode }}</span>
-                </div>
-
-                <div class="field-group field-group--grow" :class="{ 'has-error': errors.city }">
-                  <label class="field-label" for="city">City</label>
-                  <input
-                    id="city"
-                    v-model="form.city"
-                    type="text"
-                    class="field-input field-input--plain"
-                    placeholder="Oslo"
-                    autocomplete="address-level2"
-                    @input="clearError('city')"
-                  />
-                  <span v-if="errors.city" class="field-error">{{ errors.city }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="submitError" class="alert alert--error">
-              <AlertCircle />
-              {{ submitError }}
-            </div>
-
-            <button type="submit" class="btn-primary" :disabled="isLoading">
-              <span v-if="!isLoading">Create restaurant</span>
-              <span v-else class="spinner"></span>
-            </button>
-          </form>
-        </section>
-      </template>
-    </main>
-  </div>
+          <AppButton type="submit" :loading="isLoading" full-width>Create restaurant</AppButton>
+        </form>
+      </section>
+    </template>
+  </SetupShell>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { CheckCircle, ArrowRight, ChevronLeft, Store, FileText, MapPin, AlertCircle } from 'lucide-vue-next'
+import SetupShell from '@/components/layout/SetupShell.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import FormField from '@/components/ui/FormField.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
-
-const userEmail = computed(() => auth.user?.email ?? '')
-const userInitials = computed(() => auth.userInitials)
 
 const form = reactive({
   name: '',
@@ -238,7 +194,6 @@ function validate() {
 
 async function handleSubmit() {
   if (!validate()) return
-
   isLoading.value = true
   submitError.value = ''
   try {
@@ -251,139 +206,9 @@ async function handleSubmit() {
     isLoading.value = false
   }
 }
-
-function handleLogout() {
-  auth.logout()
-}
 </script>
 
 <style scoped>
-.create-page {
-  min-height: 100vh;
-  position: relative;
-  background: linear-gradient(145deg, #17162f 0%, #24224b 52%, #2e2b59 100%);
-  overflow: hidden;
-}
-
-.ambient {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(4px);
-}
-
-.blob--a {
-  width: 360px;
-  height: 360px;
-  background: radial-gradient(circle, rgba(212, 232, 53, 0.25), rgba(212, 232, 53, 0));
-  top: -120px;
-  right: -90px;
-}
-
-.blob--b {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0));
-  bottom: -120px;
-  left: -70px;
-}
-
-.topbar {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-4) var(--space-8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
-}
-
-.topbar-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.brand-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.brand-icon {
-  color: var(--color-accent);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-}
-
-.brand-name {
-  color: #fff;
-  font-weight: var(--font-weight-bold);
-}
-
-.brand-sub {
-  margin: 1px 0 0;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 11px;
-}
-
-.topbar-user {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.user-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.13);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--color-accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-}
-
-.user-name {
-  color: rgba(255, 255, 255, 0.76);
-  font-size: var(--font-size-sm);
-}
-
-.btn-logout {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.btn-logout:hover {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.38);
-}
-
-.create-body {
-  position: relative;
-  z-index: 1;
-  max-width: 860px;
-  margin: 0 auto;
-  padding: var(--space-10) var(--space-6) var(--space-12);
-}
-
 .intro {
   text-align: center;
   margin-bottom: var(--space-8);
@@ -481,132 +306,10 @@ function handleLogout() {
   font-weight: var(--font-weight-bold);
 }
 
-.field-group {
-  display: grid;
-  gap: var(--space-2);
-}
-
 .field-row {
   display: grid;
   gap: var(--space-3);
   grid-template-columns: 150px 1fr;
-}
-
-.field-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: #3f3d61;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.label-hint {
-  color: #9391b3;
-  font-size: 11px;
-}
-
-.field-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.field-icon {
-  position: absolute;
-  left: var(--space-3);
-  width: 16px;
-  height: 16px;
-  color: #8b89ad;
-  pointer-events: none;
-}
-
-.field-input {
-  width: 100%;
-  height: 46px;
-  border-radius: var(--radius-md);
-  border: 1.5px solid #d8d7ea;
-  background: #fbfbff;
-  color: #1c1a36;
-  padding: 0 14px 0 40px;
-  font-size: var(--font-size-md);
-  font-family: var(--font-sans);
-}
-
-.field-input--plain {
-  padding-left: 14px;
-}
-
-.field-input:focus {
-  outline: none;
-  border-color: #4b4a72;
-  box-shadow: 0 0 0 3px rgba(75, 74, 114, 0.16);
-}
-
-.has-error .field-input {
-  border-color: var(--color-danger);
-}
-
-.field-error {
-  color: var(--color-danger);
-  font-size: var(--font-size-xs);
-}
-
-.alert {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-}
-
-.alert--error {
-  background: var(--color-danger-bg);
-  border: 1px solid var(--color-danger-border);
-  color: var(--color-danger-text);
-}
-
-.btn-primary {
-  height: 48px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--color-dark-primary), var(--color-dark-secondary));
-  color: var(--color-accent);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  font-family: var(--font-sans);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  transition: transform var(--transition-fast), filter var(--transition-fast);
-}
-
-.btn-primary:hover:not(:disabled) {
-  filter: brightness(1.06);
-  transform: translateY(-1px);
-}
-
-.btn-primary:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.spinner {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid rgba(212, 232, 53, 0.3);
-  border-top-color: var(--color-accent);
-  animation: spin 700ms linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .result-card {
@@ -672,18 +375,6 @@ function handleLogout() {
 }
 
 @media (max-width: 760px) {
-  .topbar {
-    padding: var(--space-3) var(--space-4);
-  }
-
-  .user-name {
-    display: none;
-  }
-
-  .create-body {
-    padding: var(--space-8) var(--space-4) var(--space-10);
-  }
-
   .form-card,
   .result-card {
     padding: var(--space-6);
