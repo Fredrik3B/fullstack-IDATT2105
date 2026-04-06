@@ -4,6 +4,7 @@ package edu.ntnu.idatt2105.backend.report.service;
 import edu.ntnu.idatt2105.backend.common.mapper.TaskMapper;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
@@ -124,12 +125,16 @@ public class ReportService {
     return tempRepository.findByOrgAndPeriod(orgId, from, to).stream()
         .map(m -> {
           TaskTemplate template = m.getTask().getTaskTemplate();
+          TemperatureZoneModel zone = template.getTemperatureZone();
           BigDecimal min = template.getTargetMin();
           BigDecimal max = template.getTargetMax();
           BigDecimal value = m.getValueC();
 
           return TemperaturePoint.builder()
               .measuredAt(m.getMeasuredAt())
+              .zoneId(zone != null ? zone.getId() : null)
+              .zoneName(zone != null ? zone.getName() : template.getTitle())
+              .zoneType(zone != null ? zone.getZoneType() : null)
               .taskName(template.getTitle())
               .valueC(value)
               .targetMin(min)

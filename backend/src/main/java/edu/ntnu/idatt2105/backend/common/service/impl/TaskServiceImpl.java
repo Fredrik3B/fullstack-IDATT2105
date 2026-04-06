@@ -5,11 +5,13 @@ import edu.ntnu.idatt2105.backend.common.dto.task.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.common.dto.task.TaskResponse;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.common.repository.TemperatureZoneRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.service.TaskService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
@@ -24,17 +26,20 @@ public class TaskServiceImpl implements TaskService {
 	private final ChecklistRepository checklistRepository;
 	private final TasksRepository tasksRepository;
 	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
+	private final TemperatureZoneRepository temperatureZoneRepository;
 
 	public TaskServiceImpl(
 		TaskTemplateRepository taskTemplateRepository,
 		ChecklistRepository checklistRepository,
 		TasksRepository tasksRepository,
-		TemperatureMeasurementRepository temperatureMeasurementRepository
+		TemperatureMeasurementRepository temperatureMeasurementRepository,
+		TemperatureZoneRepository temperatureZoneRepository
 	) {
 		this.taskTemplateRepository = taskTemplateRepository;
 		this.checklistRepository = checklistRepository;
 		this.tasksRepository = tasksRepository;
 		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
+		this.temperatureZoneRepository = temperatureZoneRepository;
 	}
 
 	@Override
@@ -42,15 +47,19 @@ public class TaskServiceImpl implements TaskService {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
 		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
+		TemperatureZoneModel temperatureZone = isTemperatureControl
+			? getTemperatureZone(request.temperatureZoneId(), safePrincipal.getOrganizationId(), requireModule(request.module()).toComplianceArea())
+			: null;
 
 		TaskTemplate template = new TaskTemplate();
 		template.setTitle(request.title().trim());
 		template.setMeta(trimToNull(request.meta()));
 		template.setSectionType(request.sectionType());
 		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
+		template.setTemperatureZone(temperatureZone);
 		template.setUnit(isTemperatureControl ? "C" : null);
-		template.setTargetMin(isTemperatureControl ? request.targetMin() : null);
-		template.setTargetMax(isTemperatureControl ? request.targetMax() : null);
+		template.setTargetMin(isTemperatureControl ? temperatureZone.getTargetMin() : null);
+		template.setTargetMax(isTemperatureControl ? temperatureZone.getTargetMax() : null);
 		template.setOrganisationId(safePrincipal.getOrganizationId());
 
 		return toResponse(taskTemplateRepository.save(template));
@@ -63,14 +72,18 @@ public class TaskServiceImpl implements TaskService {
 		validateRequest(request);
 		TaskTemplate template = getTemplate(taskId, safePrincipal);
 		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
+		TemperatureZoneModel temperatureZone = isTemperatureControl
+			? getTemperatureZone(request.temperatureZoneId(), safePrincipal.getOrganizationId(), requireModule(request.module()).toComplianceArea())
+			: null;
 
 		template.setTitle(request.title().trim());
 		template.setMeta(trimToNull(request.meta()));
 		template.setSectionType(request.sectionType());
 		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
+		template.setTemperatureZone(temperatureZone);
 		template.setUnit(isTemperatureControl ? "C" : null);
-		template.setTargetMin(isTemperatureControl ? request.targetMin() : null);
-		template.setTargetMax(isTemperatureControl ? request.targetMax() : null);
+		template.setTargetMin(isTemperatureControl ? temperatureZone.getTargetMin() : null);
+		template.setTargetMax(isTemperatureControl ? temperatureZone.getTargetMax() : null);
 
 		List<TasksModel> activatedTasks = tasksRepository.findAllByTaskTemplate_Id(taskId);
 		for (TasksModel task : activatedTasks) {
@@ -139,6 +152,9 @@ public class TaskServiceImpl implements TaskService {
 			template.getTitle(),
 			template.getMeta(),
 			template.getSectionType(),
+			template.getTemperatureZone() != null ? template.getTemperatureZone().getId() : null,
+			template.getTemperatureZone() != null ? template.getTemperatureZone().getName() : null,
+			template.getTemperatureZone() != null ? template.getTemperatureZone().getZoneType() : null,
 			template.getUnit(),
 			template.getTargetMin(),
 			template.getTargetMax()
@@ -162,13 +178,17 @@ public class TaskServiceImpl implements TaskService {
 		if (request.module() == null) throw new IllegalArgumentException("module is required.");
 		if (request.sectionType() == null) throw new IllegalArgumentException("sectionType is required.");
 		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
-		if (!isTemperatureControl && (request.targetMin() != null || request.targetMax() != null)) {
-			throw new IllegalArgumentException("targetMin and targetMax are only allowed for TEMPERATURE_CONTROL.");
+		if (!isTemperatureControl && request.temperatureZoneId() != null) {
+			throw new IllegalArgumentException("temperatureZoneId is only allowed for TEMPERATURE_CONTROL.");
 		}
-		if (request.targetMin() != null && request.targetMax() != null
-			&& request.targetMin().compareTo(request.targetMax()) > 0) {
-			throw new IllegalArgumentException("targetMin cannot be greater than targetMax.");
+		if (isTemperatureControl && request.temperatureZoneId() == null) {
+			throw new IllegalArgumentException("temperatureZoneId is required for TEMPERATURE_CONTROL.");
 		}
+	}
+
+	private TemperatureZoneModel getTemperatureZone(Long zoneId, UUID organizationId, ComplianceArea complianceArea) {
+		return temperatureZoneRepository.findByIdAndOrganizationIdAndComplianceArea(zoneId, organizationId, complianceArea)
+			.orElseThrow(() -> new IllegalArgumentException("Temperature zone not found."));
 	}
 
 	private boolean hasText(String value) {
