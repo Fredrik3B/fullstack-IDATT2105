@@ -5,16 +5,21 @@
         <div>
           <div class="eyebrow">{{ moduleLabel }}</div>
           <h2>Task pool</h2>
-          <p class="subtitle">Create, review, and remove reusable tasks for this module.</p>
+          <p class="subtitle">
+            Manage the shared task library used across checklists in this module.
+          </p>
         </div>
         <button type="button" class="icon-button" aria-label="Close" @click="close">&times;</button>
       </header>
 
       <div class="modal-body">
         <section class="toolbar-panel">
-          <div>
+          <div class="toolbar-copy">
             <span class="panel-label">Shared tasks</span>
-            <p class="panel-copy">These tasks can be reused across checklists in this module.</p>
+            <p class="panel-copy">
+              Keep reusable tasks tidy here so checklist editors stay focused on selection, not
+              setup.
+            </p>
           </div>
           <button type="button" class="primary" @click="isCreateOpen = true">New task</button>
         </section>
@@ -27,7 +32,10 @@
         </div>
         <div v-else class="groups">
           <section v-for="group in groupedTasks" :key="group.sectionType" class="group">
-            <div class="group-title">{{ group.title }}</div>
+            <div class="group-header">
+              <div class="group-title">{{ group.title }}</div>
+              <div class="group-count">{{ group.items.length }} tasks</div>
+            </div>
             <article v-for="task in group.items" :key="task.id" class="task-row">
               <div class="task-copy">
                 <div class="task-title">{{ task.title }}</div>
@@ -39,7 +47,7 @@
                   type="button"
                   class="danger"
                   :disabled="deletingTaskId === task.id"
-                  @click="removeTask(task)"
+                  @click="requestRemoveTask(task)"
                 >
                   {{ deletingTaskId === task.id ? 'Deleting...' : 'Delete' }}
                 </button>
@@ -65,6 +73,18 @@
       :module-label="moduleLabel"
       @updated="handleUpdatedTask"
     />
+
+    <SharedConfirmDialog
+      v-model:open="deleteDialog.open"
+      kicker="Task pool"
+      title="Delete shared task?"
+      :message="deleteDialogMessage"
+      detail="Any checklist using this task will lose it as well, so this is best for tasks you no longer want anyone to reuse."
+      confirm-label="Delete task"
+      tone="danger"
+      @cancel="closeDeleteDialog"
+      @confirm="confirmRemoveTask"
+    />
   </div>
 </template>
 
@@ -73,6 +93,7 @@ import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, deleteTask, fetchTasks, updateTask } from '../../api/tasks'
 import CreateTaskTemplateModal from './CreateTaskTemplateModal.vue'
+import SharedConfirmDialog from './SharedConfirmDialog.vue'
 import { formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
@@ -91,6 +112,13 @@ const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
 const selectedTask = ref(null)
 const deletingTaskId = ref(null)
+const deleteDialog = ref({
+  open: false,
+  task: null,
+})
+const deleteDialogMessage = computed(
+  () => `"${deleteDialog.value.task?.title || 'This task'}" will be removed from the task pool.`,
+)
 
 const groupedTasks = computed(() => {
   const groups = new Map()
@@ -142,6 +170,7 @@ watch(
 )
 
 function close() {
+  closeDeleteDialog()
   emit('update:open', false)
   emit('close')
 }
@@ -159,9 +188,11 @@ async function handleCreatedTask(payload) {
     const created = await createTask(payload)
     tasks.value = sortTasks([...tasks.value, created])
     emit('changed')
+    toast.success(`Added "${created.title}" to the task pool.`)
   } catch (err) {
     console.error('Failed to create task', err)
     error.value = 'Could not create task.'
+    toast.error(error.value)
   }
 }
 
@@ -197,17 +228,30 @@ async function handleUpdatedTask(payload) {
   }
 }
 
-async function removeTask(task) {
-  const confirmed = window.confirm(
-    `Delete "${task.title}" from the task pool?\n\nThis will also remove it from any checklist that uses it.`,
-  )
-  if (!confirmed) return
+function requestRemoveTask(task) {
+  deleteDialog.value = {
+    open: true,
+    task,
+  }
+}
+
+function closeDeleteDialog() {
+  deleteDialog.value = {
+    open: false,
+    task: null,
+  }
+}
+
+async function confirmRemoveTask() {
+  const task = deleteDialog.value.task
+  if (!task?.id) return
 
   deletingTaskId.value = task.id
   error.value = ''
   try {
     await deleteTask(task.id)
     tasks.value = tasks.value.filter((entry) => entry.id !== task.id)
+    closeDeleteDialog()
     toast.success(`Deleted "${task.title}".`)
     emit('changed')
   } catch (err) {
@@ -234,7 +278,7 @@ async function removeTask(task) {
 }
 
 .modal {
-  width: min(860px, 100%);
+  width: min(900px, 100%);
   border-radius: var(--radius-xl);
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -298,6 +342,10 @@ h2 {
   border-radius: var(--radius-lg);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
+}
+
+.toolbar-copy {
+  min-width: 0;
 }
 
 .panel-label {
@@ -384,14 +432,25 @@ h2 {
   overflow: hidden;
 }
 
-.group-title {
-  margin: 0;
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   padding: 12px 14px;
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.group-title {
   font-weight: 800;
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
-  background: var(--color-bg-primary);
-  border-bottom: 1px solid var(--color-border);
+}
+
+.group-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .task-row {
@@ -410,6 +469,7 @@ h2 {
 .task-copy {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .task-actions {
@@ -431,7 +491,8 @@ h2 {
 @media (max-width: 720px) {
   .toolbar-panel,
   .task-row,
-  .task-actions {
+  .task-actions,
+  .group-header {
     flex-direction: column;
     align-items: flex-start;
   }

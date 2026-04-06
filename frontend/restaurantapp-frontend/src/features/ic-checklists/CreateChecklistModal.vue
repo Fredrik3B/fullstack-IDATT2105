@@ -13,178 +13,329 @@
       </header>
 
       <form class="modal-body" @submit.prevent="handleSubmit">
-        <div class="editor-actions">
-          <button
-            v-if="isEditMode && displayedOnWorkbench"
-            type="button"
-            class="ghost"
-            :disabled="submitting"
-            @click="openRemoveFromWorkbenchConfirm"
-          >
-            Remove from workbench
-          </button>
-          <div class="editor-actions-spacer"></div>
-          <button v-if="isEditMode" type="button" class="danger" :disabled="submitting" @click="emitDelete">
-            Delete checklist
-          </button>
-          <button type="button" class="secondary" :disabled="submitting" @click="handleClose">
-            Cancel
-          </button>
-          <button type="submit" class="primary" :disabled="submitting">
-            {{ submitButtonLabel }}
-          </button>
-        </div>
-
-        <section class="section-card">
-          <div class="section-heading">
-            <h3>Checklist details</h3>
-            <p>Set the name, cadence, and placement of this checklist.</p>
-          </div>
-
-          <div class="grid">
-            <label class="field">
-              <span class="label">Title</span>
-              <input
-                v-model.trim="title"
-                class="input"
-                type="text"
-                placeholder="e.g. Opening checklist"
-                required
-              />
-            </label>
-
-            <label class="field">
-              <span class="label">Period</span>
-              <select v-model="period" class="input" required>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </label>
-
-            <label class="field full">
-              <span class="label">Subtitle (optional)</span>
-              <input
-                v-model.trim="subtitle"
-                class="input"
-                type="text"
-                placeholder="e.g. Daily opening routine"
-              />
-            </label>
-          </div>
-
-          <div class="settings-grid">
+        <section class="editor-shell">
+          <aside class="editor-sidebar">
             <button
+              v-for="step in steps"
+              :key="step.key"
               type="button"
-              class="setting-row"
-              :class="{ active: displayedOnWorkbench }"
-              @click="displayedOnWorkbench = !displayedOnWorkbench"
+              class="step-button"
+              :class="{ active: activeStep === step.key }"
+              @click="activeStep = step.key"
             >
-              <span class="setting-copy">
-                <span class="setting-title">Show on workbench</span>
-                <span class="setting-text">
-                  {{
-                    displayedOnWorkbench
-                      ? 'Visible immediately in the active module workbench.'
-                      : 'Keep it in the library until someone opens it manually.'
-                  }}
-                </span>
-              </span>
-              <span class="setting-value">{{ displayedOnWorkbench ? 'Yes' : 'No' }}</span>
+              <span class="step-name">{{ step.label }}</span>
+              <span class="step-hint">{{ step.hint }}</span>
             </button>
 
-            <button
-              type="button"
-              class="setting-row"
-              :class="{ active: recurring }"
-              @click="recurring = !recurring"
-            >
-              <span class="setting-copy">
-                <span class="setting-title">Repeat after submit</span>
-                <span class="setting-text">
-                  {{
-                    recurring
-                      ? 'Prepare the next scheduled run as soon as this checklist is submitted.'
-                      : 'Keep it on the workbench, but wait for the next real period before opening a fresh run.'
-                  }}
-                </span>
-              </span>
-              <span class="setting-value">{{ recurring ? 'Auto-starts' : 'Waits' }}</span>
-            </button>
-          </div>
-        </section>
+            <div class="progress-card">
+              <div class="progress-title">Checklist setup</div>
+              <div class="progress-meta">{{ selectedTaskIds.length }} tasks selected</div>
+              <p>
+                {{
+                  displayedOnWorkbench
+                    ? 'Opens on the workbench right away.'
+                    : 'Starts in the library only.'
+                }}
+                {{
+                  recurring
+                    ? ' The next run is prepared automatically.'
+                    : ' Staff will reopen it in the next real period.'
+                }}
+              </p>
+            </div>
+          </aside>
 
-        <section class="section-card">
-          <div class="section-heading">
-            <h3>Task selection</h3>
-            <p>Select reusable tasks from the shared task pool for this checklist.</p>
-          </div>
+          <div class="editor-content">
+            <section v-show="activeStep === 'details'" class="section-card">
+              <div class="section-heading">
+                <h3>Details</h3>
+                <p>Name the checklist and decide how it should appear for staff.</p>
+              </div>
 
-          <div class="task-pool-linkbar">
-            <span>Need to update the shared pool first?</span>
-            <button type="button" class="link-button" @click="emit('manage-tasks')">
-              Open task pool manager
-            </button>
-          </div>
+              <div class="grid">
+                <label class="field">
+                  <span class="label">Title</span>
+                  <input
+                    v-model.trim="title"
+                    class="input"
+                    type="text"
+                    placeholder="e.g. Opening checklist"
+                    required
+                  />
+                </label>
 
-          <div v-if="loadingTasks" class="tasks-state">Loading tasks...</div>
-          <div v-else-if="groupedTasks.length === 0" class="tasks-state">
-            No tasks in the pool yet. Create one first.
-          </div>
-          <div v-else class="task-groups">
-            <section v-for="group in groupedTasks" :key="group.sectionType" class="task-group">
-              <div class="task-group-title">{{ group.title }}</div>
-              <label v-for="task in group.items" :key="task.id" class="task-option">
-                <input v-model="selectedTaskIds" type="checkbox" :value="task.id" />
-                <div class="task-option-copy">
-                  <span class="task-option-title">{{ task.title }}</span>
-                  <span v-if="taskSummary(task)" class="task-option-meta">{{
-                    taskSummary(task)
+                <label class="field">
+                  <span class="label">Period</span>
+                  <select v-model="period" class="input" required>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </label>
+
+                <label class="field full">
+                  <span class="label">Subtitle (optional)</span>
+                  <input
+                    v-model.trim="subtitle"
+                    class="input"
+                    type="text"
+                    placeholder="e.g. Run before opening to guests"
+                  />
+                </label>
+              </div>
+
+              <div class="settings-grid">
+                <button
+                  type="button"
+                  class="setting-row"
+                  :class="{ active: displayedOnWorkbench }"
+                  @click="displayedOnWorkbench = !displayedOnWorkbench"
+                >
+                  <span class="setting-copy">
+                    <span class="setting-title">Start on workbench</span>
+                    <span class="setting-text">
+                      {{
+                        displayedOnWorkbench
+                          ? 'Staff can work on it immediately.'
+                          : 'Keep it in the library until someone opens it.'
+                      }}
+                    </span>
+                  </span>
+                  <span class="setting-value">{{
+                    displayedOnWorkbench ? 'Yes' : 'Library only'
                   }}</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="setting-row"
+                  :class="{ active: recurring }"
+                  @click="recurring = !recurring"
+                >
+                  <span class="setting-copy">
+                    <span class="setting-title">Prepare the next run automatically</span>
+                    <span class="setting-text">
+                      {{
+                        recurring
+                          ? 'A fresh checklist is prepared right after submit.'
+                          : 'Wait for the next real day, week, or month before starting again.'
+                      }}
+                    </span>
+                  </span>
+                  <span class="setting-value">{{ recurring ? 'Auto-start' : 'Wait' }}</span>
+                </button>
+              </div>
+            </section>
+
+            <section v-show="activeStep === 'tasks'" class="section-card">
+              <div class="section-heading">
+                <h3>Tasks</h3>
+                <p>
+                  Choose reusable tasks for this checklist, or add a new one without leaving the
+                  editor.
+                </p>
+              </div>
+
+              <div class="task-toolbar">
+                <div class="task-toolbar__copy">
+                  <strong>{{ selectedTaskIds.length }} selected</strong>
+                  <span>Grouped by task type so it is easier to scan.</span>
                 </div>
-              </label>
+                <div class="task-toolbar__actions">
+                  <button type="button" class="secondary" @click="toggleQuickCreate">
+                    {{ isQuickCreateOpen ? 'Hide quick add' : 'Quick add task' }}
+                  </button>
+                  <button type="button" class="ghost" @click="emit('manage-tasks')">
+                    Open full task pool
+                  </button>
+                </div>
+              </div>
+
+              <section v-if="isQuickCreateOpen" class="quick-create">
+                <div class="quick-create__heading">
+                  <h4>Add a shared task</h4>
+                  <p>
+                    This creates a reusable task in the shared pool and selects it for this
+                    checklist.
+                  </p>
+                </div>
+
+                <div class="grid">
+                  <label class="field full">
+                    <span class="label">Task title</span>
+                    <input
+                      v-model.trim="quickTask.title"
+                      class="input"
+                      type="text"
+                      placeholder="e.g. Check freezer 1"
+                    />
+                  </label>
+
+                  <label class="field full">
+                    <span class="label">Meta (optional)</span>
+                    <input
+                      v-model.trim="quickTask.meta"
+                      class="input"
+                      type="text"
+                      maxlength="255"
+                    />
+                  </label>
+
+                  <label class="field">
+                    <span class="label">Section</span>
+                    <select v-model="quickTask.sectionType" class="input">
+                      <option disabled value="">Choose section</option>
+                      <option v-for="option in SECTION_TYPE_OPTIONS" :key="option" :value="option">
+                        {{ formatSectionType(option) }}
+                      </option>
+                    </select>
+                  </label>
+
+                  <template v-if="quickTask.sectionType === 'TEMPERATURE_CONTROL'">
+                    <label class="field">
+                      <span class="label">Target min (optional)</span>
+                      <input
+                        v-model.number="quickTask.targetMin"
+                        class="input"
+                        type="number"
+                        step="0.1"
+                      />
+                    </label>
+
+                    <label class="field">
+                      <span class="label">Target max (optional)</span>
+                      <input
+                        v-model.number="quickTask.targetMax"
+                        class="input"
+                        type="number"
+                        step="0.1"
+                      />
+                    </label>
+                  </template>
+                </div>
+
+                <p v-if="quickTaskError" class="error" role="alert">{{ quickTaskError }}</p>
+
+                <div class="quick-create__actions">
+                  <button type="button" class="secondary" @click="resetQuickCreate">Reset</button>
+                  <button
+                    type="button"
+                    class="primary"
+                    :disabled="creatingTask"
+                    @click="handleQuickCreateTask"
+                  >
+                    {{ creatingTask ? 'Adding task...' : 'Add and select task' }}
+                  </button>
+                </div>
+              </section>
+
+              <div v-if="loadingTasks" class="tasks-state">Loading tasks...</div>
+              <div v-else-if="groupedTasks.length === 0" class="tasks-state">
+                No tasks in the pool yet. Add one above or open the full task pool manager.
+              </div>
+              <div v-else class="task-groups">
+                <section v-for="group in groupedTasks" :key="group.sectionType" class="task-group">
+                  <div class="task-group-header">
+                    <div class="task-group-title">{{ group.title }}</div>
+                    <div class="task-group-count">{{ group.items.length }} tasks</div>
+                  </div>
+                  <label
+                    v-for="task in group.items"
+                    :key="task.id"
+                    class="task-option"
+                    :class="{ selected: selectedTaskIds.includes(task.id) }"
+                  >
+                    <input v-model="selectedTaskIds" type="checkbox" :value="task.id" />
+                    <div class="task-option-copy">
+                      <span class="task-option-title">{{ task.title }}</span>
+                      <span v-if="taskSummary(task)" class="task-option-meta">{{
+                        taskSummary(task)
+                      }}</span>
+                    </div>
+                  </label>
+                </section>
+              </div>
             </section>
           </div>
         </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
 
-      </form>
-
-      <div
-        v-if="removeWorkbenchConfirm.open"
-        class="confirm-overlay"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Remove from workbench"
-      >
-        <div class="confirm-dialog warning">
-          <div class="confirm-kicker">{{ moduleLabel }}</div>
-          <h3>Remove checklist from workbench?</h3>
-          <p>"{{ removeWorkbenchConfirm.title }}" will be removed from the workbench.</p>
-          <div class="confirm-detail">
-            This deletes the current active task entries for this checklist and any temperature
-            measurements attached to that active run. The checklist itself stays in the library and
-            can be opened again later.
-          </div>
-          <div class="confirm-actions">
-            <button type="button" class="confirm-secondary" @click="closeRemoveFromWorkbenchConfirm">
+        <footer class="modal-footer">
+          <div class="footer-actions">
+            <button
+              v-if="activeStep === 'tasks'"
+              type="button"
+              class="secondary"
+              :disabled="submitting"
+              @click="activeStep = 'details'"
+            >
+              Back to details
+            </button>
+            <button
+              v-else
+              type="button"
+              class="secondary"
+              :disabled="submitting"
+              @click="activeStep = 'tasks'"
+            >
+              Continue to tasks
+            </button>
+            <button type="button" class="secondary" :disabled="submitting" @click="handleClose">
               Cancel
             </button>
-            <button type="button" class="confirm-warning" @click="confirmRemoveFromWorkbench">
-              Remove from workbench
+            <button type="submit" class="primary" :disabled="submitting">
+              {{ submitButtonLabel }}
             </button>
           </div>
-        </div>
-      </div>
+        </footer>
+
+        <section v-if="isEditMode" class="danger-zone">
+          <div class="danger-zone__copy">
+            <h3>Danger zone</h3>
+            <p>
+              Use these actions when this checklist should be removed from daily use or deleted
+              completely.
+            </p>
+          </div>
+          <div class="danger-zone__actions">
+            <button
+              v-if="displayedOnWorkbench"
+              type="button"
+              class="ghost"
+              :disabled="submitting"
+              @click="openRemoveFromWorkbenchConfirm"
+            >
+              Remove from workbench
+            </button>
+            <button type="button" class="danger" :disabled="submitting" @click="emitDelete">
+              Delete checklist
+            </button>
+          </div>
+        </section>
+      </form>
     </div>
+
+    <SharedConfirmDialog
+      v-model:open="removeWorkbenchConfirm.open"
+      :kicker="moduleLabel"
+      title="Remove checklist from workbench?"
+      :message="removeWorkbenchMessage"
+      detail="The checklist stays in the library, but the current active run and any measurements attached to that run are removed."
+      confirm-label="Remove from workbench"
+      tone="warning"
+      @cancel="closeRemoveFromWorkbenchConfirm"
+      @confirm="confirmRemoveFromWorkbench"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { fetchTasks } from '../../api/tasks'
-import { formatSectionType } from './taskTemplateOptions'
+import { useToast } from '@/composables/useToast'
+import { createTask, fetchTasks } from '../../api/tasks'
+import SharedConfirmDialog from './SharedConfirmDialog.vue'
+import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -208,6 +359,7 @@ const emit = defineEmits([
   'remove-from-workbench',
 ])
 
+const toast = useToast()
 const title = ref('')
 const subtitle = ref('')
 const period = ref('daily')
@@ -218,17 +370,28 @@ const poolTasks = ref([])
 const selectedTaskIds = ref([])
 const loadingTasks = ref(false)
 const submitting = ref(false)
+const creatingTask = ref(false)
+const activeStep = ref('details')
+const isQuickCreateOpen = ref(false)
+const quickTaskError = ref('')
 const removeWorkbenchConfirm = ref({
   open: false,
   title: '',
 })
 
+const quickTask = ref(createEmptyQuickTask())
+
+const steps = [
+  { key: 'details', label: 'Details', hint: 'Name, schedule, and placement' },
+  { key: 'tasks', label: 'Tasks', hint: 'Choose or add shared tasks' },
+]
+
 const isEditMode = computed(() => props.mode === 'edit')
-const modalTitle = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
+const modalTitle = computed(() => (isEditMode.value ? 'Edit checklist' : 'New checklist'))
 const modalSubtitle = computed(() =>
   isEditMode.value
-    ? 'Update the checklist setup and selected tasks.'
-    : 'Create a reusable checklist for the active module.',
+    ? 'Update checklist details and task selection in one place.'
+    : 'Build a reusable checklist using the shared task library.',
 )
 const submitLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Create checklist'))
 const submitButtonLabel = computed(() => {
@@ -236,6 +399,9 @@ const submitButtonLabel = computed(() => {
   return isEditMode.value ? 'Saving...' : 'Creating...'
 })
 const dialogAriaLabel = computed(() => (isEditMode.value ? 'Edit checklist' : 'Create checklist'))
+const removeWorkbenchMessage = computed(
+  () => `"${removeWorkbenchConfirm.value.title}" will be removed from the workbench.`,
+)
 
 const groupedTasks = computed(() => {
   const groups = new Map()
@@ -259,6 +425,16 @@ const groupedTasks = computed(() => {
     .sort((a, b) => a.title.localeCompare(b.title))
 })
 
+function createEmptyQuickTask() {
+  return {
+    title: '',
+    meta: '',
+    sectionType: '',
+    targetMin: null,
+    targetMax: null,
+  }
+}
+
 function resetForm() {
   title.value = ''
   subtitle.value = ''
@@ -267,13 +443,26 @@ function resetForm() {
   displayedOnWorkbench.value = true
   error.value = ''
   selectedTaskIds.value = []
+  activeStep.value = 'details'
+  isQuickCreateOpen.value = false
+  resetQuickCreate()
   submitting.value = false
+}
+
+function resetQuickCreate() {
+  quickTask.value = createEmptyQuickTask()
+  quickTaskError.value = ''
+  creatingTask.value = false
+}
+
+function toggleQuickCreate() {
+  isQuickCreateOpen.value = !isQuickCreateOpen.value
+  if (!isQuickCreateOpen.value) resetQuickCreate()
 }
 
 function taskSummary(task) {
   const fragments = []
   if (task.meta) fragments.push(task.meta)
-  if (task.unit) fragments.push(`Unit: ${task.unit}`)
   if (task.targetMin != null || task.targetMax != null) {
     fragments.push(`Range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)
   }
@@ -291,6 +480,7 @@ function initFromCard(card) {
   recurring.value = card.recurring !== false
   displayedOnWorkbench.value = card.displayedOnWorkbench !== false
   error.value = ''
+  activeStep.value = 'details'
 
   const ids = []
   const sections = Array.isArray(card.sections) ? card.sections : []
@@ -333,11 +523,73 @@ watch(
   },
 )
 
+watch(
+  () => quickTask.value.sectionType,
+  (sectionType) => {
+    if (sectionType !== 'TEMPERATURE_CONTROL') {
+      quickTask.value.targetMin = null
+      quickTask.value.targetMax = null
+    }
+  },
+)
+
 function handleClose() {
   if (submitting.value) return
   closeRemoveFromWorkbenchConfirm()
   emit('update:open', false)
   emit('close')
+}
+
+async function handleQuickCreateTask() {
+  quickTaskError.value = ''
+
+  if (!quickTask.value.title.trim()) {
+    quickTaskError.value = 'Task title is required.'
+    return
+  }
+  if (!quickTask.value.sectionType) {
+    quickTaskError.value = 'Section type is required.'
+    return
+  }
+  if (
+    Number.isFinite(Number(quickTask.value.targetMin)) &&
+    Number.isFinite(Number(quickTask.value.targetMax)) &&
+    Number(quickTask.value.targetMin) > Number(quickTask.value.targetMax)
+  ) {
+    quickTaskError.value = 'Target min cannot be greater than target max.'
+    return
+  }
+
+  creatingTask.value = true
+  try {
+    const created = await createTask({
+      module: props.module,
+      title: quickTask.value.title.trim(),
+      meta: quickTask.value.meta.trim(),
+      sectionType: quickTask.value.sectionType,
+      targetMin:
+        quickTask.value.sectionType === 'TEMPERATURE_CONTROL' &&
+        Number.isFinite(Number(quickTask.value.targetMin))
+          ? Number(quickTask.value.targetMin)
+          : null,
+      targetMax:
+        quickTask.value.sectionType === 'TEMPERATURE_CONTROL' &&
+        Number.isFinite(Number(quickTask.value.targetMax))
+          ? Number(quickTask.value.targetMax)
+          : null,
+    })
+
+    poolTasks.value = [...poolTasks.value, created]
+    selectedTaskIds.value = [...new Set([...selectedTaskIds.value, created.id])]
+    resetQuickCreate()
+    isQuickCreateOpen.value = false
+    toast.success(`Added "${created.title}" to the shared task pool.`)
+  } catch (err) {
+    console.error('Failed to create task', err)
+    quickTaskError.value = err?.response?.data?.message ?? 'Could not create task.'
+  } finally {
+    creatingTask.value = false
+  }
 }
 
 async function handleSubmit() {
@@ -346,10 +598,12 @@ async function handleSubmit() {
 
   if (!title.value.trim()) {
     error.value = 'Title is required.'
+    activeStep.value = 'details'
     return
   }
   if (selectedTaskIds.value.length === 0) {
     error.value = 'Select at least one task from the pool.'
+    activeStep.value = 'tasks'
     return
   }
 
@@ -423,7 +677,7 @@ function confirmRemoveFromWorkbench() {
 }
 
 .modal {
-  width: min(860px, 100%);
+  width: min(980px, 100%);
   max-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
@@ -432,7 +686,6 @@ function confirmRemoveFromWorkbench() {
   border: 1px solid var(--color-border);
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
   overflow: hidden;
-  position: relative;
 }
 
 .modal-header {
@@ -484,20 +737,76 @@ h2 {
   gap: var(--space-4);
 }
 
-.editor-actions {
-  position: sticky;
-  top: -24px;
-  z-index: 2;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding: 0 0 8px;
-  background: linear-gradient(to bottom, var(--color-bg-primary) 80%, rgba(255, 255, 255, 0));
+.editor-shell {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: var(--space-4);
 }
 
-.editor-actions-spacer {
-  flex: 1 1 auto;
+.editor-sidebar {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.step-button,
+.progress-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.step-button {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-4);
+  text-align: left;
+  background: var(--color-bg-secondary);
+  cursor: pointer;
+}
+
+.step-button.active {
+  border-color: var(--color-dark-secondary);
+  background: #eef3fb;
+}
+
+.step-name {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.step-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.progress-card {
+  padding: var(--space-4);
+  background: var(--color-bg-primary);
+}
+
+.progress-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+.progress-meta {
+  margin-top: 4px;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.progress-card p {
+  margin: 10px 0 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-muted);
+}
+
+.editor-content {
+  display: grid;
 }
 
 .section-card {
@@ -509,13 +818,17 @@ h2 {
   background: var(--color-bg-secondary);
 }
 
-.section-heading h3 {
+.section-heading h3,
+.quick-create__heading h4,
+.danger-zone__copy h3 {
   margin: 0;
   font-size: var(--font-size-lg);
   color: var(--color-text-primary);
 }
 
-.section-heading p {
+.section-heading p,
+.quick-create__heading p,
+.danger-zone__copy p {
   margin: 6px 0 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
@@ -600,27 +913,45 @@ h2 {
   color: var(--color-text-secondary);
 }
 
-.task-pool-linkbar {
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
-  background: var(--color-bg-primary);
+.task-toolbar,
+.quick-create,
+.danger-zone {
+  border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--color-text-muted);
-  font-size: 14px;
+  background: var(--color-bg-primary);
 }
 
-.link-button {
-  border: 0;
-  background: transparent;
+.task-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.task-toolbar__copy {
+  display: grid;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.task-toolbar__copy strong {
   color: var(--color-text-primary);
-  font-weight: 700;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+}
+
+.task-toolbar__actions,
+.quick-create__actions,
+.footer-actions,
+.danger-zone__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.quick-create {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
 }
 
 .tasks-state {
@@ -641,14 +972,25 @@ h2 {
   overflow: hidden;
 }
 
-.task-group-title {
-  margin: 0;
+.task-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   padding: 12px 14px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.task-group-title {
   font-weight: 800;
   color: var(--color-text-primary);
   font-size: var(--font-size-md);
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border);
+}
+
+.task-group-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .task-option {
@@ -660,8 +1002,11 @@ h2 {
   background: var(--color-bg-primary);
 }
 
+.task-option.selected {
+  background: #fbfdea;
+}
+
 .task-option + .task-option {
-  margin-top: 0;
   border-top: 1px solid var(--color-border-subtle);
 }
 
@@ -693,6 +1038,24 @@ h2 {
   color: #a11d2d;
 }
 
+.modal-footer {
+  padding-top: 4px;
+}
+
+.danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-color: rgba(161, 29, 45, 0.22);
+  background: #fff8f8;
+}
+
+.danger-zone__copy {
+  min-width: 0;
+}
+
 .ghost,
 .danger,
 .primary,
@@ -707,17 +1070,6 @@ h2 {
   text-align: center;
   white-space: normal;
   cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    color 140ms ease,
-    transform 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.primary,
-.secondary {
-  min-width: 132px;
 }
 
 .ghost {
@@ -726,30 +1078,14 @@ h2 {
   color: #39516d;
 }
 
-.ghost:hover {
-  background: #dde8f7;
-  border-color: #afc4e0;
-  color: #233c58;
-}
-
 .danger {
   background: rgba(255, 232, 232, 0.98);
   color: #a11d2d;
 }
 
-.danger:hover {
-  background: rgba(255, 214, 214, 0.98);
-  border-color: rgba(161, 29, 45, 0.24);
-  color: #861625;
-}
-
 .primary {
   background: var(--color-dark-secondary);
   color: white;
-}
-
-.primary:hover {
-  background: #1c3653;
 }
 
 .secondary {
@@ -758,141 +1094,10 @@ h2 {
   color: var(--color-text-primary);
 }
 
-.secondary:hover {
-  background: #e9eef4;
-  border-color: #b7c2d0;
-  color: #21344b;
-}
-
-.ghost:hover,
-.danger:hover,
-.primary:hover,
-.secondary:hover {
-  transform: translateY(-1px);
-}
-
-.ghost:focus-visible,
-.danger:focus-visible,
-.primary:focus-visible,
-.secondary:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(58, 91, 132, 0.18);
-}
-
-.ghost:disabled,
-.danger:disabled,
-.primary:disabled,
-.secondary:disabled {
-  opacity: 0.58;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.confirm-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(16, 18, 33, 0.48);
-  backdrop-filter: blur(6px);
-}
-
-.confirm-dialog {
-  width: min(460px, 100%);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-primary);
-  box-shadow: 0 28px 60px rgba(10, 14, 24, 0.28);
-  padding: var(--space-5);
-}
-
-.confirm-dialog.warning {
-  border-color: var(--color-warning-border);
-  background: #fffdf5;
-}
-
-.confirm-kicker {
-  margin-bottom: 8px;
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.confirm-dialog h3 {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.1;
-  color: var(--color-text-primary);
-}
-
-.confirm-dialog p {
-  margin: 10px 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-}
-
-.confirm-detail {
-  margin-top: 12px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.confirm-secondary,
-.confirm-warning {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: var(--radius-md);
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    transform 140ms ease;
-}
-
-.confirm-secondary {
-  background: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-}
-
-.confirm-warning {
-  background: #d6723b;
-  color: #ffffff;
-}
-
-.confirm-secondary:hover,
-.confirm-warning:hover {
-  transform: translateY(-1px);
-}
-
-.confirm-secondary:hover {
-  background: #e9eef4;
-}
-
-.confirm-warning:hover {
-  background: #bc5c28;
+@media (max-width: 900px) {
+  .editor-shell {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -900,20 +1105,13 @@ h2 {
     grid-template-columns: 1fr;
   }
 
-  .editor-actions {
-    flex-direction: column;
-    align-items: stretch;
-    position: static;
-    padding-bottom: 0;
-    background: transparent;
-  }
-
-  .editor-actions-spacer {
-    display: none;
-  }
-
   .setting-row,
-  .task-pool-linkbar {
+  .task-toolbar,
+  .task-toolbar__actions,
+  .footer-actions,
+  .danger-zone,
+  .danger-zone__actions,
+  .task-group-header {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -922,16 +1120,6 @@ h2 {
   .danger,
   .primary,
   .secondary {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .confirm-actions {
-    flex-direction: column-reverse;
-  }
-
-  .confirm-secondary,
-  .confirm-warning {
     width: 100%;
   }
 }
