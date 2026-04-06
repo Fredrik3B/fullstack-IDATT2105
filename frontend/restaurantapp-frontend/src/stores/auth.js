@@ -62,7 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!accessToken.value)
 
   /** True when the user is logged in AND connected to an active restaurant. */
-  const hasActiveRestaurant = computed(() => !!restaurant.value.id)
+  const hasActiveRestaurant = computed(() => !!restaurant.value?.id)
 
   /** Roles extracted from the JWT payload (e.g. ["ROLE_ADMIN", "ROLE_STAFF"]). */
 
@@ -150,7 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
               if (saved) {
                   const session = JSON.parse(saved)
                   user.value = session.user
-                  restaurant.value = session.restaurant ?? null
+                  restaurant.value = session.restaurant ?? { id: null, name: null, joinCode: null }
                   return
               }
           } catch { /* fall through */ }
@@ -161,7 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
           user.value = { email: claims.sub, name: null }
           restaurant.value = claims.organizationId
               ? { id: claims.organizationId, name: null, joinCode: null }
-              : null
+              : { id: null, name: null, joinCode: null }
       })
       return _initPromise
   }

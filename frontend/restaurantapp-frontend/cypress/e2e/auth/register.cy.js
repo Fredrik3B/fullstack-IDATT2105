@@ -94,13 +94,11 @@ describe('Register Page', () => {
       statusCode: 201,
       body: {
         accessToken: makeJwt(['ROLE_STAFF']),
-        email: 'jane@example.com',
+        user: { id: 3, name: 'Jane Doe', email: 'jane@example.com' },
+        restaurant: null,
+        restaurantStatus: null,
       },
     }).as('registerOk')
-    cy.intercept('GET', '/api/auth/me', {
-      statusCode: 200,
-      body: { user: { id: 3, name: 'Jane Doe', email: 'jane@example.com' }, restaurantStatus: null, restaurantId: null, restaurantName: null, restaurantJoinCode: null },
-    }).as('authMe')
 
     cy.get('#name').type('Jane Doe')
     cy.get('#email').type('jane@example.com')

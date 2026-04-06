@@ -109,11 +109,6 @@ describe('Create Restaurant Page', () => {
       statusCode: 200,
       body: { accessToken: buildAdminToken() },
     }).as('refresh')
-    // After navigating to dashboard, router guard may call /api/auth/me — stub it as active
-    cy.intercept('GET', '/api/auth/me', {
-      statusCode: 200,
-      body: { user: { id: 1, name: 'New Admin', email: 'admin@example.com' }, restaurantStatus: 'active', restaurantId: 10, restaurantName: 'My Test Restaurant', restaurantJoinCode: 'EVR-2847' },
-    }).as('authMe')
 
     fillForm()
     cy.get('button[type="submit"]').click()
