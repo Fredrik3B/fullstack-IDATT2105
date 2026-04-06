@@ -88,6 +88,7 @@ export function useIcModulePage({ module, moduleLabel }) {
   const workbenchCards = computed(() =>
     displayCards.value.filter((card) => card?.displayedOnWorkbench !== false),
   )
+  const canManageChecklists = computed(() => auth.isAdminOrManager)
   const canManageTaskPool = computed(() => auth.isAdminOrManager)
   const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
   const editingCard = computed(() =>
@@ -134,10 +135,12 @@ export function useIcModulePage({ module, moduleLabel }) {
   })
 
   function openCreateModal() {
+    if (!canManageChecklists.value) return
     isCreateOpen.value = true
   }
 
   function openLibraryModal() {
+    if (!canManageChecklists.value) return
     isLibraryOpen.value = true
   }
 
@@ -147,6 +150,7 @@ export function useIcModulePage({ module, moduleLabel }) {
   }
 
   function editChecklist({ cardIndex }) {
+    if (!canManageChecklists.value) return
     editingCardIndex.value = cardIndex
     isEditOpen.value = true
   }
@@ -342,6 +346,7 @@ export function useIcModulePage({ module, moduleLabel }) {
     activePeriod,
     cards,
     workbenchCards,
+    canManageChecklists,
     canManageTaskPool,
     loadedChecklistIds,
     highlightedChecklistId,

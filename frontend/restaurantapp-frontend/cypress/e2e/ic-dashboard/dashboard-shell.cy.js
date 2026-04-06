@@ -240,16 +240,14 @@ describe('IC dashboard shell', () => {
 
     visitIcDashboard('IC_FOOD')
 
+    cy.contains('button', 'New checklist').should('not.exist')
+    cy.contains('button', 'Open library').should('not.exist')
     cy.contains('Admin').should('not.exist')
     cy.contains('button', 'Task pool').should('not.exist')
+    cy.contains('button', 'Edit').should('not.exist')
 
-    cy.contains('button', 'New checklist').click()
-    cy.wait('@getTasks')
-
-    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
-      cy.contains('button', 'Open full task pool').should('not.exist')
-    })
-
+    cy.get('[role="dialog"][aria-label="Create checklist"]').should('not.exist')
     cy.get('[role="dialog"][aria-label="Manage task pool"]').should('not.exist')
+    cy.get('[role="dialog"][aria-label="Checklist library"]').should('not.exist')
   })
 })
