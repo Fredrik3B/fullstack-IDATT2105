@@ -22,6 +22,11 @@
           You will be notified at <strong>{{ userEmail }}</strong>.
         </p>
 
+        <button class="btn-check-status" :disabled="checking" @click="checkStatus">
+          <span v-if="!checking">Check status</span>
+          <span v-else class="spinner"></span>
+        </button>
+
         <div class="pending-meta">
           <div class="meta-row">
             <Store />
@@ -115,8 +120,7 @@ const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'your se
 const pendingSentDate = ref('')
 
 const currentStep = computed(() => {
-  if (view.value === 'pending' || view.value === 'join') return 2
-  return 1
+  return (view.value === 'pending' || view.value === 'join') ? 2 : 1
 })
 
 async function sendJoinRequest() {
@@ -139,6 +143,7 @@ async function withdrawRequest() {
   try {
     await auth.withdrawJoinRequest()
     toast.info('Request withdrawn')
+    emit('withdrawn')
   } catch {
     toast.error('Could not withdraw the request. Please try again.')
     return
@@ -149,6 +154,24 @@ async function withdrawRequest() {
   joinCode.value = ''
   view.value = 'choose'
 }
+
+async function checkStatus() {
+  checking.value = true
+  try {
+    await auth.refreshAccessToken()
+    if (auth.hasActiveRestaurant) {
+      toast.success('Your request has been accepted!')
+      router.push({ name: 'dashboard' })
+    } else {
+      toast.info('Still pending — check back later.')
+    }
+  } catch {
+    toast.error('Could not check status. Please try again.')
+  } finally {
+    checking.value = false
+  }
+}
+
 </script>
 
 <style scoped>
@@ -198,6 +221,31 @@ async function withdrawRequest() {
 .step.active {
   background: rgba(212, 232, 53, 0.16);
   color: #edf9a0;
+}
+
+.btn-check-status {
+  height: 42px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid #d8d7ea;
+  background: #f8f8fe;
+  color: #3e3b63;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-check-status:hover {
+  background: #eeeef8;
+  border-color: #c5c4de;
+}
+
+.btn-check-status:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .option-grid {
