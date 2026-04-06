@@ -162,20 +162,6 @@
           </article>
         </section>
 
-        <section class="section-footer-actions">
-          <button class="secondary-btn" type="button" @click="goToRoute('reports', { preset: 'week', autoload: '1' })">Open reports</button>
-          <button class="secondary-btn" type="button" @click="openDocuments">Open documents</button>
-          <button
-            v-if="auth.isAdminOrManager"
-            class="secondary-btn"
-            type="button"
-            @click="goToRoute('admin-requests')"
-          >
-            Open admin panel
-          </button>
-          <button class="secondary-btn secondary-btn--refresh" type="button" @click="refreshDashboard">Refresh data</button>
-        </section>
-
         <section v-if="auth.isAdminOrManager" class="team-panel">
           <div class="team-panel__header">
             <div>
