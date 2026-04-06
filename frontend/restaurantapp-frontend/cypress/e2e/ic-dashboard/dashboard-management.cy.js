@@ -37,6 +37,7 @@ describe('IC dashboard management flows', () => {
     })
 
     visitIcDashboard('IC_FOOD')
+    cy.contains('button', 'New checklist').should('be.visible')
     openCreateChecklistModal()
     cy.wait('@getTasks')
 
@@ -106,6 +107,7 @@ describe('IC dashboard management flows', () => {
     })
 
     visitIcDashboard('IC_FOOD')
+    cy.contains('button', 'Edit').should('be.visible')
 
     getChecklistCard('Current opening checklist').within(() => {
       cy.contains('button', 'Edit').click()
