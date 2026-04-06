@@ -95,15 +95,29 @@ describe('Restaurant Onboarding Page', () => {
 
   describe('when user already has a pending request', () => {
     beforeEach(() => {
-      // Re-stub auth with pending restaurant status
+      // Start from onboarding and move to pending via real join flow.
       cy.setAuthState({
         roles: ['ROLE_STAFF'],
         user: { id: 1, name: 'New User', email: 'newuser@example.com' },
-        restaurantStatus: 'pending',
-        restaurantId: 7,
-        restaurantName: 'Pending Place',
+        restaurantStatus: null,
+        restaurantId: null,
       })
+
+      cy.intercept('GET', '/api/organizations/lookup*', {
+        statusCode: 200,
+        body: { name: 'Pending Place' },
+      }).as('lookupPending')
+      cy.intercept('POST', '/api/organizations/join', {
+        statusCode: 200,
+        body: { id: 7 },
+      }).as('joinPending')
+
       cy.visitAuthenticated('/onboarding')
+      cy.contains('Join existing restaurant').click()
+      cy.get('#joinCode').type('PND-0007')
+      cy.contains('Send access request').click()
+      cy.wait('@lookupPending')
+      cy.wait('@joinPending')
     })
 
     it('shows the pending card directly', () => {
