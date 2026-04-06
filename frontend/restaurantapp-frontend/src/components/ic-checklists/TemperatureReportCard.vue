@@ -38,7 +38,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { formatTemperatureTarget, isTemperatureTask } from './temperature'
+import { formatTemperatureTarget, isTemperatureTask } from '../../composables/ic-checklists/temperature'
 
 const props = defineProps({
   cards: {

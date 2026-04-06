@@ -284,8 +284,8 @@ import { useRouter } from 'vue-router'
 import { fetchChecklists } from '../api/checklists'
 import { fetchDocuments } from '../api/documents'
 import { fetchTemperatureMeasurements } from '../api/temperatureMeasurements'
-import { isTemperatureDeviation, isTemperatureTask } from '../features/ic-checklists/temperature'
-import { useTemperatureLog } from '../features/ic-checklists/useTemperatureLog'
+import { isTemperatureDeviation, isTemperatureTask } from '../composables/ic-checklists/temperature'
+import { useTemperatureLog } from '../composables/ic-checklists/useTemperatureLog'
 import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()

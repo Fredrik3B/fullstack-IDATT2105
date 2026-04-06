@@ -167,9 +167,9 @@
 
 <script setup>
 import { computed, reactive } from 'vue'
-import { getPeriodEnd, getPeriodKey, isPeriodExpired, normalizePeriodEnum } from './recurrence'
+import { getPeriodEnd, getPeriodKey, isPeriodExpired, normalizePeriodEnum } from '../../composables/ic-checklists/recurrence'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
-import { formatTemperatureTarget, isTemperatureTask } from './temperature'
+import { formatTemperatureTarget, isTemperatureTask } from '../../composables/ic-checklists/temperature'
 
 const temperatureDraftByTaskId = reactive({})
 const confirmDialog = reactive({

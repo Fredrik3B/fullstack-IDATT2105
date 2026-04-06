@@ -77,7 +77,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
+import { SECTION_TYPE_OPTIONS, formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
