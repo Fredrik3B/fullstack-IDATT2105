@@ -1,21 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { uploadDocument } from '@/api/documents'
-
-const CATEGORIES = [
-  { value: 'GUIDELINES',   label: 'Guidelines' },
-  { value: 'TRAINING',     label: 'Training material' },
-  { value: 'CERTIFICATE',  label: 'Certificates' },
-  { value: 'AUDIT_REPORT', label: 'Audit & inspection' },
-  { value: 'HACCP',        label: 'HACCP / Risk' },
-  { value: 'EMERGENCY',    label: 'Emergency procedures' },
-]
-
-const MODULES = [
-  { value: 'SHARED',     label: 'Shared' },
-  { value: 'IC_FOOD',    label: 'IC-Food' },
-  { value: 'IC_ALCOHOL', label: 'IC-Alcohol' },
-]
+import { CATEGORIES, MODULES, formatSize } from '@/components/documents/documentHelpers'
 
 const emit = defineEmits(['uploaded', 'close'])
 
@@ -50,13 +36,6 @@ function onDrop(event) {
   isDragging.value = false
   const file = event.dataTransfer.files[0]
   if (file) uploadForm.value.file = file
-}
-
-function formatSize(bytes) {
-  if (!bytes) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 async function handleUpload() {
@@ -204,7 +183,11 @@ function handleClose() {
 
         <div class="modal-actions">
           <button type="button" class="btn-cancel" @click="handleClose">Cancel</button>
-          <button type="submit" class="btn-submit" :disabled="uploading || !uploadForm.file">
+          <button
+            type="submit"
+            class="btn-submit"
+            :disabled="uploading || (uploadMode === 'file' ? !uploadForm.file : !uploadForm.externalUrl)"
+          >
             {{ uploading ? 'Uploading…' : 'Upload' }}
           </button>
         </div>

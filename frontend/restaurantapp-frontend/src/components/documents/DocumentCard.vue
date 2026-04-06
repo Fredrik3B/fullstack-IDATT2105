@@ -1,4 +1,6 @@
 <script setup>
+import { fileIconClass, fileIconLabel, formatSize, moduleBadgeClass, moduleLabel } from '@/components/documents/documentHelpers'
+
 defineProps({
   doc: {
     type: Object,
@@ -12,46 +14,9 @@ defineProps({
 
 defineEmits(['preview', 'download', 'delete'])
 
-function fileIconLabel(fileType) {
-  if (!fileType) return 'FILE'
-  if (fileType.includes('pdf')) return 'PDF'
-  if (fileType.includes('word') || fileType.includes('document')) return 'DOC'
-  if (fileType.includes('image')) return 'IMG'
-  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'XLS'
-  return 'FILE'
-}
-
-function fileIconClass(fileType) {
-  if (!fileType) return 'doc-icon--file'
-  if (fileType.includes('pdf')) return 'doc-icon--pdf'
-  if (fileType.includes('word') || fileType.includes('document')) return 'doc-icon--doc'
-  if (fileType.includes('image')) return 'doc-icon--img'
-  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'doc-icon--xls'
-  return 'doc-icon--file'
-}
-
-function moduleBadgeClass(module) {
-  if (module === 'IC_FOOD') return 'doc-badge--food'
-  if (module === 'IC_ALCOHOL') return 'doc-badge--alcohol'
-  return 'doc-badge--shared'
-}
-
-function moduleLabel(module) {
-  if (module === 'IC_FOOD') return 'IC-Food'
-  if (module === 'IC_ALCOHOL') return 'IC-Alcohol'
-  return 'Shared'
-}
-
 function formatDate(isoString) {
   if (!isoString) return ''
   return new Date(isoString).toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function formatSize(bytes) {
-  if (!bytes) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function expiryClass(expiryDate) {

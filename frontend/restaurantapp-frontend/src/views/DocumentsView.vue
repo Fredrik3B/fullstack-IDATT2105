@@ -65,40 +65,15 @@
 
         <!-- Preview modal -->
         <Teleport to="body">
-          <div v-if="previewDoc" class="modal-backdrop" @click.self="closePreview">
-            <div class="preview-modal" role="dialog" aria-modal="true">
-              <div class="modal-header">
-                <h2 class="modal-title">{{ previewDoc.name }}</h2>
-                <div class="preview-header-actions">
-                  <button class="doc-btn" type="button" @click="handleDownload(previewDoc)">Download</button>
-                  <button class="modal-close" type="button" @click="closePreview" aria-label="Close">✕</button>
-                </div>
-              </div>
-              <div class="preview-body">
-                <div v-if="previewLoading" class="loading-state">Loading preview...</div>
-                <div v-else-if="previewError" class="error-state">{{ previewError }}</div>
-                <img
-                  v-else-if="previewUrl && previewDoc.fileType && previewDoc.fileType.includes('image')"
-                  :src="previewUrl"
-                  class="preview-img"
-                  :alt="previewDoc.name"
-                />
-                <object
-                  v-else-if="previewUrl && previewDoc.fileType && previewDoc.fileType.includes('pdf')"
-                  :data="previewUrl"
-                  type="application/pdf"
-                  class="preview-pdf"
-                >
-                  <p class="preview-fallback">PDF could not be displayed. <button class="doc-btn" type="button" @click="handleDownload(previewDoc)">Download instead</button></p>
-                </object>
-                <div v-else class="preview-unsupported">
-                  <div :class="['doc-icon-large', fileIconClass(previewDoc.fileType)]">{{ fileIconLabel(previewDoc.fileType) }}</div>
-                  <p class="preview-unsupported-text">Preview not available for this file type.</p>
-                  <button class="doc-btn" type="button" @click="handleDownload(previewDoc)">Download to view</button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <DocumentPreviewModal
+            v-if="previewDoc"
+            :doc="previewDoc"
+            :preview-url="previewUrl"
+            :loading="previewLoading"
+            :error="previewError"
+            @close="closePreview"
+            @download="handleDownload"
+          />
         </Teleport>
 
         <!-- Certificate expiry alert -->
@@ -175,6 +150,8 @@ import { fetchDocuments, downloadDocument, deleteDocument } from '@/api/document
 import { useToast } from '@/composables/useToast'
 import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
 import DocumentCard from '@/components/documents/DocumentCard.vue'
+import DocumentPreviewModal from '@/components/documents/DocumentPreviewModal.vue'
+import { CATEGORIES, MODULES } from '@/components/documents/documentHelpers'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -192,23 +169,6 @@ const activeModule = ref('')
 const expiryBannerDismissed = ref(false)
 const collapsedCategories = ref(new Set())
 const showUploadModal = ref(false)
-
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const CATEGORIES = [
-  { value: 'GUIDELINES',   label: 'Guidelines',          emptyHint: 'Upload company policies and procedures for hygiene and alcohol handling.' },
-  { value: 'TRAINING',     label: 'Training material',   emptyHint: 'Add course material, instructions, and training documents for employees.' },
-  { value: 'CERTIFICATE',  label: 'Certificates',        emptyHint: 'Add employee certificates, e.g. serving license and food safety course.' },
-  { value: 'AUDIT_REPORT', label: 'Audit & inspection',  emptyHint: 'Store results from external food authority inspections.' },
-  { value: 'HACCP',        label: 'HACCP / Risk',        emptyHint: 'Upload food safety hazard analysis and risk assessment documents.' },
-  { value: 'EMERGENCY',    label: 'Emergency procedures', emptyHint: 'Add fire evacuation, first aid, and other emergency plans.' },
-]
-
-const MODULES = [
-  { value: 'SHARED',     label: 'Shared' },
-  { value: 'IC_FOOD',    label: 'IC-Food' },
-  { value: 'IC_ALCOHOL', label: 'IC-Alcohol' },
-]
 
 // ── Certificate expiry alerts ──────────────────────────────────────────────
 
@@ -325,24 +285,6 @@ const previewDoc = ref(null)
 const previewUrl = ref(null)
 const previewLoading = ref(false)
 const previewError = ref(null)
-
-function fileIconLabel(fileType) {
-  if (!fileType) return 'FILE'
-  if (fileType.includes('pdf')) return 'PDF'
-  if (fileType.includes('word') || fileType.includes('document')) return 'DOC'
-  if (fileType.includes('image')) return 'IMG'
-  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'XLS'
-  return 'FILE'
-}
-
-function fileIconClass(fileType) {
-  if (!fileType) return 'doc-icon--file'
-  if (fileType.includes('pdf')) return 'doc-icon--pdf'
-  if (fileType.includes('word') || fileType.includes('document')) return 'doc-icon--doc'
-  if (fileType.includes('image')) return 'doc-icon--img'
-  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'doc-icon--xls'
-  return 'doc-icon--file'
-}
 
 async function handlePreview(doc) {
   if (doc.externalUrl) {
@@ -1021,73 +963,6 @@ async function handleDelete(doc) {
 }
 
 .expiry-banner-close:hover {
-  color: var(--color-text-primary);
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: var(--space-6);
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-  }
-  to {
-    opacity: 1;
-    backdrop-filter: blur(4px);
-  }
-}
-
-.preview-modal {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  width: 100%;
-  max-width: 860px;
-  max-height: 90vh;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-5) var(--space-6);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.modal-title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: var(--font-size-md);
-  color: var(--color-text-muted);
-  line-height: 1;
-  padding: var(--space-1);
-}
-
-.modal-close:hover {
   color: var(--color-text-primary);
 }
 /* ── Responsive ── */
