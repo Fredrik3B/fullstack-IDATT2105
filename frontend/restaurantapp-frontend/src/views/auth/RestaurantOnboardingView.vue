@@ -43,6 +43,11 @@
             You will be notified at <strong>{{ userEmail }}</strong>.
           </p>
 
+          <button class="btn-check-status" :disabled="isCheckingStatus" @click="checkRequestStatus">
+            <span v-if="!isCheckingStatus">Check status</span>
+            <span v-else class="spinner"></span>
+          </button>
+
           <div class="pending-meta">
             <div class="meta-row">
               <Store />
@@ -122,10 +127,11 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
 import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -159,6 +165,25 @@ async function sendJoinRequest() {
     joinError.value = 'Invalid restaurant code. Please try again.'
   } finally {
     isLoading.value = false
+  }
+}
+
+const isCheckingStatus = ref(false)
+
+async function checkRequestStatus() {
+  isCheckingStatus.value = true
+  try {
+    await auth.refreshAccessToken()
+    if (auth.hasActiveRestaurant) {
+      toast.success('Your request has been accepted!')
+      router.push({ name: 'dashboard' })
+    } else {
+      toast.info('Still pending — check back later.')
+    }
+  } catch {
+    toast.error('Could not check status. Please try again.')
+  } finally {
+    isCheckingStatus.value = false
   }
 }
 
@@ -582,6 +607,32 @@ function handleLogout() {
   border: 2px solid rgba(212, 232, 53, 0.3);
   border-top-color: var(--color-accent);
   animation: spin 700ms linear infinite;
+}
+
+.btn-check-status {
+  height: 42px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid #d8d7ea;
+  background: #f8f8fe;
+  color: #3e3b63;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.btn-check-status:hover {
+  background: #eeeef8;
+  border-color: #c5c4de;
+}
+
+.btn-check-status:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 @keyframes spin {
