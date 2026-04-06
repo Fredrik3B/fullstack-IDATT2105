@@ -16,7 +16,12 @@
             <span class="panel-label">Shared tasks</span>
             <p class="panel-copy">These tasks can be reused across checklists in this module.</p>
           </div>
-          <button type="button" class="primary" @click="isCreateOpen = true">New task</button>
+          <div class="toolbar-actions">
+            <button type="button" class="secondary" @click="isZoneManagerOpen = true">
+              Fridge items
+            </button>
+            <button type="button" class="primary" @click="isCreateOpen = true">New task</button>
+          </div>
         </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -54,7 +59,9 @@
       v-model:open="isCreateOpen"
       :module="module"
       :module-label="moduleLabel"
+      :zone-refresh-token="zoneRefreshToken"
       @created="handleCreatedTask"
+      @manage-zones="isZoneManagerOpen = true"
     />
 
     <CreateTaskTemplateModal
@@ -63,7 +70,16 @@
       :initial-task="selectedTask"
       :module="module"
       :module-label="moduleLabel"
+      :zone-refresh-token="zoneRefreshToken"
       @updated="handleUpdatedTask"
+      @manage-zones="isZoneManagerOpen = true"
+    />
+
+    <ManageTemperatureZonesModal
+      v-model:open="isZoneManagerOpen"
+      :module="module"
+      :module-label="moduleLabel"
+      @changed="handleZonesChanged"
     />
   </div>
 </template>
@@ -73,6 +89,8 @@ import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, deleteTask, fetchTasks, updateTask } from '../../api/tasks'
 import CreateTaskTemplateModal from './CreateTaskTemplateModal.vue'
+import ManageTemperatureZonesModal from './ManageTemperatureZonesModal.vue'
+import { formatTemperatureZoneType } from './temperatureZoneOptions'
 import { formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
@@ -89,6 +107,8 @@ const loading = ref(false)
 const error = ref('')
 const isCreateOpen = ref(false)
 const isEditOpen = ref(false)
+const isZoneManagerOpen = ref(false)
+const zoneRefreshToken = ref(0)
 const selectedTask = ref(null)
 const deletingTaskId = ref(null)
 
@@ -113,6 +133,11 @@ function taskSummary(task) {
   const fragments = []
   if (task.meta) {
     fragments.push(task.meta)
+  }
+  if (task.temperatureZoneName) {
+    fragments.push(
+      `${task.temperatureZoneName} · ${formatTemperatureZoneType(task.temperatureZoneType)}`,
+    )
   }
   if (task.targetMin != null || task.targetMax != null) {
     fragments.push(`Celsius range: ${task.targetMin ?? '...'} to ${task.targetMax ?? '...'}`)
@@ -183,6 +208,7 @@ async function handleUpdatedTask(payload) {
       title: payload.title,
       meta: payload.meta,
       sectionType: payload.sectionType,
+      temperatureZoneId: payload.temperatureZoneId,
       targetMin: payload.targetMin,
       targetMax: payload.targetMax,
     })
@@ -217,6 +243,11 @@ async function removeTask(task) {
   } finally {
     deletingTaskId.value = null
   }
+}
+
+async function handleZonesChanged() {
+  zoneRefreshToken.value += 1
+  await loadTasks()
 }
 </script>
 
@@ -298,6 +329,12 @@ h2 {
   border-radius: var(--radius-lg);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .panel-label {
@@ -434,6 +471,12 @@ h2 {
   .task-actions {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

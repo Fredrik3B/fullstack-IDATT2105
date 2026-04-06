@@ -5,24 +5,26 @@ export async function fetchTasks({ module }) {
   return data
 }
 
-export async function createTask({ module, title, meta, sectionType, targetMin, targetMax }) {
+export async function createTask({ module, title, meta, sectionType, temperatureZoneId, targetMin, targetMax }) {
   const { data } = await api.post('/api/tasks', {
     module,
     title,
     meta,
     sectionType,
+    temperatureZoneId,
     targetMin,
     targetMax
   })
   return data
 }
 
-export async function updateTask({ taskId, module, title, meta, sectionType, targetMin, targetMax }) {
+export async function updateTask({ taskId, module, title, meta, sectionType, temperatureZoneId, targetMin, targetMax }) {
   const { data } = await api.put(`/api/tasks/${taskId}`, {
     module,
     title,
     meta,
     sectionType,
+    temperatureZoneId,
     targetMin,
     targetMax
   })

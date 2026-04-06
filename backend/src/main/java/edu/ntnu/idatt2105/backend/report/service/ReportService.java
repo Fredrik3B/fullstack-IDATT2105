@@ -4,19 +4,24 @@ package edu.ntnu.idatt2105.backend.report.service;
 import edu.ntnu.idatt2105.backend.common.mapper.TaskMapper;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
+import edu.ntnu.idatt2105.backend.report.dto.shared.DeviationDayPoint;
 import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
 import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
+import edu.ntnu.idatt2105.backend.report.dto.shared.MissedTaskRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.OrgSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ReportPeriod;
 import edu.ntnu.idatt2105.backend.report.dto.shared.TemperaturePoint;
@@ -29,9 +34,14 @@ import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -94,24 +104,47 @@ public class ReportService {
 
   private ChecklistSection buildChecklistSection(UUID orgId, LocalDateTime from, LocalDateTime to) {
     List<ChecklistModel> checklists = checklistRepository.findAllByOrganizationId(orgId);
+    List<TasksModel> tasksInPeriod = tasksRepository.findAllByOrgIdInPeriodWithRelations(orgId, from, to);
+    Map<Long, List<TasksModel>> tasksByChecklist = tasksInPeriod.stream()
+        .collect(Collectors.groupingBy(task -> task.getChecklist().getId()));
 
     List<ChecklistRecord> records = checklists.stream()
         .map(cl -> {
-          int total = tasksRepository.countByChecklistInPeriod(cl.getId(), from, to);
-          int completed = tasksRepository.countCompletedByChecklistInPeriod(cl.getId(), from, to);
-          int deviated = tasksRepository.countDeviatedByChecklistInPeriod(cl.getId(), from, to);
+          List<TasksModel> checklistTasks = tasksByChecklist.getOrDefault(cl.getId(), List.of());
+          Map<String, List<TasksModel>> tasksByPeriod = checklistTasks.stream()
+              .collect(Collectors.groupingBy(TasksModel::getPeriodKey));
+          int total = checklistTasks.size();
+          int completed = (int) checklistTasks.stream().filter(TasksModel::isCompleted).count();
+          int deviated = (int) checklistTasks.stream()
+              .filter(task -> !task.isCompleted() && !task.isActive())
+              .count();
+          int completionsInPeriod = tasksByPeriod.size();
+          int expectedRuns = countExpectedRuns(cl.getFrequency(), from, to);
+          double averageCompletionRate = tasksByPeriod.isEmpty()
+              ? 0.0
+              : tasksByPeriod.values().stream()
+                  .mapToDouble(tasks -> {
+                    long completedInRun = tasks.stream().filter(TasksModel::isCompleted).count();
+                    return tasks.isEmpty() ? 0.0 : (double) completedInRun / tasks.size() * 100;
+                  })
+                  .average()
+                  .orElse(0.0);
 
           return ChecklistRecord.builder()
               .name(cl.getName())
               .description(cl.getDescription())
               .frequency(cl.getFrequency().name())
               .complianceArea(cl.getComplianceArea())
+              .completionsInPeriod(completionsInPeriod)
+              .expectedRuns(expectedRuns)
               .totalTasks(total)
               .completedTasks(completed)
               .deviatedTasks(deviated)
               .completionRate(total > 0 ? (double) completed / total * 100 : 0.0)
+              .averageCompletionRate(averageCompletionRate)
               .build();
         })
+        .sorted(Comparator.comparing(ChecklistRecord::getName, String.CASE_INSENSITIVE_ORDER))
         .toList();
 
     return ChecklistSection.builder()
@@ -119,6 +152,26 @@ public class ReportService {
         .activeChecklists((int) checklists.stream().filter(ChecklistModel::isActive).count())
         .checklists(records)
         .build();
+  }
+
+  private int countExpectedRuns(ChecklistFrequency frequency, LocalDateTime from, LocalDateTime to) {
+    if (from == null || to == null || from.isAfter(to)) {
+      return 0;
+    }
+
+    ZoneId zone = ZoneId.systemDefault();
+    ChecklistFrequency safeFrequency = frequency != null ? frequency : ChecklistFrequency.DAILY;
+    LocalDate fromDate = from.atZone(zone).toLocalDate();
+    LocalDate toDate = to.atZone(zone).toLocalDate();
+    String periodKey = PeriodKeyUtil.currentPeriodKey(safeFrequency, fromDate);
+    int count = 0;
+
+    while (!PeriodKeyUtil.periodStartDate(safeFrequency, periodKey).isAfter(toDate)) {
+      count++;
+      periodKey = PeriodKeyUtil.nextPeriodKey(safeFrequency, periodKey);
+    }
+
+    return count;
   }
 
   private List<TemperaturePoint> buildTemperatureLog(UUID orgId, LocalDateTime from, LocalDateTime to) {
@@ -153,6 +206,40 @@ public class ReportService {
         .toList();
   }
 
+  private List<DeviationDayPoint> buildDeviationsByDay(UUID orgId, LocalDateTime from, LocalDateTime to) {
+    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+        .filter(task -> task.getEndedAt() != null)
+        .collect(Collectors.groupingBy(task -> task.getEndedAt().toLocalDate(), Collectors.counting()))
+        .entrySet().stream()
+        .sorted(Map.Entry.comparingByKey())
+        .map(entry -> DeviationDayPoint.builder()
+            .date(entry.getKey())
+            .count(entry.getValue().intValue())
+            .build())
+        .toList();
+  }
+
+  private List<MissedTaskRecord> buildMissedTasks(UUID orgId, LocalDateTime from, LocalDateTime to) {
+    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+        .collect(Collectors.groupingBy(
+            task -> task.getChecklist().getName() + "::" + task.getTaskTemplate().getTitle(),
+            Collectors.collectingAndThen(Collectors.toList(), tasks -> {
+              TasksModel sample = tasks.get(0);
+              return MissedTaskRecord.builder()
+                  .taskName(sample.getTaskTemplate().getTitle())
+                  .checklistName(sample.getChecklist().getName())
+                  .complianceArea(sample.getChecklist().getComplianceArea())
+                  .missedCount(tasks.size())
+                  .build();
+            })
+        ))
+        .values().stream()
+        .sorted(Comparator.comparing(MissedTaskRecord::getMissedCount).reversed()
+            .thenComparing(MissedTaskRecord::getTaskName, String.CASE_INSENSITIVE_ORDER))
+        .limit(8)
+        .toList();
+  }
+
   public InternalSummary generateSummary(UUID orgId, LocalDateTime from, LocalDateTime to) {
     return InternalSummary.builder()
         .period(new ReportPeriod(from, to))
@@ -172,6 +259,8 @@ public class ReportService {
         .organization(buildOrgSection(org))
         .checklists(buildChecklistSection(orgId, from, to))
         .temperatureLog(buildTemperatureLog(orgId, from, to))
+        .deviationsByDay(buildDeviationsByDay(orgId, from, to))
+        .missedTasks(buildMissedTasks(orgId, from, to))
         .deviations(buildDeviations(orgId, from, to))
         .foodStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
         .alcoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
