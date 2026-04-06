@@ -191,7 +191,7 @@
 
             <article class="team-stat-card">
               <span class="team-stat-label">Join code</span>
-              <span class="team-stat-value team-stat-value--code">{{ auth.restaurantJoinCode ?? '—' }}</span>
+              <span class="team-stat-value team-stat-value--code">{{ auth.restaurant?.joinCode ?? '—' }}</span>
               <span class="team-stat-hint">Share this with new team members</span>
             </article>
 
@@ -251,7 +251,7 @@ const dailyAlcoholChecklists = computed(() => alcoholChecklists.value.filter((ca
 const dailyChecklists = computed(() => [...dailyFoodChecklists.value, ...dailyAlcoholChecklists.value])
 
 const displayUserName = computed(() => auth.user?.name?.trim() || auth.user?.email || 'User')
-const restaurantDisplayName = computed(() => auth.restaurantName?.trim() || 'Restaurant')
+const restaurantDisplayName = computed(() => auth.restaurant?.name?.trim() || 'Restaurant')
 const todayLabel = computed(() =>
   new Intl.DateTimeFormat('en-US', {
     weekday: 'long',

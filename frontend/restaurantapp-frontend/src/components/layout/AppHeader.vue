@@ -6,7 +6,7 @@
       <RouterLink to="/" class="header-brand" aria-label="Go to dashboard">
         <div class="brand-text">
           <span class="brand-name">ICSystem</span>
-          <span class="brand-tenant">{{ auth.restaurantName ?? '—' }}</span>
+          <span class="brand-tenant">{{ auth.restaurant?.name ?? '—' }}</span>
         </div>
       </RouterLink>
 

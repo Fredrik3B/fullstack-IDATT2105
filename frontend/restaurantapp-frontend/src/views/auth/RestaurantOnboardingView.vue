@@ -99,6 +99,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { Clock, Store, Info, LogIn, Plus, ChevronRight, ChevronLeft, KeyRound } from 'lucide-vue-next'
 import SetupShell from '@/components/layout/SetupShell.vue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -108,16 +109,18 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const toast = useToast()
+const router = useRouter()
 
 const userEmail = computed(() => auth.user?.email ?? '')
 
-const view = ref(auth.restaurantStatus === 'pending' ? 'pending' : 'choose')
+const view = ref(auth.hasPendingRequest ? 'pending' : 'choose')
 const joinCode = ref('')
 const joinError = ref('')
 const isLoading = ref(false)
+const checking = ref(false)
 
-const pendingRestaurantName = ref(auth.restaurantStatus === 'pending' ? 'your selected restaurant' : '')
-const pendingSentDate = ref('')
+const pendingRestaurantName = ref(auth.pendingRequest?.restaurantName ?? '')
+const pendingSentDate = ref(formatPendingDate(auth.pendingRequest?.createdAt))
 
 const currentStep = computed(() => {
   return (view.value === 'pending' || view.value === 'join') ? 2 : 1
@@ -128,9 +131,9 @@ async function sendJoinRequest() {
   joinError.value = ''
   try {
     const { name } = await auth.lookupRestaurant(joinCode.value)
-    await auth.joinRestaurant(joinCode.value, name)
-    pendingRestaurantName.value = name
-    pendingSentDate.value = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    await auth.joinRestaurant(joinCode.value)
+    pendingRestaurantName.value = auth.pendingRequest?.restaurantName ?? name
+    pendingSentDate.value = formatPendingDate(auth.pendingRequest?.createdAt)
     view.value = 'pending'
   } catch {
     joinError.value = 'Invalid restaurant code. Please try again.'
@@ -143,7 +146,6 @@ async function withdrawRequest() {
   try {
     await auth.withdrawJoinRequest()
     toast.info('Request withdrawn')
-    emit('withdrawn')
   } catch {
     toast.error('Could not withdraw the request. Please try again.')
     return
@@ -170,6 +172,13 @@ async function checkStatus() {
   } finally {
     checking.value = false
   }
+}
+
+function formatPendingDate(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 </script>

@@ -24,14 +24,14 @@ import api from '@/api/axiosInstance'
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const ACCESS_TOKEN_KEY = 'iksystem_access_token'
+const SESSION_KEY = 'iksystem_session'
 
-function makeLoginResponse(overrides = {}) {
+function makeAuthResponse(overrides = {}) {
   return {
     data: {
       accessToken: 'fake-access-token',
-      email: 'test@example.com',
-      name: 'Test User',
-      role: 'EMPLOYEE',
+      user: { id: 1, email: 'test@example.com', name: 'Test User' },
+      restaurant: null,
       ...overrides,
     },
   }
@@ -57,13 +57,14 @@ describe('useAuthStore', () => {
       const auth = useAuthStore()
       expect(auth.user).toBeNull()
       expect(auth.accessToken).toBeNull()
-      expect(auth.restaurantStatus).toBeNull()
+      expect(auth.restaurant).toBeNull()
+      expect(auth.pendingRequest).toBeNull()
     })
 
-    it('reads an existing token from localStorage on creation', () => {
+    it('does not hydrate token before initAuth runs', () => {
       localStorage.setItem(ACCESS_TOKEN_KEY, 'persisted-token')
       const auth = useAuthStore()
-      expect(auth.accessToken).toBe('persisted-token')
+      expect(auth.accessToken).toBeNull()
     })
   })
 
@@ -76,8 +77,9 @@ describe('useAuthStore', () => {
     })
 
     it('is true when a token exists in localStorage', () => {
-      localStorage.setItem(ACCESS_TOKEN_KEY, 'some-token')
       const auth = useAuthStore()
+
+      auth.accessToken = 'some-token'
       expect(auth.isAuthenticated).toBe(true)
     })
   })
@@ -119,30 +121,36 @@ describe('useAuthStore', () => {
 
   describe('login', () => {
     it('stores the access token in state and localStorage on success', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse())
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      api.get.mockResolvedValueOnce({ status: 204, data: null })
       const auth = useAuthStore()
 
       await auth.login('test@example.com', 'password123')
 
       expect(auth.accessToken).toBe('fake-access-token')
       expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBe('fake-access-token')
+      expect(localStorage.getItem(SESSION_KEY)).toContain('test@example.com')
     })
 
-    it('populates user state with email, name and role from response', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse())
+    it('populates user and restaurant state from response', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse({
+        user: { id: 2, email: 'admin@example.com', name: 'Admin User' },
+        restaurant: { id: 7, name: 'Pizza Palace', joinCode: 'PIZ-1000' },
+      }))
       const auth = useAuthStore()
 
-      await auth.login('test@example.com', 'password123')
+      await auth.login('admin@example.com', 'password123')
 
       expect(auth.user).toMatchObject({
-        email: 'test@example.com',
-        name: 'Test User',
-        role: 'EMPLOYEE',
+        email: 'admin@example.com',
+        name: 'Admin User',
       })
+      expect(auth.restaurant).toMatchObject({ id: 7, name: 'Pizza Palace', joinCode: 'PIZ-1000' })
     })
 
     it('calls POST /api/auth/login with the correct credentials', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse())
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      api.get.mockResolvedValueOnce({ status: 204, data: null })
       const auth = useAuthStore()
 
       await auth.login('test@example.com', 'password123')
@@ -153,13 +161,29 @@ describe('useAuthStore', () => {
       })
     })
 
-    it('redirects to onboarding when restaurantStatus is null after login', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse())
+    it('redirects to onboarding when login response has no active restaurant', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse({ restaurant: null }))
+      api.get.mockResolvedValueOnce({
+        status: 200,
+        data: { status: 'PENDING', restaurantName: 'Pending Place', createdAt: '2026-04-06T12:00:00Z' },
+      })
       const auth = useAuthStore()
 
       await auth.login('test@example.com', 'password123')
 
       expect(mockPush).toHaveBeenCalledWith({ name: 'onboarding' })
+      expect(auth.pendingRequest).toMatchObject({ restaurantName: 'Pending Place' })
+    })
+
+    it('redirects to dashboard when login response includes an active restaurant', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse({
+        restaurant: { id: 9, name: 'Best Restaurant', joinCode: 'BST-0001' },
+      }))
+      const auth = useAuthStore()
+
+      await auth.login('test@example.com', 'password123')
+
+      expect(mockPush).toHaveBeenCalledWith({ name: 'dashboard' })
     })
 
     it('throws when the API call fails', async () => {
@@ -185,7 +209,8 @@ describe('useAuthStore', () => {
 
   describe('logout', () => {
     it('clears token from state and localStorage', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse()) // login
+      api.post.mockResolvedValueOnce(makeAuthResponse())   // login
+      api.get.mockResolvedValueOnce({ status: 204, data: null })
       api.post.mockResolvedValueOnce({})                  // logout endpoint
 
       const auth = useAuthStore()
@@ -198,23 +223,24 @@ describe('useAuthStore', () => {
     })
 
     it('resets all user state', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse())
+      api.post.mockResolvedValueOnce(makeAuthResponse({
+        restaurant: { id: 3, name: 'Reset Place', joinCode: 'RST-3000' },
+      }))
       api.post.mockResolvedValueOnce({})
 
       const auth = useAuthStore()
       await auth.login('test@example.com', 'password123')
-      auth.restaurantStatus = 'active'
-      auth.restaurantId = 42
 
       await auth.logout()
 
       expect(auth.user).toBeNull()
-      expect(auth.restaurantStatus).toBeNull()
-      expect(auth.restaurantId).toBeNull()
+      expect(auth.restaurant).toBeNull()
+      expect(auth.pendingRequest).toBeNull()
     })
 
     it('redirects to /login after logout', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse())
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      api.get.mockResolvedValueOnce({ status: 204, data: null })
       api.post.mockResolvedValueOnce({})
 
       const auth = useAuthStore()
@@ -227,7 +253,8 @@ describe('useAuthStore', () => {
     })
 
     it('still clears state even when the logout API call fails', async () => {
-      api.post.mockResolvedValueOnce(makeLoginResponse())
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      api.get.mockResolvedValueOnce({ status: 204, data: null })
       api.post.mockRejectedValueOnce(new Error('Network error'))
 
       const auth = useAuthStore()
@@ -249,29 +276,42 @@ describe('useAuthStore', () => {
       expect(api.get).not.toHaveBeenCalled()
     })
 
-    it('fetches current user and populates state when token is valid', async () => {
+    it('restores state from persisted local session', async () => {
       localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        user: { id: 1, email: 'test@example.com', name: 'Test User' },
+        restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+      }))
+
+      const auth = useAuthStore()
+      await auth.initAuth()
+
+      expect(auth.accessToken).toBe('valid-token')
+      expect(auth.user).toMatchObject({ email: 'test@example.com' })
+      expect(auth.restaurant).toMatchObject({ id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' })
+      expect(api.get).not.toHaveBeenCalled()
+    })
+
+    it('hydrates pending request when logged in without restaurant', async () => {
+      localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        user: { id: 1, email: 'test@example.com', name: 'Test User' },
+        restaurant: null,
+      })
       api.get.mockResolvedValueOnce({
-        data: {
-          user: { id: 1, email: 'test@example.com', name: 'Test User' },
-          restaurantStatus: 'active',
-          restaurantId: 5,
-          restaurantName: 'Pizza Palace',
-        },
+        status: 200,
+        data: { status: 'PENDING', restaurantName: 'Pending Place', createdAt: '2026-04-06T12:00:00Z' },
       })
 
       const auth = useAuthStore()
       await auth.initAuth()
 
-      expect(auth.user).toMatchObject({ email: 'test@example.com' })
-      expect(auth.restaurantStatus).toBe('active')
-      expect(auth.restaurantId).toBe(5)
-      expect(auth.restaurantName).toBe('Pizza Palace')
+      expect(auth.pendingRequest).toMatchObject({ restaurantName: 'Pending Place' })
     })
 
-    it('resets state when the token is invalid or expired', async () => {
+    it('clears state when persisted session JSON is malformed', async () => {
       localStorage.setItem(ACCESS_TOKEN_KEY, 'expired-token')
-      api.get.mockRejectedValueOnce(new Error('401 Unauthorized'))
+      localStorage.setItem(SESSION_KEY, '{bad-json')
 
       const auth = useAuthStore()
       await auth.initAuth()
@@ -279,6 +319,7 @@ describe('useAuthStore', () => {
       expect(auth.accessToken).toBeNull()
       expect(auth.user).toBeNull()
       expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull()
+      expect(localStorage.getItem(SESSION_KEY)).toBeNull()
     })
   })
 
