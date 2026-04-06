@@ -9,13 +9,21 @@
         </h1>
         <p class="welcome-sub">{{ restaurantDisplayName }} - {{ todayLabel }}</p>
         <p class="welcome-health">{{ operationalHealthLabel }}</p>
+        <div class="hero-pills" aria-label="Dashboard focus areas">
+          <span class="hero-pill">Daily checks</span>
+          <span class="hero-pill">Live alerts</span>
+          <span class="hero-pill">Fast admin access</span>
+        </div>
       </div>
     </section>
 
     <main class="dashboard-main">
       <div class="dashboard-content">
         <section class="quick-actions">
-          <h2 class="section-heading">Quick actions</h2>
+          <div class="section-header-row">
+            <h2 class="section-heading">Quick actions</h2>
+            <span class="section-kicker">Most used workflows</span>
+          </div>
           <div class="quick-action-grid">
             <button class="quick-action-card" type="button" @click="openChecklistModule('IC_FOOD')">
               <span class="quick-action-title">Start IC-Food</span>
@@ -37,7 +45,10 @@
         </section>
 
         <section>
-          <h2 class="section-heading">Today's status</h2>
+          <div class="section-header-row">
+            <h2 class="section-heading">Today's status</h2>
+            <span class="section-kicker">Live operational snapshot</span>
+          </div>
           <div class="stat-grid" :class="auth.isAdminOrManager ? 'stat-grid--admin' : 'stat-grid--staff'">
             <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openNextChecklistModule" @keydown.enter="openNextChecklistModule" @keydown.space.prevent="openNextChecklistModule">
               <span class="stat-label">Tasks remaining</span>
@@ -78,7 +89,10 @@
         </section>
 
         <section>
-          <h2 class="section-heading">Today's checklists</h2>
+          <div class="section-header-row">
+            <h2 class="section-heading">Today's checklists</h2>
+            <span class="section-kicker">Close them in order or jump to the most urgent one</span>
+          </div>
           <div class="checklist-grid">
             <article class="checklist-module-card">
               <div class="checklist-header">
@@ -168,7 +182,10 @@
 
         <section class="insight-grid">
           <article class="insight-card">
-            <h2 class="section-heading section-heading--compact">Alerts and follow-up</h2>
+            <div class="insight-card__header">
+              <h2 class="section-heading section-heading--compact">Alerts and follow-up</h2>
+              <span class="section-kicker">Needs attention</span>
+            </div>
             <ul v-if="alerts.length" class="insight-list">
               <li v-for="alert in alerts" :key="alert.label" class="insight-list__item">
                 <button class="insight-link" type="button" @click="handleAlertAction(alert)">
@@ -181,8 +198,11 @@
           </article>
 
           <article class="insight-card">
-            <h2 class="section-heading section-heading--compact">Recent activity</h2>
-            <ul class="insight-list">
+            <div class="insight-card__header">
+              <h2 class="section-heading section-heading--compact">Recent activity</h2>
+              <span class="section-kicker">Latest signals</span>
+            </div>
+            <ul class="insight-list insight-list--activity">
               <li class="insight-list__item">
                 <span class="insight-list__dot"></span>
                 <span>{{ latestTemperatureLabel }}</span>
@@ -216,7 +236,10 @@
         <section v-if="auth.isAdminOrManager" class="team-panel">
           <div class="team-panel__header">
             <div>
-              <h2 class="section-heading section-heading--compact">Team management</h2>
+              <div class="section-header-row section-header-row--tight">
+                <h2 class="section-heading section-heading--compact">Team management</h2>
+                <span class="section-kicker">Admin only</span>
+              </div>
               <p class="team-panel__sub">
                 Manage access, keep an eye on member roles, and jump straight to pending join requests.
               </p>
@@ -745,6 +768,28 @@ onMounted(async () => {
   gap: var(--space-4);
 }
 
+.hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(200, 200, 216, 0.18);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+
 .welcome-tag {
   display: inline-block;
   font-size: var(--font-size-xs);
@@ -808,6 +853,26 @@ onMounted(async () => {
   margin-bottom: var(--space-3);
 }
 
+.section-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.section-header-row--tight {
+  margin-bottom: var(--space-2);
+}
+
+.section-kicker {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
 .quick-action-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -826,6 +891,28 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--space-1);
   transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-action-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--color-accent);
+}
+
+.quick-action-card:nth-child(2)::before {
+  background: var(--color-dark-tertiary);
+}
+
+.quick-action-card:nth-child(3)::before {
+  background: var(--color-warning);
+}
+
+.quick-action-card:nth-child(4)::before {
+  background: var(--color-dark-primary);
 }
 
 .quick-action-card:hover,
@@ -869,6 +956,26 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--space-1);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  inset: auto -18px -18px auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(212, 232, 53, 0.08);
+}
+
+.stat-card:nth-child(2n)::after {
+  background: rgba(75, 74, 114, 0.06);
+}
+
+.stat-card:nth-child(3n)::after {
+  background: rgba(204, 51, 51, 0.06);
 }
 
 .stat-card--interactive {
@@ -928,6 +1035,20 @@ onMounted(async () => {
   flex-direction: column;
   gap: var(--space-4);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.checklist-module-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-accent), transparent);
+}
+
+.checklist-module-card:nth-child(2)::before {
+  background: linear-gradient(90deg, var(--color-dark-tertiary), transparent);
 }
 
 .checklist-header {
@@ -1080,6 +1201,30 @@ onMounted(async () => {
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.insight-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.insight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-accent), transparent 70%);
+}
+
+.insight-card:nth-child(2)::before {
+  background: linear-gradient(90deg, var(--color-dark-tertiary), transparent 70%);
 }
 
 .insight-list {
@@ -1088,21 +1233,29 @@ onMounted(async () => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+}
+
+.insight-list--activity {
+  gap: var(--space-4);
 }
 
 .insight-list__item {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+}
+
+.insight-list--activity .insight-list__item {
+  padding-top: var(--space-1);
 }
 
 .insight-link {
   width: 100%;
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  align-items: flex-start;
+  gap: var(--space-3);
   border: 0;
   background: transparent;
   color: inherit;
@@ -1110,7 +1263,8 @@ onMounted(async () => {
   text-align: left;
   cursor: pointer;
   border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-1) 0;
+  line-height: var(--line-height-normal);
 }
 
 .insight-link:hover,
@@ -1124,6 +1278,8 @@ onMounted(async () => {
   height: 8px;
   border-radius: var(--radius-full);
   background: var(--color-dark-tertiary);
+  margin-top: 0.65em;
+  flex-shrink: 0;
 }
 
 .insight-list__dot--danger {
@@ -1156,9 +1312,21 @@ onMounted(async () => {
   gap: var(--space-4);
   padding: var(--space-6);
   border-radius: var(--radius-lg);
-  background: var(--color-bg-primary);
+  background: linear-gradient(180deg, #ffffff 0%, #fafafc 100%);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.team-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(212, 232, 53, 0.12), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(75, 74, 114, 0.06), transparent 24%);
+  pointer-events: none;
 }
 
 .team-panel__header {
@@ -1166,6 +1334,7 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
+  position: relative;
 }
 
 .team-panel__sub {
@@ -1179,6 +1348,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
+  position: relative;
 }
 
 .team-stat-card {
@@ -1189,6 +1359,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  box-shadow: 0 1px 0 rgba(26, 26, 46, 0.02);
 }
 
 .team-stat-label {
@@ -1251,6 +1422,11 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
+  .section-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .checklist-grid,
   .insight-grid {
     grid-template-columns: 1fr;
