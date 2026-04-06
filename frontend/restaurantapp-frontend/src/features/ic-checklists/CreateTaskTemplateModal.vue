@@ -1,11 +1,5 @@
 <template>
-  <div
-    v-if="open"
-    class="overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Create task template"
-  >
+  <div v-if="open" class="overlay" role="dialog" aria-modal="true" :aria-label="modalAriaLabel">
     <div class="modal">
       <header class="modal-header">
         <div>
@@ -142,6 +136,9 @@ const modalSubtitle = computed(() =>
     : 'Add a reusable task to the shared module task pool.',
 )
 const submitButtonLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Save task'))
+const modalAriaLabel = computed(() =>
+  isEditMode.value ? 'Edit task template' : 'Create task template',
+)
 const isTemperatureControl = computed(() => sectionType.value === 'TEMPERATURE_CONTROL')
 const selectedTemperatureZone = computed(() =>
   temperatureZones.value.find((zone) => String(zone.id) === String(temperatureZoneId.value)) ?? null,
