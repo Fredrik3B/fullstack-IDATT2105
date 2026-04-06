@@ -70,7 +70,8 @@ defineProps({
   justify-content: center;
   padding: var(--space-8);
   background: linear-gradient(135deg, #141428 0%, #212043 45%, #2a2852 100%);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .auth-shell__ambient {
@@ -86,8 +87,8 @@ defineProps({
 }
 
 .blob--one {
-  width: 380px;
-  height: 380px;
+  width: clamp(220px, 42vw, 380px);
+  height: clamp(220px, 42vw, 380px);
   background: radial-gradient(circle at 35% 35%, rgba(212, 232, 53, 0.45), rgba(212, 232, 53, 0));
   top: -80px;
   left: -120px;
@@ -95,8 +96,8 @@ defineProps({
 }
 
 .blob--two {
-  width: 420px;
-  height: 420px;
+  width: clamp(240px, 46vw, 420px);
+  height: clamp(240px, 46vw, 420px);
   background: radial-gradient(circle at 60% 40%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
   bottom: -140px;
   right: -120px;
@@ -104,8 +105,8 @@ defineProps({
 }
 
 .blob--three {
-  width: 240px;
-  height: 240px;
+  width: clamp(160px, 28vw, 240px);
+  height: clamp(160px, 28vw, 240px);
   background: radial-gradient(circle at 50% 50%, rgba(212, 232, 53, 0.2), rgba(212, 232, 53, 0));
   top: 42%;
   right: 38%;
@@ -319,6 +320,7 @@ defineProps({
 @media (max-width: 620px) {
   .auth-shell {
     padding: var(--space-4);
+    align-items: flex-start;
   }
 
   .aside-title {

@@ -497,7 +497,7 @@ async function handleDelete(doc) {
 .search-wrap {
   position: relative;
   flex: 1;
-  min-width: 200px;
+  min-width: min(200px, 100%);
 }
 
 .search-icon {
@@ -538,6 +538,7 @@ async function handleDelete(doc) {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  min-width: 0;
 }
 
 .filter-label {
@@ -967,6 +968,10 @@ async function handleDelete(doc) {
 }
 /* ── Responsive ── */
 @media (max-width: 900px) {
+  .page-main {
+    padding: var(--space-6) var(--space-4);
+  }
+
   .page-header {
     grid-template-columns: 1fr;
     padding: var(--space-6);
@@ -979,10 +984,39 @@ async function handleDelete(doc) {
   .action-bar {
     flex-direction: column;
     align-items: stretch;
+    padding: var(--space-4);
+  }
+
+  .search-wrap,
+  .filter-group {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-select,
+  .search-input {
+    width: 100%;
   }
 
   .btn-upload {
     margin-left: 0;
+    width: 100%;
+    min-height: 40px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-main {
+    padding: var(--space-5) var(--space-3);
+  }
+
+  .page-header {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .category-header {
+    padding: var(--space-3) var(--space-4);
   }
 }
 </style>

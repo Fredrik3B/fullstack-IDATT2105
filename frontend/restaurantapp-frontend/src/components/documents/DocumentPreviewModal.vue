@@ -73,6 +73,7 @@ const isPdf = computed(() => Boolean(props.previewUrl && props.doc.fileType && p
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
   z-index: 100;
   padding: var(--space-6);
   animation: fadeIn 0.2s ease-out;
@@ -95,7 +96,7 @@ const isPdf = computed(() => Boolean(props.previewUrl && props.doc.fileType && p
   border-radius: var(--radius-xl);
   width: 100%;
   max-width: 860px;
-  max-height: 90vh;
+  max-height: calc(100vh - (var(--space-6) * 2));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
@@ -252,5 +253,33 @@ const isPdf = computed(() => Boolean(props.previewUrl && props.doc.fileType && p
 .loading-state,
 .error-state {
   padding: var(--space-6);
+}
+
+@media (max-width: 720px) {
+  .modal-backdrop {
+    align-items: flex-start;
+    padding: var(--space-3);
+  }
+
+  .preview-modal {
+    max-height: calc(100vh - (var(--space-3) * 2));
+  }
+
+  .modal-header {
+    padding: var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .modal-title {
+    font-size: var(--font-size-md);
+  }
+
+  .preview-header-actions {
+    gap: var(--space-2);
+  }
+
+  .preview-pdf {
+    min-height: 58vh;
+  }
 }
 </style>

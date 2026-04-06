@@ -670,8 +670,8 @@ onMounted(async () => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 900px;
-  height: 900px;
+  width: clamp(320px, 90vw, 900px);
+  height: clamp(320px, 90vw, 900px);
   border-radius: 50%;
   background: radial-gradient(
     circle at center,
@@ -1113,6 +1113,14 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
+  .welcome-banner {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .dashboard-main {
+    padding: var(--space-8) var(--space-4) var(--space-10);
+  }
+
   .section-header-row {
     flex-direction: column;
     align-items: flex-start;
@@ -1142,8 +1150,16 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
+  .welcome-banner {
+    padding: var(--space-8) var(--space-3);
+  }
+
+  .team-panel {
+    padding: var(--space-4);
+  }
+
   .dashboard-main {
-    padding-inline: var(--space-4);
+    padding: var(--space-6) var(--space-3) var(--space-8);
   }
 
   .quick-action-grid,

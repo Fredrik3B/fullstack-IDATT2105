@@ -205,6 +205,7 @@ function handleClose() {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-y: auto;
   z-index: 100;
   padding: var(--space-6);
   animation: fadeIn 0.2s ease-out;
@@ -227,9 +228,11 @@ function handleClose() {
   border-radius: var(--radius-xl);
   width: 100%;
   max-width: 520px;
+  max-height: calc(100vh - (var(--space-6) * 2));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -278,6 +281,7 @@ function handleClose() {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  overflow-y: auto;
 }
 
 .upload-type-toggle {
@@ -408,6 +412,10 @@ function handleClose() {
   justify-content: flex-end;
   gap: var(--space-3);
   padding-top: var(--space-2);
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), var(--color-bg-primary) 35%);
+  padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
 }
 
 .btn-cancel {
@@ -447,5 +455,41 @@ function handleClose() {
 
 .btn-submit:not(:disabled):hover {
   opacity: 0.85;
+}
+
+@media (max-width: 720px) {
+  .modal-backdrop {
+    align-items: flex-start;
+    padding: var(--space-3);
+  }
+
+  .modal {
+    max-height: calc(100vh - (var(--space-3) * 2));
+  }
+
+  .modal-header,
+  .modal-body {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .drop-zone {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .modal-actions {
+    justify-content: stretch;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    flex: 1;
+    min-height: 40px;
+  }
 }
 </style>

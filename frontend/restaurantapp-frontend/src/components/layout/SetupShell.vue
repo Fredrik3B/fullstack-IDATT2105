@@ -55,7 +55,8 @@ function handleLogout() {
   min-height: 100vh;
   position: relative;
   background: linear-gradient(145deg, #17162f 0%, #24224b 52%, #2e2b59 100%);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .ambient {
@@ -71,16 +72,16 @@ function handleLogout() {
 }
 
 .blob--a {
-  width: 360px;
-  height: 360px;
+  width: clamp(220px, 42vw, 360px);
+  height: clamp(220px, 42vw, 360px);
   background: radial-gradient(circle, rgba(212, 232, 53, 0.25), rgba(212, 232, 53, 0));
   top: -120px;
   right: -90px;
 }
 
 .blob--b {
-  width: 300px;
-  height: 300px;
+  width: clamp(180px, 34vw, 300px);
+  height: clamp(180px, 34vw, 300px);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0));
   bottom: -120px;
   left: -70px;
@@ -179,10 +180,16 @@ function handleLogout() {
 @media (max-width: 760px) {
   .topbar {
     padding: var(--space-3) var(--space-4);
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
 
   .user-name {
     display: none;
+  }
+
+  .topbar-user {
+    margin-left: auto;
   }
 
   .setup-body {
