@@ -56,132 +56,11 @@
 
         <!-- Upload modal -->
         <Teleport to="body">
-          <div v-if="showUploadModal" class="modal-backdrop" @click.self="closeModal">
-            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-              <div class="modal-header">
-                <h2 id="modal-title" class="modal-title">Upload document</h2>
-                <button class="modal-close" type="button" @click="closeModal" aria-label="Close">✕</button>
-              </div>
-
-              <form class="modal-body" @submit.prevent="handleUpload">
-
-                <!-- File / Link toggle -->
-                <div class="upload-type-toggle">
-                  <button
-                    type="button"
-                    :class="['toggle-btn', uploadMode === 'file' && 'toggle-btn--active']"
-                    @click="uploadMode = 'file'"
-                  >Upload file</button>
-                  <button
-                    type="button"
-                    :class="['toggle-btn', uploadMode === 'link' && 'toggle-btn--active']"
-                    @click="uploadMode = 'link'"
-                  >Link to URL</button>
-                </div>
-
-                <!-- Drop zone (file mode) -->
-                <div
-                  v-if="uploadMode === 'file'"
-                  :class="['drop-zone', { 'drop-zone--active': isDragging, 'drop-zone--filled': uploadForm.file }]"
-                  @dragover.prevent="isDragging = true"
-                  @dragleave.prevent="isDragging = false"
-                  @drop.prevent="onDrop"
-                  @click="$refs.fileInput.click()"
-                >
-                  <input
-                    ref="fileInput"
-                    type="file"
-                    class="file-input-hidden"
-                    @change="onFileChange"
-                  />
-                  <template v-if="uploadForm.file">
-                    <span class="drop-zone-filename">{{ uploadForm.file.name }}</span>
-                    <span class="drop-zone-size">{{ formatSize(uploadForm.file.size) }}</span>
-                  </template>
-                  <template v-else>
-                    <span class="drop-zone-hint">Drag & drop a file here, or click to browse</span>
-                  </template>
-                </div>
-
-                <!-- URL input (link mode) -->
-                <div v-if="uploadMode === 'link'" class="form-group">
-                  <label class="form-label" for="upload-url">URL <span class="required">*</span></label>
-                  <input
-                    id="upload-url"
-                    v-model="uploadForm.externalUrl"
-                    class="form-input"
-                    type="url"
-                    placeholder="https://lovdata.no/dokument/..."
-                    :required="uploadMode === 'link'"
-                  />
-                </div>
-
-                <!-- Name -->
-                <div class="form-group">
-                  <label class="form-label" for="upload-name">Document name <span class="required">*</span></label>
-                  <input
-                    id="upload-name"
-                    v-model="uploadForm.name"
-                    class="form-input"
-                    type="text"
-                    placeholder="e.g. Hygiene policy 2026"
-                    required
-                  />
-                </div>
-
-                <!-- Category + Module row -->
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label" for="upload-category">Category <span class="required">*</span></label>
-                    <select id="upload-category" v-model="uploadForm.category" class="form-select" required>
-                      <option value="" disabled>Select category</option>
-                      <option v-for="cat in CATEGORIES" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label" for="upload-module">Module <span class="required">*</span></label>
-                    <select id="upload-module" v-model="uploadForm.module" class="form-select" required>
-                      <option value="" disabled>Select module</option>
-                      <option v-for="mod in MODULES" :key="mod.value" :value="mod.value">{{ mod.label }}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <!-- Expiry date (certificates only) -->
-                <div v-if="uploadForm.category === 'CERTIFICATE'" class="form-group">
-                  <label class="form-label" for="upload-expiry">Expiry date</label>
-                  <input
-                    id="upload-expiry"
-                    v-model="uploadForm.expiryDate"
-                    class="form-input"
-                    type="date"
-                  />
-                </div>
-
-                <!-- Description -->
-                <div class="form-group">
-                  <label class="form-label" for="upload-desc">Description <span class="optional">(optional)</span></label>
-                  <textarea
-                    id="upload-desc"
-                    v-model="uploadForm.description"
-                    class="form-textarea"
-                    rows="2"
-                    placeholder="Short description of this document"
-                  />
-                </div>
-
-                <!-- Upload error -->
-                <p v-if="uploadError" class="upload-error">{{ uploadError }}</p>
-
-                <div class="modal-actions">
-                  <button type="button" class="btn-cancel" @click="closeModal">Cancel</button>
-                  <button type="submit" class="btn-submit" :disabled="uploading || !uploadForm.file">
-                    {{ uploading ? 'Uploading…' : 'Upload' }}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <DocumentUploadModal
+            v-if="showUploadModal"
+            @uploaded="onDocumentUploaded"
+            @close="showUploadModal = false"
+          />
         </Teleport>
 
         <!-- Preview modal -->
@@ -269,34 +148,16 @@
               <p class="empty-sub">{{ cat.emptyHint }}</p>
             </div>
             <div v-else-if="!collapsedCategories.has(cat.value)" class="doc-grid">
-              <div
+              <DocumentCard
                 v-for="doc in documentsForCategory(cat.value)"
                 :key="doc.id"
                 :id="`doc-${doc.id}`"
-                class="doc-card"
-                @click="handlePreview(doc)"
-              >
-                <div :class="['doc-card-thumb', doc.externalUrl ? 'doc-icon--link' : fileIconClass(doc.fileType)]">
-                  <span class="doc-card-type">{{ doc.externalUrl ? 'LINK' : fileIconLabel(doc.fileType) }}</span>
-                  <div class="doc-card-overlay">
-                    <span class="doc-card-overlay-text">{{ doc.externalUrl ? 'Open link' : 'Click to preview' }}</span>
-                  </div>
-                </div>
-                <div class="doc-card-body" @click.stop>
-                  <span class="doc-name">{{ doc.name }}</span>
-                  <span class="doc-meta">{{ formatDate(doc.uploadedAt) }} · {{ formatSize(doc.fileSize) }}</span>
-                  <span class="doc-meta">{{ doc.uploadedByName }}</span>
-                  <div class="doc-card-tags">
-                    <span :class="['doc-badge', moduleBadgeClass(doc.module)]">{{ moduleLabel(doc.module) }}</span>
-                    <span v-if="doc.category === 'CERTIFICATE' && doc.expiryDate" :class="['cert-expiry', expiryClass(doc.expiryDate)]">{{ expiryLabel(doc.expiryDate) }}</span>
-                  </div>
-                  <div class="doc-card-actions">
-                    <a v-if="doc.externalUrl" :href="doc.externalUrl" target="_blank" rel="noopener noreferrer" class="doc-btn">Open</a>
-                    <button v-else class="doc-btn" type="button" @click="handleDownload(doc)">Download</button>
-                    <button v-if="isAdminOrManager" class="doc-btn doc-btn--danger" type="button" @click="handleDelete(doc)">Delete</button>
-                  </div>
-                </div>
-              </div>
+                :doc="doc"
+                :is-admin-or-manager="isAdminOrManager"
+                @preview="handlePreview"
+                @download="handleDownload"
+                @delete="handleDelete"
+              />
             </div>
           </section>
         </template>
@@ -310,8 +171,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Search, AlertTriangle, ChevronDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
+import { fetchDocuments, downloadDocument, deleteDocument } from '@/api/documents'
 import { useToast } from '@/composables/useToast'
+import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
+import DocumentCard from '@/components/documents/DocumentCard.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -328,6 +191,24 @@ const activeCategory = ref('')
 const activeModule = ref('')
 const expiryBannerDismissed = ref(false)
 const collapsedCategories = ref(new Set())
+const showUploadModal = ref(false)
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  { value: 'GUIDELINES',   label: 'Guidelines',          emptyHint: 'Upload company policies and procedures for hygiene and alcohol handling.' },
+  { value: 'TRAINING',     label: 'Training material',   emptyHint: 'Add course material, instructions, and training documents for employees.' },
+  { value: 'CERTIFICATE',  label: 'Certificates',        emptyHint: 'Add employee certificates, e.g. serving license and food safety course.' },
+  { value: 'AUDIT_REPORT', label: 'Audit & inspection',  emptyHint: 'Store results from external food authority inspections.' },
+  { value: 'HACCP',        label: 'HACCP / Risk',        emptyHint: 'Upload food safety hazard analysis and risk assessment documents.' },
+  { value: 'EMERGENCY',    label: 'Emergency procedures', emptyHint: 'Add fire evacuation, first aid, and other emergency plans.' },
+]
+
+const MODULES = [
+  { value: 'SHARED',     label: 'Shared' },
+  { value: 'IC_FOOD',    label: 'IC-Food' },
+  { value: 'IC_ALCOHOL', label: 'IC-Alcohol' },
+]
 
 // ── Certificate expiry alerts ──────────────────────────────────────────────
 
@@ -336,8 +217,7 @@ const expiryAlerts = computed(() => {
   return documents.value
     .filter(doc => doc.category === 'CERTIFICATE' && doc.expiryDate)
     .flatMap(doc => {
-      const expiry = new Date(doc.expiryDate)
-      const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+      const daysLeft = Math.ceil((new Date(doc.expiryDate) - today) / (1000 * 60 * 60 * 24))
       if (daysLeft > 30) return []
       return [{
         id: doc.id,
@@ -352,42 +232,6 @@ const expiryAlerts = computed(() => {
     })
     .sort((a, b) => a.expired === b.expired ? 0 : a.expired ? -1 : 1)
 })
-
-// ── Upload modal state ─────────────────────────────────────────────────────
-
-const showUploadModal = ref(false)
-const uploading = ref(false)
-const uploadError = ref(null)
-const isDragging = ref(false)
-const fileInput = ref(null)
-const uploadMode = ref('file')
-
-const uploadForm = ref({
-  file: null,
-  externalUrl: '',
-  name: '',
-  description: '',
-  category: '',
-  module: '',
-  expiryDate: '',
-})
-
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const CATEGORIES = [
-  { value: 'GUIDELINES',   label: 'Guidelines',        emptyHint: 'Upload company policies and procedures for hygiene and alcohol handling.' },
-  { value: 'TRAINING',     label: 'Training material',  emptyHint: 'Add course material, instructions, and training documents for employees.' },
-  { value: 'CERTIFICATE',  label: 'Certificates',       emptyHint: 'Add employee certificates, e.g. serving license and food safety course.' },
-  { value: 'AUDIT_REPORT', label: 'Audit & inspection', emptyHint: 'Store results from external food authority inspections.' },
-  { value: 'HACCP',        label: 'HACCP / Risk',       emptyHint: 'Upload food safety hazard analysis and risk assessment documents.' },
-  { value: 'EMERGENCY',    label: 'Emergency procedures', emptyHint: 'Add fire evacuation, first aid, and other emergency plans.' },
-]
-
-const MODULES = [
-  { value: 'SHARED',     label: 'Shared' },
-  { value: 'IC_FOOD',    label: 'IC-Food' },
-  { value: 'IC_ALCOHOL', label: 'IC-Alcohol' },
-]
 
 // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -408,21 +252,13 @@ function applyRouteFilters(query) {
   const module = String(query?.module ?? '').toUpperCase()
   const search = String(query?.search ?? '')
 
-  if (category && CATEGORIES.some((item) => item.value === category)) {
-    activeCategory.value = category
-  } else if (!category) {
-    activeCategory.value = ''
-  }
+  if (category && CATEGORIES.some((item) => item.value === category)) activeCategory.value = category
+  else if (!category) activeCategory.value = ''
 
-  if (module && MODULES.some((item) => item.value === module)) {
-    activeModule.value = module
-  } else if (!module) {
-    activeModule.value = ''
-  }
+  if (module && MODULES.some((item) => item.value === module)) activeModule.value = module
+  else if (!module) activeModule.value = ''
 
-  if (search) {
-    searchQuery.value = search
-  }
+  if (search) searchQuery.value = search
 }
 
 onMounted(async () => {
@@ -430,12 +266,7 @@ onMounted(async () => {
   await loadDocuments()
 })
 
-watch(
-  () => route.query,
-  (query) => {
-    applyRouteFilters(query)
-  }
-)
+watch(() => route.query, applyRouteFilters)
 
 // ── Filtering ──────────────────────────────────────────────────────────────
 
@@ -451,13 +282,9 @@ const filteredDocuments = computed(() => {
   })
 })
 
-// Only show categories that have documents when a filter is active, or always show all when no filter
-const visibleCategories = computed(() => {
-  if (activeCategory.value) {
-    return CATEGORIES.filter(c => c.value === activeCategory.value)
-  }
-  return CATEGORIES
-})
+const visibleCategories = computed(() =>
+  activeCategory.value ? CATEGORIES.filter(c => c.value === activeCategory.value) : CATEGORIES
+)
 
 function documentsForCategory(category) {
   return filteredDocuments.value.filter(d => d.category === category)
@@ -467,56 +294,15 @@ function toggleCategory(value) {
   const s = collapsedCategories.value
   if (s.has(value)) s.delete(value)
   else s.add(value)
-  collapsedCategories.value = new Set(s) // trigger reactivity
+  collapsedCategories.value = new Set(s)
 }
 
-// ── Upload modal actions ───────────────────────────────────────────────────
+// ── Upload modal ───────────────────────────────────────────────────────────
 
-function closeModal() {
+function onDocumentUploaded(newDoc) {
+  documents.value.unshift(newDoc)
   showUploadModal.value = false
-  uploadError.value = null
-  uploadMode.value = 'file'
-  uploadForm.value = { file: null, externalUrl: '', name: '', description: '', category: '', module: '', expiryDate: '' }
-}
-
-function onFileChange(event) {
-  const file = event.target.files[0]
-  if (file) uploadForm.value.file = file
-}
-
-function onDrop(event) {
-  isDragging.value = false
-  const file = event.dataTransfer.files[0]
-  if (file) uploadForm.value.file = file
-}
-
-async function handleUpload() {
-  uploading.value = true
-  uploadError.value = null
-  try {
-    const formData = new FormData()
-    if (uploadMode.value === 'file') {
-      if (!uploadForm.value.file) { uploadError.value = 'Please select a file.'; uploading.value = false; return }
-      formData.append('file', uploadForm.value.file)
-    } else {
-      if (!uploadForm.value.externalUrl) { uploadError.value = 'Please enter a URL.'; uploading.value = false; return }
-      formData.append('externalUrl', uploadForm.value.externalUrl)
-    }
-    formData.append('name', uploadForm.value.name)
-    formData.append('category', uploadForm.value.category)
-    formData.append('module', uploadForm.value.module)
-    if (uploadForm.value.description) formData.append('description', uploadForm.value.description)
-    if (uploadForm.value.expiryDate) formData.append('expiryDate', uploadForm.value.expiryDate)
-
-    const newDoc = await uploadDocument(formData)
-    documents.value.unshift(newDoc)
-    closeModal()
-  } catch {
-    uploadError.value = 'Upload failed. Please try again.'
-  } finally {
-    uploading.value = false
-    toast.success('Document uploaded successfully.')
-  }
+  toast.success('Document uploaded successfully.')
 }
 
 // ── Expiry banner ──────────────────────────────────────────────────────────
@@ -524,7 +310,6 @@ async function handleUpload() {
 function scrollToDoc(id) {
   const el = document.getElementById(`doc-${id}`)
   if (!el) return
-  // Clear category filter so the card is visible
   activeCategory.value = ''
   activeModule.value = ''
   setTimeout(() => {
@@ -540,6 +325,24 @@ const previewDoc = ref(null)
 const previewUrl = ref(null)
 const previewLoading = ref(false)
 const previewError = ref(null)
+
+function fileIconLabel(fileType) {
+  if (!fileType) return 'FILE'
+  if (fileType.includes('pdf')) return 'PDF'
+  if (fileType.includes('word') || fileType.includes('document')) return 'DOC'
+  if (fileType.includes('image')) return 'IMG'
+  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'XLS'
+  return 'FILE'
+}
+
+function fileIconClass(fileType) {
+  if (!fileType) return 'doc-icon--file'
+  if (fileType.includes('pdf')) return 'doc-icon--pdf'
+  if (fileType.includes('word') || fileType.includes('document')) return 'doc-icon--doc'
+  if (fileType.includes('image')) return 'doc-icon--img'
+  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'doc-icon--xls'
+  return 'doc-icon--file'
+}
 
 async function handlePreview(doc) {
   if (doc.externalUrl) {
@@ -579,7 +382,6 @@ async function handleDownload(doc) {
     a.click()
     URL.revokeObjectURL(url)
   } catch {
-    alert('Failed to download file.')
     toast.error('Failed to download file. Please try again.')
   }
 }
@@ -591,72 +393,8 @@ async function handleDelete(doc) {
     documents.value = documents.value.filter(d => d.id !== doc.id)
     toast.success('Document deleted successfully.')
   } catch {
-    alert('Failed to delete document.')
     toast.error('Failed to delete document. Please try again.')
   }
-}
-
-// ── Display helpers ────────────────────────────────────────────────────────
-
-function fileIconLabel(fileType) {
-  if (!fileType) return 'FILE'
-  if (fileType.includes('pdf')) return 'PDF'
-  if (fileType.includes('word') || fileType.includes('document')) return 'DOC'
-  if (fileType.includes('image')) return 'IMG'
-  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'XLS'
-  return 'FILE'
-}
-
-function fileIconClass(fileType) {
-  if (!fileType) return 'doc-icon--file'
-  if (fileType.includes('pdf')) return 'doc-icon--pdf'
-  if (fileType.includes('word') || fileType.includes('document')) return 'doc-icon--doc'
-  if (fileType.includes('image')) return 'doc-icon--img'
-  if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'doc-icon--xls'
-  return 'doc-icon--file'
-}
-
-function moduleBadgeClass(module) {
-  if (module === 'IC_FOOD') return 'doc-badge--food'
-  if (module === 'IC_ALCOHOL') return 'doc-badge--alcohol'
-  return 'doc-badge--shared'
-}
-
-function moduleLabel(module) {
-  if (module === 'IC_FOOD') return 'IC-Food'
-  if (module === 'IC_ALCOHOL') return 'IC-Alcohol'
-  return 'Shared'
-}
-
-function formatDate(isoString) {
-  if (!isoString) return ''
-  return new Date(isoString).toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function formatSize(bytes) {
-  if (!bytes) return ''
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function expiryClass(expiryDate) {
-  const today = new Date()
-  const expiry = new Date(expiryDate)
-  const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
-  if (daysLeft < 0) return 'cert-expiry--expired'
-  if (daysLeft <= 30) return 'cert-expiry--warning'
-  return 'cert-expiry--ok'
-}
-
-function expiryLabel(expiryDate) {
-  const today = new Date()
-  const expiry = new Date(expiryDate)
-  const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
-  if (daysLeft < 0) return 'Expired'
-  if (daysLeft === 0) return 'Expires today'
-  if (daysLeft <= 30) return `Expires in ${daysLeft}d`
-  return 'Valid'
 }
 </script>
 
