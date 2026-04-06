@@ -49,6 +49,7 @@ public class ChecklistController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Create a checklist")
 	@ApiResponse(responseCode = "201", description = "Checklist created")
 	public ChecklistCardResponse createChecklist(
@@ -92,6 +93,7 @@ public class ChecklistController {
 	}
 
 	@PutMapping("/{checklistId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Update a checklist")
 	@ApiResponse(responseCode = "200", description = "Checklist updated")
 	public ChecklistCardResponse updateChecklist(
@@ -176,6 +178,7 @@ public class ChecklistController {
 	}
 
 	@PutMapping("/{checklistId}/workbench")
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Set whether a checklist is displayed on the workbench")
 	@ApiResponse(responseCode = "200", description = "Checklist workbench state updated")
 	public ChecklistCardResponse setChecklistWorkbenchState(
@@ -196,6 +199,7 @@ public class ChecklistController {
 
 	@DeleteMapping("/{checklistId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Delete a checklist")
 	@ApiResponse(responseCode = "204", description = "Checklist deleted")
 	public void deleteChecklist(@PathVariable Long checklistId, Authentication auth) {
