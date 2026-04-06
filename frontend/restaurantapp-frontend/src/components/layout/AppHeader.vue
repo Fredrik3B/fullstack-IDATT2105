@@ -1,14 +1,30 @@
 <template>
-  <header class="app-header">
+  <header class="app-header" ref="headerRef">
     <div class="header-inner">
 
       <!-- Logo -->
-      <div class="header-brand">
+      <RouterLink to="/" class="header-brand" aria-label="Go to dashboard">
         <div class="brand-text">
           <span class="brand-name">ICSystem</span>
-          <span class="brand-tenant">{{ auth.restaurantName ?? '—' }}</span>
+          <span class="brand-tenant">{{ auth.restaurant?.name ?? '—' }}</span>
         </div>
-      </div>
+      </RouterLink>
+
+      <button
+        class="mobile-menu-toggle"
+        type="button"
+        :aria-expanded="mobileMenuOpen"
+        aria-controls="mobile-menu-panel"
+        :aria-label="mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'"
+        @click="toggleMobileMenu"
+      >
+        <svg v-if="!mobileMenuOpen" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <svg v-else width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
 
       <!-- Navigation -->
       <nav class="header-nav">
@@ -74,35 +90,69 @@
       </div>
 
     </div>
+
+    <transition name="mobile-menu">
+      <div v-if="mobileMenuOpen" id="mobile-menu-panel" class="mobile-menu-panel">
+        <nav class="mobile-nav" aria-label="Mobile navigation">
+          <RouterLink to="/" class="nav-item" exact-active-class="active" @click="mobileMenuOpen = false">Dashboard</RouterLink>
+          <RouterLink to="/ic-food" class="nav-item" active-class="active" @click="mobileMenuOpen = false">IC-Food</RouterLink>
+          <RouterLink to="/ic-alcohol" class="nav-item" active-class="active" @click="mobileMenuOpen = false">IC-Alcohol</RouterLink>
+          <RouterLink to="/reports" class="nav-item" active-class="active" @click="mobileMenuOpen = false">Reports</RouterLink>
+          <RouterLink to="/documents" class="nav-item" active-class="active" @click="mobileMenuOpen = false">Documents</RouterLink>
+        </nav>
+      </div>
+    </transition>
   </header>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuthStore()
 const toast = useToast()
+const route = useRoute()
 
 // ── Dropdown ──────────────────────────────────────────────────────────────
 
+const headerRef = ref(null)
 const chipWrapper = ref(null)
 const dropdownOpen = ref(false)
+const mobileMenuOpen = ref(false)
 
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value
+  if (dropdownOpen.value) {
+    mobileMenuOpen.value = false
+  }
+}
+
+function toggleMobileMenu() {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+  if (mobileMenuOpen.value) {
+    dropdownOpen.value = false
+  }
 }
 
 function handleClickOutside(e) {
-  if (chipWrapper.value && !chipWrapper.value.contains(e.target)) {
+  if (headerRef.value && !headerRef.value.contains(e.target)) {
     dropdownOpen.value = false
+    mobileMenuOpen.value = false
   }
 }
 
 onMounted(() => document.addEventListener('mousedown', handleClickOutside))
 onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
+
+watch(
+  () => route.fullPath,
+  () => {
+    dropdownOpen.value = false
+    mobileMenuOpen.value = false
+  },
+)
 
 // ── Derived state ─────────────────────────────────────────────────────────
 
@@ -137,11 +187,31 @@ function handleLogout() {
 .header-inner {
   display: flex;
   align-items: center;
-  height: var(--nav-height);
+  min-height: var(--nav-height);
   padding: 0 var(--space-6);
   gap: var(--space-6);
   max-width: var(--max-width);
   margin: 0 auto;
+}
+
+.mobile-menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-dark-tertiary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-dark-border);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.mobile-menu-toggle:hover {
+  background: var(--color-dark-secondary);
+  color: #ffffff;
+  border-color: var(--color-dark-border);
 }
 
 /* ── Brand ── */
@@ -150,6 +220,8 @@ function handleLogout() {
   align-items: center;
   gap: var(--space-3);
   flex-shrink: 0;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .brand-text {
@@ -277,7 +349,8 @@ function handleLogout() {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  min-width: 220px;
+  min-width: min(220px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
   background: var(--color-dark-secondary);
   border: 1px solid var(--color-dark-tertiary);
   border-radius: var(--radius-lg);
@@ -374,11 +447,77 @@ function handleLogout() {
   opacity: 0.7;
 }
 
+.mobile-menu-panel {
+  border-top: 1px solid var(--color-dark-secondary);
+  padding: var(--space-2) var(--space-4) var(--space-4);
+}
+
+.mobile-nav {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.mobile-nav .nav-item {
+  width: 100%;
+  justify-content: flex-start;
+  padding: var(--space-3);
+}
+
+.mobile-menu-enter-active,
+.mobile-menu-leave-active {
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+.mobile-menu-enter-from,
+.mobile-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
 /* ── Responsive ── */
-@media (max-width: 768px) {
-  .header-nav { display: none; }
-  .brand-tenant { display: none; }
-  .user-info { display: none; }
-  .caret-icon { display: none; }
+@media (max-width: 900px) {
+  .header-inner {
+    padding: 0 var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .header-nav {
+    display: none;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-flex;
+  }
+
+  .header-actions {
+    margin-left: auto;
+  }
+
+  .brand-tenant {
+    display: none;
+  }
+
+  .user-info {
+    display: none;
+  }
+
+  .caret-icon {
+    display: none;
+  }
+
+  .user-chip {
+    padding: var(--space-1);
+  }
+}
+
+@media (max-width: 520px) {
+  .header-inner {
+    padding: 0 var(--space-3);
+  }
+
+  .mobile-menu-panel {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
 }
 </style>

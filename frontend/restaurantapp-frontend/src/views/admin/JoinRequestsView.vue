@@ -14,9 +14,9 @@
       </div>
 
       <!-- Join code -->
-      <div v-if="auth.restaurantJoinCode" class="join-code-bar">
+      <div v-if="auth.restaurant?.joinCode" class="join-code-bar">
         <span class="join-code-label">Join code</span>
-        <span class="join-code-value">{{ auth.restaurantJoinCode }}</span>
+        <span class="join-code-value">{{ auth.restaurant?.joinCode }}</span>
         <button class="join-code-copy" @click="copyCode" :class="{ copied }">
           {{ copied ? 'Copied!' : 'Copy' }}
         </button>
@@ -232,7 +232,7 @@ const memberSections = computed(() => {
     { role: 'HR', label: 'HR', members: [] },
     { role: 'STAFF', label: 'Staff', members: [] },
   ]
-  
+
   members.value.forEach(member => {
     const role = primaryRole(member.roles)
     const section = sections.find(s => s.role === role)
@@ -240,7 +240,7 @@ const memberSections = computed(() => {
       section.members.push(member)
     }
   })
-  
+
   return sections
 })
 
@@ -283,13 +283,13 @@ async function removeMember() {
 
 async function changeRole(member, newRole) {
   const currentRole = primaryRole(member.roles)
-  
+
   // Prevent demoting the last admin
   if (currentRole === 'ADMIN' && newRole !== 'ADMIN' && adminCount.value === 1) {
     toast.error('Cannot change role of the last administrator.')
     return
   }
-  
+
   processing.value = member.userId
   try {
     await auth.updateMemberRoles(member.userId, [newRole])
@@ -350,8 +350,8 @@ function switchTab(tab) {
 
 const copied = ref(false)
 async function copyCode() {
-  if (!auth.restaurantJoinCode) return
-  await navigator.clipboard.writeText(auth.restaurantJoinCode)
+  if (!auth.restaurant?.joinCode) return
+  await navigator.clipboard.writeText(auth.restaurant.joinCode)
   copied.value = true
   setTimeout(() => { copied.value = false }, 2000)
 }

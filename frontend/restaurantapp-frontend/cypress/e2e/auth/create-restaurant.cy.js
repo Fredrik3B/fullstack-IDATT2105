@@ -85,7 +85,7 @@ describe('Create Restaurant Page', () => {
     // refreshAccessToken() is called after create — uses the base API URL directly
     cy.intercept('POST', '**/api/auth/refresh', {
       statusCode: 200,
-      body: { accessToken: buildAdminToken() },
+      body: buildRefreshResponse(),
     }).as('refresh')
 
     fillForm()
@@ -107,13 +107,8 @@ describe('Create Restaurant Page', () => {
     }).as('createOrg')
     cy.intercept('POST', '**/api/auth/refresh', {
       statusCode: 200,
-      body: { accessToken: buildAdminToken() },
+      body: buildRefreshResponse(),
     }).as('refresh')
-    // After navigating to dashboard, router guard may call /api/auth/me — stub it as active
-    cy.intercept('GET', '/api/auth/me', {
-      statusCode: 200,
-      body: { user: { id: 1, name: 'New Admin', email: 'admin@example.com' }, restaurantStatus: 'active', restaurantId: 10, restaurantName: 'My Test Restaurant', restaurantJoinCode: 'EVR-2847' },
-    }).as('authMe')
 
     fillForm()
     cy.get('button[type="submit"]').click()
@@ -134,11 +129,30 @@ describe('Create Restaurant Page', () => {
     cy.contains('Something went wrong').should('be.visible')
   })
 
+  it('shows an error when refresh fails after a successful restaurant creation', () => {
+    cy.intercept('POST', '/api/organizations', {
+      statusCode: 201,
+      body: { id: 10, joinCode: 'EVR-2847' },
+    }).as('createOrg')
+    cy.intercept('POST', '**/api/auth/refresh', {
+      statusCode: 500,
+      body: {},
+    }).as('refreshFail')
+
+    fillForm()
+    cy.get('button[type="submit"]').click()
+    cy.wait('@createOrg')
+    cy.wait('@refreshFail')
+
+    cy.contains('Something went wrong').should('be.visible')
+    cy.contains('Workspace created').should('not.exist')
+  })
+
   it('disables the submit button while the request is in flight', () => {
     cy.intercept('POST', '/api/organizations', (req) => {
       req.on('response', (res) => { res.setDelay(300) })
     }).as('createSlow')
-    cy.intercept('POST', '**/api/auth/refresh', { statusCode: 200, body: { accessToken: buildAdminToken() } })
+    cy.intercept('POST', '**/api/auth/refresh', { statusCode: 200, body: buildRefreshResponse() })
 
     fillForm()
     cy.get('button[type="submit"]').click()
@@ -180,3 +194,11 @@ function makeJwt(roles) {
 }
 
 function buildAdminToken() { return makeJwt(['ROLE_ADMIN']) }
+
+function buildRefreshResponse() {
+  return {
+    accessToken: buildAdminToken(),
+    user: { id: 1, name: 'New Admin', email: 'admin@example.com' },
+    restaurant: { id: 10, name: 'My Test Restaurant', joinCode: 'EVR-2847' },
+  }
+}

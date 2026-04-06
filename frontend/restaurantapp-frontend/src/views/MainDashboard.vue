@@ -50,41 +50,45 @@
             <span class="section-kicker">Live operational snapshot</span>
           </div>
           <div class="stat-grid" :class="auth.isAdminOrManager ? 'stat-grid--admin' : 'stat-grid--staff'">
-            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openNextChecklistModule" @keydown.enter="openNextChecklistModule" @keydown.space.prevent="openNextChecklistModule">
-              <span class="stat-label">Tasks remaining</span>
-              <span class="stat-value">{{ remainingTasksToday }}</span>
-              <span class="stat-hint">{{ tasksTodayHint }}</span>
-            </article>
-
-            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openNextChecklistModule" @keydown.enter="openNextChecklistModule" @keydown.space.prevent="openNextChecklistModule">
-              <span class="stat-label">Tasks completed</span>
-              <span class="stat-value">{{ completedTasksToday }}</span>
-              <span class="stat-hint">{{ completionLabel }}</span>
-            </article>
-
-            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openDeviationReport" @keydown.enter="openDeviationReport" @keydown.space.prevent="openDeviationReport">
-              <span class="stat-label">Active deviations</span>
-              <span class="stat-value" :class="activeDeviationCount > 0 ? 'stat-value--danger' : ''">
-                {{ activeDeviationCount }}
-              </span>
-              <span class="stat-hint">{{ activeDeviationHint }}</span>
-            </article>
-
-            <article class="stat-card stat-card--interactive" role="button" tabindex="0" @click="openCertificateDocuments" @keydown.enter="openCertificateDocuments" @keydown.space.prevent="openCertificateDocuments">
-              <span class="stat-label">Expiring certificates</span>
-              <span class="stat-value" :class="expiringCertificatesCount > 0 ? 'stat-value--warning' : ''">
-                {{ expiringCertificatesCount }}
-              </span>
-              <span class="stat-hint">{{ certificateHint }}</span>
-            </article>
-
-            <article v-if="auth.isAdminOrManager" class="stat-card stat-card--interactive" role="button" tabindex="0" @click="goToRoute('admin-requests')" @keydown.enter="goToRoute('admin-requests')" @keydown.space.prevent="goToRoute('admin-requests')">
-              <span class="stat-label">Pending requests</span>
-              <span class="stat-value" :class="pendingJoinRequests > 0 ? 'stat-value--warning' : ''">
-                {{ pendingJoinRequests }}
-              </span>
-              <span class="stat-hint">{{ requestsHint }}</span>
-            </article>
+            <StatCard
+              label="Tasks remaining"
+              :value="remainingTasksToday"
+              :hint="tasksTodayHint"
+              interactive
+              @click="openNextChecklistModule"
+            />
+            <StatCard
+              label="Tasks completed"
+              :value="completedTasksToday"
+              :hint="completionLabel"
+              interactive
+              @click="openNextChecklistModule"
+            />
+            <StatCard
+              label="Active deviations"
+              :value="activeDeviationCount"
+              :hint="activeDeviationHint"
+              :value-variant="activeDeviationCount > 0 ? 'danger' : ''"
+              interactive
+              @click="openDeviationReport"
+            />
+            <StatCard
+              label="Expiring certificates"
+              :value="expiringCertificatesCount"
+              :hint="certificateHint"
+              :value-variant="expiringCertificatesCount > 0 ? 'warning' : ''"
+              interactive
+              @click="openCertificateDocuments"
+            />
+            <StatCard
+              v-if="auth.isAdminOrManager"
+              label="Pending requests"
+              :value="pendingJoinRequests"
+              :hint="requestsHint"
+              :value-variant="pendingJoinRequests > 0 ? 'warning' : ''"
+              interactive
+              @click="goToRoute('admin-requests')"
+            />
           </div>
         </section>
 
@@ -94,89 +98,28 @@
             <span class="section-kicker">Close them in order or jump to the most urgent one</span>
           </div>
           <div class="checklist-grid">
-            <article class="checklist-module-card">
-              <div class="checklist-header">
-                <div class="checklist-header__left">
-                  <span class="checklist-dot checklist-dot--food"></span>
-                  <h3 class="checklist-title">IC-Food</h3>
-                </div>
-                <button class="module-open-btn" type="button" @click="openChecklistModule('IC_FOOD')">Open</button>
-              </div>
-
-              <div class="module-progress">
-                <div class="module-progress__bar">
-                  <div class="module-progress__fill" :style="{ width: `${foodCompletionRate}%` }"></div>
-                </div>
-                <p class="module-progress__text">{{ foodCompletedTasks }} / {{ foodTotalTasks }} tasks completed</p>
-              </div>
-
-              <div class="checklist-body">
-                <p v-if="isLoadingFood" class="checklist-hint">Loading checklists...</p>
-                <p v-else-if="foodError" class="checklist-hint">{{ foodError }}</p>
-                <template v-else-if="dailyFoodChecklists.length">
-                  <article
-                    v-for="card in dailyFoodChecklists"
-                    :key="card.id ?? card.title"
-                    class="checklist-preview"
-                    role="button"
-                    tabindex="0"
-                    @click="openChecklistModule('IC_FOOD')"
-                    @keydown.enter="openChecklistModule('IC_FOOD')"
-                    @keydown.space.prevent="openChecklistModule('IC_FOOD')"
-                  >
-                    <div class="checklist-preview__top">
-                      <h4 class="checklist-preview__title">{{ card.title }}</h4>
-                      <span class="checklist-preview__period">{{ formatPeriod(card.period) }}</span>
-                    </div>
-                    <p v-if="card.subtitle" class="checklist-preview__subtitle">{{ card.subtitle }}</p>
-                    <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
-                  </article>
-                </template>
-                <p v-else class="checklist-hint">No daily IC-Food checklists found.</p>
-              </div>
-            </article>
-
-            <article class="checklist-module-card">
-              <div class="checklist-header">
-                <div class="checklist-header__left">
-                  <span class="checklist-dot checklist-dot--alcohol"></span>
-                  <h3 class="checklist-title">IC-Alcohol</h3>
-                </div>
-                <button class="module-open-btn" type="button" @click="openChecklistModule('IC_ALCOHOL')">Open</button>
-              </div>
-
-              <div class="module-progress">
-                <div class="module-progress__bar">
-                  <div class="module-progress__fill module-progress__fill--alcohol" :style="{ width: `${alcoholCompletionRate}%` }"></div>
-                </div>
-                <p class="module-progress__text">{{ alcoholCompletedTasks }} / {{ alcoholTotalTasks }} tasks completed</p>
-              </div>
-
-              <div class="checklist-body">
-                <p v-if="isLoadingAlcohol" class="checklist-hint">Loading checklists...</p>
-                <p v-else-if="alcoholError" class="checklist-hint">{{ alcoholError }}</p>
-                <template v-else-if="dailyAlcoholChecklists.length">
-                  <article
-                    v-for="card in dailyAlcoholChecklists"
-                    :key="card.id ?? card.title"
-                    class="checklist-preview"
-                    role="button"
-                    tabindex="0"
-                    @click="openChecklistModule('IC_ALCOHOL')"
-                    @keydown.enter="openChecklistModule('IC_ALCOHOL')"
-                    @keydown.space.prevent="openChecklistModule('IC_ALCOHOL')"
-                  >
-                    <div class="checklist-preview__top">
-                      <h4 class="checklist-preview__title">{{ card.title }}</h4>
-                      <span class="checklist-preview__period">{{ formatPeriod(card.period) }}</span>
-                    </div>
-                    <p v-if="card.subtitle" class="checklist-preview__subtitle">{{ card.subtitle }}</p>
-                    <p class="checklist-preview__meta">{{ getTaskCount(card) }} tasks</p>
-                  </article>
-                </template>
-                <p v-else class="checklist-hint">No daily IC-Alcohol checklists found.</p>
-              </div>
-            </article>
+            <ChecklistModuleCard
+              label="IC-Food"
+              variant="food"
+              :completed-tasks="foodCompletedTasks"
+              :total-tasks="foodTotalTasks"
+              :completion-rate="foodCompletionRate"
+              :checklists="dailyFoodChecklists"
+              :is-loading="isLoadingFood"
+              :error="foodError"
+              @open="openChecklistModule('IC_FOOD')"
+            />
+            <ChecklistModuleCard
+              label="IC-Alcohol"
+              variant="alcohol"
+              :completed-tasks="alcoholCompletedTasks"
+              :total-tasks="alcoholTotalTasks"
+              :completion-rate="alcoholCompletionRate"
+              :checklists="dailyAlcoholChecklists"
+              :is-loading="isLoadingAlcohol"
+              :error="alcoholError"
+              @open="openChecklistModule('IC_ALCOHOL')"
+            />
           </div>
         </section>
 
@@ -219,20 +162,6 @@
           </article>
         </section>
 
-        <section class="section-footer-actions">
-          <button class="secondary-btn" type="button" @click="goToRoute('reports', { preset: 'week', autoload: '1' })">Open reports</button>
-          <button class="secondary-btn" type="button" @click="openDocuments">Open documents</button>
-          <button
-            v-if="auth.isAdminOrManager"
-            class="secondary-btn"
-            type="button"
-            @click="goToRoute('admin-requests')"
-          >
-            Open admin panel
-          </button>
-          <button class="secondary-btn secondary-btn--refresh" type="button" @click="refreshDashboard">Refresh data</button>
-        </section>
-
         <section v-if="auth.isAdminOrManager" class="team-panel">
           <div class="team-panel__header">
             <div>
@@ -262,7 +191,7 @@
 
             <article class="team-stat-card">
               <span class="team-stat-label">Join code</span>
-              <span class="team-stat-value team-stat-value--code">{{ auth.restaurantJoinCode ?? '—' }}</span>
+              <span class="team-stat-value team-stat-value--code">{{ auth.restaurant?.joinCode ?? '—' }}</span>
               <span class="team-stat-hint">Share this with new team members</span>
             </article>
 
@@ -287,6 +216,8 @@ import { fetchTemperatureMeasurements } from '../api/temperatureMeasurements'
 import { isTemperatureDeviation, isTemperatureTask } from '../features/ic-checklists/temperature'
 import { useTemperatureLog } from '../features/ic-checklists/useTemperatureLog'
 import { useAuthStore } from '../stores/auth'
+import ChecklistModuleCard from '../components/dashboard/ChecklistModuleCard.vue'
+import StatCard from '../components/dashboard/StatCard.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -320,7 +251,7 @@ const dailyAlcoholChecklists = computed(() => alcoholChecklists.value.filter((ca
 const dailyChecklists = computed(() => [...dailyFoodChecklists.value, ...dailyAlcoholChecklists.value])
 
 const displayUserName = computed(() => auth.user?.name?.trim() || auth.user?.email || 'User')
-const restaurantDisplayName = computed(() => auth.restaurantName?.trim() || 'Restaurant')
+const restaurantDisplayName = computed(() => auth.restaurant?.name?.trim() || 'Restaurant')
 const todayLabel = computed(() =>
   new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
@@ -510,11 +441,6 @@ function primaryRole(roles) {
 function getCompletionRate(done, total) {
   if (!Number.isFinite(done) || !Number.isFinite(total) || total <= 0) return 0
   return Math.round((done / total) * 100)
-}
-
-function formatPeriod(period) {
-  if (!period) return 'Unknown'
-  return String(period).charAt(0).toUpperCase() + String(period).slice(1).toLowerCase()
 }
 
 function formatDateTimeShort(value) {
@@ -744,8 +670,8 @@ onMounted(async () => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 900px;
-  height: 900px;
+  width: clamp(320px, 90vw, 900px);
+  height: clamp(320px, 90vw, 900px);
   border-radius: 50%;
   background: radial-gradient(
     circle at center,
@@ -947,246 +873,11 @@ onMounted(async () => {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.stat-card {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card::after {
-  content: '';
-  position: absolute;
-  inset: auto -18px -18px auto;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: rgba(212, 232, 53, 0.08);
-}
-
-.stat-card:nth-child(2n)::after {
-  background: rgba(75, 74, 114, 0.06);
-}
-
-.stat-card:nth-child(3n)::after {
-  background: rgba(204, 51, 51, 0.06);
-}
-
-.stat-card--interactive {
-  cursor: pointer;
-  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
-}
-
-.stat-card--interactive:hover,
-.stat-card--interactive:focus-visible {
-  transform: translateY(-2px);
-  border-color: var(--color-dark-tertiary);
-  box-shadow: var(--shadow-md);
-  outline: none;
-}
-
-.stat-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.stat-value {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.stat-value--danger {
-  color: var(--color-danger);
-}
-
-.stat-value--warning {
-  color: var(--color-warning-text);
-}
-
-.stat-hint {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-hint);
-}
-
 .checklist-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
   align-items: stretch;
-}
-
-.checklist-module-card {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  min-height: 300px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-}
-
-.checklist-module-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--color-accent), transparent);
-}
-
-.checklist-module-card:nth-child(2)::before {
-  background: linear-gradient(90deg, var(--color-dark-tertiary), transparent);
-}
-
-.checklist-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.checklist-header__left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.checklist-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.checklist-dot--food {
-  background: var(--color-accent);
-}
-
-.checklist-dot--alcohol {
-  background: var(--color-dark-tertiary);
-}
-
-.checklist-title {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.module-open-btn {
-  min-height: 34px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-bg-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  cursor: pointer;
-}
-
-.module-open-btn:hover {
-  border-color: var(--color-dark-tertiary);
-}
-
-.module-progress {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.module-progress__bar {
-  width: 100%;
-  height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--color-bg-tertiary);
-  overflow: hidden;
-}
-
-.module-progress__fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: var(--color-accent);
-}
-
-.module-progress__fill--alcohol {
-  background: var(--color-dark-tertiary);
-}
-
-.module-progress__text {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.checklist-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.checklist-preview {
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
-  cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
-}
-
-.checklist-preview:hover,
-.checklist-preview:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-dark-tertiary);
-  outline: none;
-}
-
-.checklist-preview__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.checklist-preview__title {
-  margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-
-.checklist-preview__period {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-}
-
-.checklist-preview__subtitle,
-.checklist-preview__meta {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
-.checklist-hint {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-hint);
 }
 
 .insight-grid {
@@ -1422,6 +1113,14 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
+  .welcome-banner {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .dashboard-main {
+    padding: var(--space-8) var(--space-4) var(--space-10);
+  }
+
   .section-header-row {
     flex-direction: column;
     align-items: flex-start;
@@ -1451,8 +1150,16 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
+  .welcome-banner {
+    padding: var(--space-8) var(--space-3);
+  }
+
+  .team-panel {
+    padding: var(--space-4);
+  }
+
   .dashboard-main {
-    padding-inline: var(--space-4);
+    padding: var(--space-6) var(--space-3) var(--space-8);
   }
 
   .quick-action-grid,

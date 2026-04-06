@@ -123,7 +123,6 @@ describe('Documents Page', () => {
       cy.get('[role="dialog"]').should('be.visible')
       cy.contains('Upload document').should('be.visible')
     })
-
     it('closes upload modal when cancel is clicked', () => {
       stubDocuments([])
       cy.visitAuthenticated('/documents')
@@ -199,7 +198,6 @@ describe('Documents Page', () => {
       cy.wait('@uploadFail')
       cy.contains('Upload failed').should('be.visible')
     })
-
     // ── Delete ───────────────────────────────────────────────────────────
 
     it('deletes a document after confirmation', () => {

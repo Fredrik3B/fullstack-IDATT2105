@@ -6,6 +6,7 @@ import api from '@/api/axiosInstance'
 
 // Keys used for localStorage persistence
 const ACCESS_TOKEN_KEY = 'iksystem_access_token'
+const SESSION_KEY = 'iksystem_session'
 
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter()
@@ -18,43 +19,25 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const user = ref(null)
 
-  const restaurant = ref({
-    id: null,
-    name: null,
-    joinCode: null
-})
+  /**
+   * The restaurant (organization) the user belongs to.
+   * Populated when the backend confirms an active membership.
+   * Shape: { id: UUID, name: string, joinCode: string } | null
+   */
+  const restaurant = ref(null)
 
   /**
    * Short-lived JWT used as the Authorization header on every API request.
    * Populated from localStorage on app boot via initAuth().
    */
-  const accessToken = ref(localStorage.getItem(ACCESS_TOKEN_KEY) ?? null)
-
+  const accessToken = ref(null)
   /**
-   * The user's relationship to a restaurant.
-   *   null      — no request made yet
-   *   'pending' — request sent, waiting for admin approval
-   *   'active'  — approved and connected to a restaurant
+   * Non-null means the user has submitted a request that hasn't been resolved yet.
+   * Shape matches the backend JoinRequestResponse, e.g.:
+   *   { status: 'PENDING', restaurantName: string, createdAt: string }
+   * Null when no pending request exists.
    */
-  const restaurantStatus = ref(null)
-
-  /**
-   * ID of the restaurant the user is connected to (active or pending).
-   * Null when restaurantStatus is null.
-   */
-  const restaurantId = computed(() => restaurant.value?.id)
-
-  /**
-   * Display name of the restaurant the user is connected to.
-   * Populated on createRestaurant, joinRestaurant, and initAuth.
-   */
-  const restaurantName = computed(() => restaurant.value?.name)
-
-  /**
-   * Join code for the restaurant. Only populated for active ADMIN/MANAGER users.
-   * Used on the admin requests page so the admin can share the code with staff.
-   */
-  const restaurantJoinCode = computed(() => restaurant.value?.joinCode)
+  const pendingRequest = ref(null)
 
   // ── Computed ───────────────────────────────────────────────────────────────
 
@@ -62,7 +45,10 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!accessToken.value)
 
   /** True when the user is logged in AND connected to an active restaurant. */
-  const hasActiveRestaurant = computed(() => !!restaurant.value.id)
+  const hasActiveRestaurant = computed(() => !!restaurant.value?.id)
+
+  /** True when the user has a pending join request waiting for approval. */
+  const hasPendingRequest = computed(() => !!pendingRequest.value)
 
   /** Roles extracted from the JWT payload (e.g. ["ROLE_ADMIN", "ROLE_STAFF"]). */
 
@@ -98,32 +84,42 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
+   * Write current session state to localStorage.
+   * Called after every successful auth response (login, register, refresh).
+   */
+  function _persist() {
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken.value)
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      user: user.value,
+      restaurant: restaurant.value,
+    }))
+  }
+
+  /**
    * Populate state from a LoginResponse.
    * Shape: { accessToken, user: { email, name }, restaurant: { id, name, joinCode } | null }
    */
   function _saveSession(data) {
       accessToken.value = data.accessToken
-      localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
-      localStorage.setItem('iksystem_session', JSON.stringify({
-          user: data.user,
-          restaurant: data.restaurant
-      }))
+    user.value = data.user ?? null
+    restaurant.value = data.restaurant ?? null
 
-      user.value = data.user
-      if (data.restaurant) {
-          restaurant.value = data.restaurant
-      } else {
-          restaurant.value = { id: null, name: null, joinCode: null }
-      }
+    // Backend returned a restaurant, request was accepted
+    if (data.restaurant) {
+      pendingRequest.value = null
+    }
+
+    _persist()
   }
 
-  function _resetState() {
+  function _clearSession() {
       user.value = null
-      restaurant.value = { id: null, name: null, joinCode: null }
+      restaurant.value = null
       accessToken.value = null
-      _initPromise = null
+      pendingRequest.value = null
+      _initDone = false
       localStorage.removeItem(ACCESS_TOKEN_KEY)
-      localStorage.removeItem('iksystem_session')
+      localStorage.removeItem(SESSION_KEY)
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -132,38 +128,48 @@ export const useAuthStore = defineStore('auth', () => {
    * Called once on app boot by the router guard.
    * Restores what we can from the JWT claims (email, orgId).
    * Display values (name, restaurant name) are only available after login.
-   * NEEDS TO BE LOOKED INTO
    */
-  let _initPromise = null
+  let _initDone = false
 
   async function initAuth() {
-      if (_initPromise) return _initPromise
-      if (!accessToken.value) return
-      if (user.value) {
-          _initPromise = Promise.resolve()
-          return _initPromise
-      }
+    if (_initDone) return
+    _initDone = true
 
-      _initPromise = Promise.resolve().then(() => {
-          try {
-              const saved = localStorage.getItem('iksystem_session')
-              if (saved) {
-                  const session = JSON.parse(saved)
-                  user.value = session.user
-                  restaurant.value = session.restaurant ?? null
-                  return
-              }
-          } catch { /* fall through */ }
+    try {
+      const token = localStorage.getItem(ACCESS_TOKEN_KEY)
+      if (!token) return
 
-          // Fallback — decode JWT for essentials
-          const claims = _decodeToken()
-          if (!claims) { _resetState(); return }
-          user.value = { email: claims.sub, name: null }
-          restaurant.value = claims.organizationId
-              ? { id: claims.organizationId, name: null, joinCode: null }
-              : null
-      })
-      return _initPromise
+      const raw = localStorage.getItem(SESSION_KEY)
+      if (!raw) return
+
+      const session = JSON.parse(raw)
+      accessToken.value = token
+      user.value = session.user ?? null
+      restaurant.value = session.restaurant ?? null
+    } catch {
+      _clearSession()
+      return
+    }
+
+    // Logged in but no restaurant, check for a pending join request
+    if (isAuthenticated.value && !hasActiveRestaurant.value) {
+      await fetchPendingRequest()
+    }
+  }
+
+    /**
+   * Fetch the user's current join request from the backend.
+   * GET /api/organizations/join-request returns:
+   *   200 + body   pending request exists
+   *   204          no pending request
+   */
+  async function fetchPendingRequest() {
+    try {
+      const { status, data } = await api.get('/api/organizations/join-request')
+      pendingRequest.value = status === 200 ? data : null
+    } catch {
+      pendingRequest.value = null
+    }
   }
 
 
@@ -181,7 +187,7 @@ export const useAuthStore = defineStore('auth', () => {
     const { data } = await api.post('/api/auth/login', { email, password })
 
     _saveSession(data)
-    _redirectAfterAuth()
+    _redirectAfterAuth(data)
   }
 
   /**
@@ -220,51 +226,44 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Send a join request for a restaurant by its join code.
-   * Sets restaurantStatus to 'pending' on success.
    */
   async function lookupRestaurant(code) {
     const { data } = await api.get(`/api/organizations/lookup?code=${code}`)
     return data // { name: String }
   }
 
-  async function joinRestaurant(joinCode, name) {
-    const { data } = await api.post('/api/organizations/join', { joinCode })
-
-    restaurantStatus.value = 'pending'
-    restaurantId.value     = data.id
-    restaurantName.value   = name ?? null
+    /**
+   * Send a join request for a restaurant.
+   * After the request is submitted, fetches the pending request from the
+   * backend so the UI has the real data (name, timestamp, status).
+   * @param {string} joinCode - The restaurant's join code
+   */
+  async function joinRestaurant(joinCode) {
+    await api.post('/api/organizations/join', { joinCode })
+    await fetchPendingRequest()
   }
 
   /**
    * Withdraw a pending join request.
-   * Resets restaurantStatus and restaurantId to null.
+   * Clears pendingRequest so the onboarding page returns to the choose view.
    */
   async function withdrawJoinRequest() {
     await api.delete('/api/organizations/join-request')
-
-
-    restaurantStatus.value = null
-    restaurantId.value = null
-    restaurantName.value = null
-    restaurantJoinCode.value = null
+    pendingRequest.value = null
   }
 
+
   /**
-   * Create a new restaurant. The user becomes its admin on success.
-   * Sets restaurantStatus to 'active' immediately.
+   * Create a new restaurant. The current user becomes its admin.
+   * After creation, refreshes the access token so the JWT includes
+   * the new organization ID and admin role.
+   * @param {Object} payload { name, orgNumber, address, postalCode, city }
+   * @returns {Object} Created restaurant data (includes joinCode)
    */
   async function createRestaurant(payload) {
-    // payload: { name, orgNumber, address, postalCode, city }
     const { data } = await api.post('/api/organizations', payload)
-
-    restaurantStatus.value   = 'active'
-    restaurantId.value       = data.id
-    restaurantName.value     = payload.name
-    restaurantJoinCode.value = data.joinCode ?? null
-
     await refreshAccessToken()
-
-    return data // let the view display the joinCode returned by the backend
+    return data
   }
 
   /**
@@ -286,30 +285,30 @@ export const useAuthStore = defineStore('auth', () => {
     await api.post(`/api/organizations/requests/${requestId}`, { action })
   }
 
+
   /**
    * Log out the current user.
-   * Optionally notifies the backend to invalidate the refresh token.
-   * Always clears local state and redirects to /login.
+   * Notifies the backend to invalidate the refresh token (fire-and-forget),
+   * then clears all local state and redirects to /login.
    */
   async function logout() {
     try {
-      // Fire and forget — don't block logout on a network error
       await api.post('/api/auth/logout')
     } catch {
-      // Ignore errors — we're logging out regardless
-    } finally {
-      _resetState()
-      router.push({ name: 'login' })
+      // Don't block logout on network errors
     }
+    _clearSession()
+    router.push({ name: 'login' })
   }
+
 
   // ── Private routing helper ─────────────────────────────────────────────────
 
-  function _redirectAfterAuth() {
-    if (restaurantStatus.value === 'active') {
+  async function _redirectAfterAuth(data) {
+    if (data.restaurant) {
       router.push({ name: 'dashboard' })
     } else {
-      // null or 'pending' — both handled inside RestaurantOnboardingView
+      await fetchPendingRequest()
       router.push({ name: 'onboarding' })
     }
   }
@@ -335,32 +334,32 @@ export const useAuthStore = defineStore('auth', () => {
     // State
     user,
     accessToken,
-    restaurantStatus,
-    restaurantId,
-    restaurantName,
-    restaurantJoinCode,
+    restaurant,
+    pendingRequest,
 
     // Computed
     isAuthenticated,
     hasActiveRestaurant,
-    userInitials,
+    hasPendingRequest,
     userRoles,
     isAdminOrManager,
+    userInitials,
 
     // Actions
     initAuth,
     login,
     register,
     refreshAccessToken,
+    logout,
     lookupRestaurant,
     joinRestaurant,
     withdrawJoinRequest,
     createRestaurant,
+    fetchPendingRequest,
     fetchJoinRequests,
     resolveJoinRequest,
     fetchMembers,
     removeMember,
     updateMemberRoles,
-    logout,
   }
 })

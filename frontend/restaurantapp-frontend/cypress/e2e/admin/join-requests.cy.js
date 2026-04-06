@@ -40,7 +40,7 @@ describe('Join Requests page — as admin', () => {
       req.reply({ statusCode: 200, body: [] })
     }).as('loadSlow')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.contains('Loading requests').should('be.visible')
     cy.wait('@loadSlow')
   })
@@ -53,7 +53,7 @@ describe('Join Requests page — as admin', () => {
       body: [],
     }).as('loadEmpty')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadEmpty')
 
     cy.contains('No pending access requests').should('be.visible')
@@ -68,7 +68,7 @@ describe('Join Requests page — as admin', () => {
       body: PENDING_REQUESTS,
     }).as('loadRequests')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
 
     cy.contains('Alice Hansen').should('be.visible')
@@ -87,7 +87,7 @@ describe('Join Requests page — as admin', () => {
       body: PENDING_REQUESTS,
     }).as('loadRequests')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
 
     cy.contains(`${PENDING_REQUESTS.length} pending`).should('be.visible')
@@ -99,7 +99,7 @@ describe('Join Requests page — as admin', () => {
       body: PENDING_REQUESTS,
     }).as('loadRequests')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
 
     cy.get('.action-btn--accept').should('have.length', 2)
@@ -112,7 +112,7 @@ describe('Join Requests page — as admin', () => {
       body: PENDING_REQUESTS,
     }).as('loadRequests')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
 
     // 2025-03-15 → "15 Mar 2025"
@@ -127,7 +127,7 @@ describe('Join Requests page — as admin', () => {
       body: [],
     }).as('loadEmpty')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadEmpty')
 
     cy.contains('BST-0001').should('be.visible')
@@ -142,7 +142,7 @@ describe('Join Requests page — as admin', () => {
       body: PENDING_REQUESTS,
     }).as('loadRequests')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
 
     cy.intercept('POST', '/api/organizations/requests/req-001', {
@@ -172,7 +172,7 @@ describe('Join Requests page — as admin', () => {
       body: {},
     }).as('accept')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
     cy.get('.action-btn--accept').click()
     cy.wait('@accept')
@@ -188,7 +188,7 @@ describe('Join Requests page — as admin', () => {
       body: PENDING_REQUESTS,
     }).as('loadRequests')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
 
     cy.intercept('POST', '/api/organizations/requests/req-001', {
@@ -213,7 +213,7 @@ describe('Join Requests page — as admin', () => {
       body: {},
     }).as('decline')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
     cy.get('.action-btn--decline').click()
     cy.wait('@decline')
@@ -233,7 +233,7 @@ describe('Join Requests page — as admin', () => {
       req.reply({ statusCode: 200, body: {} })
     }).as('acceptSlow')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
     cy.get('.action-btn--accept').click()
 
@@ -254,7 +254,7 @@ describe('Join Requests page — as admin', () => {
       body: {},
     }).as('acceptFail')
 
-    cy.visitAuthenticated('/admin/requests')
+    visitAdminRequestsTab()
     cy.wait('@loadRequests')
     cy.get('.action-btn--accept').click()
     cy.wait('@acceptFail')
@@ -282,3 +282,8 @@ describe('Join Requests page — as regular staff', () => {
     cy.url().should('eq', Cypress.config('baseUrl') + '/')
   })
 })
+
+function visitAdminRequestsTab() {
+  cy.visitAuthenticated('/admin/requests')
+  cy.contains('button', 'Requests').click()
+}

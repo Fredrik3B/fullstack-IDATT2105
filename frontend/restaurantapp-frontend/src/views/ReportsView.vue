@@ -63,7 +63,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { fetchInspectionReport, fetchSummaryReport } from '../api/reports'
+import { fetchInspectionReport, fetchSummaryReport } from '@/api/reports'
 import InspectionReport from '@/components/reports/InspectionReport.vue'
 import SummaryReport from '@/components/reports/SummaryReport.vue'
 import DeviationReportForm from '@/components/reports/DeviationReportForm.vue'
@@ -90,27 +90,15 @@ const toDate = ref(today.toISOString().slice(0, 10))
 
 function applyPresetRange(preset) {
   const now = new Date()
+  const from = new Date(now)
 
-  if (preset === 'today') {
-    fromDate.value = now.toISOString().slice(0, 10)
-    toDate.value = now.toISOString().slice(0, 10)
-    return
-  }
+  if (preset === 'today') { /* from stays as now */ }
+  else if (preset === 'week') { from.setDate(from.getDate() - 7) }
+  else if (preset === 'month') { from.setMonth(from.getMonth() - 1) }
+  else return
 
-  if (preset === 'week') {
-    const weekAgo = new Date(now)
-    weekAgo.setDate(weekAgo.getDate() - 7)
-    fromDate.value = weekAgo.toISOString().slice(0, 10)
-    toDate.value = now.toISOString().slice(0, 10)
-    return
-  }
-
-  if (preset === 'month') {
-    const monthBack = new Date(now)
-    monthBack.setMonth(monthBack.getMonth() - 1)
-    fromDate.value = monthBack.toISOString().slice(0, 10)
-    toDate.value = now.toISOString().slice(0, 10)
-  }
+  fromDate.value = from.toISOString().slice(0, 10)
+  toDate.value = now.toISOString().slice(0, 10)
 }
 
 async function applyRouteQueryIntent(query) {
