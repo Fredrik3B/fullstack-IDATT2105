@@ -82,6 +82,21 @@ export function useChecklistDashboard({
     task.latestMeasurement = response.latestMeasurement ?? task.latestMeasurement ?? null
   }
 
+  function findTaskById(checklistId, taskId) {
+    const card = cards.value.find((entry) => String(entry?.id) === String(checklistId))
+    if (!card) return { card: null, task: null }
+
+    for (const section of Array.isArray(card.sections) ? card.sections : []) {
+      for (const task of Array.isArray(section.items) ? section.items : []) {
+        if (String(task?.id) === String(taskId)) {
+          return { card, task }
+        }
+      }
+    }
+
+    return { card, task: null }
+  }
+
   async function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
     const card = cards.value[cardIndex]
     if (!card) return
@@ -183,8 +198,13 @@ export function useChecklistDashboard({
   async function logTemperatureMeasurement({ checklistId, taskId, valueC }) {
     if (!checklistId || !taskId) return null
 
-    const card = cards.value.find((entry) => String(entry?.id) === String(checklistId))
+    const { card, task } = findTaskById(checklistId, taskId)
+    if (task?.isTemperatureSaving) return null
     const periodKey = card ? getCardPeriodKey(card) : null
+
+    if (task) {
+      task.isTemperatureSaving = true
+    }
 
     try {
       const created = await createTemperatureMeasurement({
@@ -194,23 +214,16 @@ export function useChecklistDashboard({
         valueC,
         periodKey,
       })
-      if (card) {
-        for (const section of Array.isArray(card.sections) ? card.sections : []) {
-          for (const task of Array.isArray(section.items) ? section.items : []) {
-            if (String(task?.id) === String(taskId)) {
-              task.latestMeasurement = created
-                ? {
-                    id: created.id,
-                    valueC: created.valueC,
-                    measuredAt: created.measuredAt,
-                    periodKey: created.periodKey,
-                    deviation: Boolean(created.deviation),
-                  }
-                : task.latestMeasurement
-              break
+      if (task) {
+        task.latestMeasurement = created
+          ? {
+              id: created.id,
+              valueC: created.valueC,
+              measuredAt: created.measuredAt,
+              periodKey: created.periodKey,
+              deviation: Boolean(created.deviation),
             }
-          }
-        }
+          : task.latestMeasurement
       }
       toast.success('Temperature reading saved.')
       return created
@@ -222,12 +235,19 @@ export function useChecklistDashboard({
           'Could not save temperature reading.',
       )
       return null
+    } finally {
+      if (task) {
+        task.isTemperatureSaving = false
+      }
     }
   }
 
   async function submitCard({ cardIndex }) {
     const card = cards.value[cardIndex]
     if (!card?.id) return null
+    if (card.isSubmitting) return null
+
+    card.isSubmitting = true
 
     try {
       const refreshed = await submitChecklist({ checklistId: card.id })
@@ -244,6 +264,8 @@ export function useChecklistDashboard({
           'Could not submit checklist.',
       )
       throw err
+    } finally {
+      card.isSubmitting = false
     }
   }
 

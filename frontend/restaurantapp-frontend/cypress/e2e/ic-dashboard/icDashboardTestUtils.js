@@ -545,14 +545,12 @@ export function visitIcDashboard(module = 'IC_FOOD') {
 }
 
 export function openCreateChecklistModal() {
-  cy.contains('button', 'New checklists').click()
-  cy.contains('.menu-item__title', 'Create checklist').click()
+  cy.contains('button', 'New checklist').click()
   cy.get('[role="dialog"][aria-label="Create checklist"]').should('be.visible')
 }
 
 export function openChecklistLibrary() {
-  cy.contains('button', 'New checklists').click()
-  cy.contains('.menu-item__title', 'Open checklist library').click()
+  cy.contains('button', 'Open library').click()
   cy.get('[role="dialog"][aria-label="Checklist library"]').should('be.visible')
 }
 

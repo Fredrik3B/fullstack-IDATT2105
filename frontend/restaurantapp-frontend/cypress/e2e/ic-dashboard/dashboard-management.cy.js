@@ -211,18 +211,21 @@ describe('IC dashboard management flows', () => {
       })
     })
 
-    cy.get('[role="dialog"][aria-label="Create task template"]').within(() => {
+    cy.get('[role="dialog"][aria-label="Edit task template"]').within(() => {
       cy.contains('.field', 'Task title').find('input').clear()
       cy.contains('.field', 'Task title').find('input').type('Log freezer reading')
       cy.contains('button', 'Save changes').click()
     })
 
     cy.wait('@updateTask')
-    cy.on('window:confirm', () => true)
     cy.get('[role="dialog"][aria-label="Manage task pool"]').within(() => {
       cy.contains('.task-row', 'Log freezer reading').within(() => {
         cy.contains('button', 'Delete').click()
       })
+    })
+
+    cy.get('[role="dialog"][aria-label="Delete shared task?"]').within(() => {
+      cy.contains('button', 'Delete task').click()
     })
 
     cy.wait('@deleteTask')
