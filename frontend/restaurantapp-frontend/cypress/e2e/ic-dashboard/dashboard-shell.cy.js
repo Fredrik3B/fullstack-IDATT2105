@@ -220,4 +220,36 @@ describe('IC dashboard shell', () => {
     cy.get('[role="dialog"][aria-label="Checklist library"]').should('not.exist')
     cy.contains('Deep clean follow-up').should('be.visible')
   })
+
+  it('hides the task pool admin action for non-admin users', () => {
+    setIcDashboardAuth({
+      roles: ['ROLE_STAFF'],
+      user: { id: 2, name: 'Dashboard Staff', email: 'staff@example.com' },
+    })
+
+    stubIcDashboardApi({
+      module: 'IC_FOOD',
+      tasks: [
+        createTaskTemplate({
+          id: 'food-task-1',
+          module: 'IC_FOOD',
+          title: 'Check dishwasher',
+        }),
+      ],
+    })
+
+    visitIcDashboard('IC_FOOD')
+
+    cy.contains('Admin').should('not.exist')
+    cy.contains('button', 'Task pool').should('not.exist')
+
+    cy.contains('button', 'New checklist').click()
+    cy.wait('@getTasks')
+
+    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
+      cy.contains('button', 'Open full task pool').should('not.exist')
+    })
+
+    cy.get('[role="dialog"][aria-label="Manage task pool"]').should('not.exist')
+  })
 })
