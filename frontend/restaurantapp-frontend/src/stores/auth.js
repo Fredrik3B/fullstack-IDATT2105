@@ -45,8 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!accessToken.value)
 
   /** True when the user is logged in AND connected to an active restaurant. */
-  const hasActiveRestaurant = computed(() => !!restaurant.value.id)
-
+  const hasActiveRestaurant = computed(() => !!restaurant.value?.id)
 
   /** True when the user has a pending join request waiting for approval. */
   const hasPendingRequest = computed(() => !!pendingRequest.value)
@@ -227,7 +226,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Send a join request for a restaurant by its join code.
-   * Sets restaurantStatus to 'pending' on success.
    */
   async function lookupRestaurant(code) {
     const { data } = await api.get(`/api/organizations/lookup?code=${code}`)
@@ -247,29 +245,25 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Withdraw a pending join request.
-   * Resets restaurantStatus and restaurantId to null.
+   * Clears pendingRequest so the onboarding page returns to the choose view.
    */
   async function withdrawJoinRequest() {
     await api.delete('/api/organizations/join-request')
     pendingRequest.value = null
   }
 
+
   /**
-   * Create a new restaurant. The user becomes its admin on success.
-   * Sets restaurantStatus to 'active' immediately.
+   * Create a new restaurant. The current user becomes its admin.
+   * After creation, refreshes the access token so the JWT includes
+   * the new organization ID and admin role.
+   * @param {Object} payload { name, orgNumber, address, postalCode, city }
+   * @returns {Object} Created restaurant data (includes joinCode)
    */
   async function createRestaurant(payload) {
-    // payload: { name, orgNumber, address, postalCode, city }
     const { data } = await api.post('/api/organizations', payload)
-
-    restaurantStatus.value   = 'active'
-    restaurantId.value       = data.id
-    restaurantName.value     = payload.name
-    restaurantJoinCode.value = data.joinCode ?? null
-
     await refreshAccessToken()
-
-    return data // let the view display the joinCode returned by the backend
+    return data
   }
 
   /**
@@ -291,22 +285,22 @@ export const useAuthStore = defineStore('auth', () => {
     await api.post(`/api/organizations/requests/${requestId}`, { action })
   }
 
+
   /**
    * Log out the current user.
-   * Optionally notifies the backend to invalidate the refresh token.
-   * Always clears local state and redirects to /login.
+   * Notifies the backend to invalidate the refresh token (fire-and-forget),
+   * then clears all local state and redirects to /login.
    */
   async function logout() {
     try {
-      // Fire and forget — don't block logout on a network error
       await api.post('/api/auth/logout')
     } catch {
-      // Ignore errors — we're logging out regardless
-    } finally {
-      _resetState()
-      router.push({ name: 'login' })
+      // Don't block logout on network errors
     }
+    _clearSession()
+    router.push({ name: 'login' })
   }
+
 
   // ── Private routing helper ─────────────────────────────────────────────────
 
@@ -340,32 +334,32 @@ export const useAuthStore = defineStore('auth', () => {
     // State
     user,
     accessToken,
-    restaurantStatus,
-    restaurantId,
-    restaurantName,
-    restaurantJoinCode,
+    restaurant,
+    pendingRequest,
 
     // Computed
     isAuthenticated,
     hasActiveRestaurant,
-    userInitials,
+    hasPendingRequest,
     userRoles,
     isAdminOrManager,
+    userInitials,
 
     // Actions
     initAuth,
     login,
     register,
     refreshAccessToken,
+    logout,
     lookupRestaurant,
     joinRestaurant,
     withdrawJoinRequest,
     createRestaurant,
+    fetchPendingRequest,
     fetchJoinRequests,
     resolveJoinRequest,
     fetchMembers,
     removeMember,
     updateMemberRoles,
-    logout,
   }
 })
