@@ -145,7 +145,12 @@
                   <button type="button" class="secondary" @click="toggleQuickCreate">
                     {{ isQuickCreateOpen ? 'Hide quick add' : 'Quick add task' }}
                   </button>
-                  <button type="button" class="ghost" @click="emit('manage-tasks')">
+                  <button
+                    v-if="canManageTasks"
+                    type="button"
+                    class="ghost"
+                    @click="emit('manage-tasks')"
+                  >
                     Open full task pool
                   </button>
                 </div>
@@ -371,6 +376,7 @@ const props = defineProps({
   initialCard: { type: Object, default: null },
   module: { type: String, required: true },
   moduleLabel: { type: String, default: '' },
+  canManageTasks: { type: Boolean, default: false },
   savePending: { type: Boolean, default: false },
   deletePending: { type: Boolean, default: false },
   removePending: { type: Boolean, default: false },

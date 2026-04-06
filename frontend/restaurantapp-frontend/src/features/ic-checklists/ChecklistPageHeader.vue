@@ -45,7 +45,7 @@
         </button>
       </div>
 
-      <div class="secondary-actions">
+      <div v-if="canManageTaskPool" class="secondary-actions">
         <span class="secondary-actions__label">Admin</span>
         <button type="button" class="secondary-button" @click="emit('manage-tasks')">
           {{ manageLabel }}
@@ -88,6 +88,10 @@ defineProps({
   manageLabel: {
     type: String,
     default: 'Task pool',
+  },
+  canManageTaskPool: {
+    type: Boolean,
+    default: false,
   },
   isRefreshing: {
     type: Boolean,
