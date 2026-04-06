@@ -16,6 +16,8 @@ public interface TaskTemplateRepository extends JpaRepository<TaskTemplate, Long
 		ComplianceArea complianceArea
 	);
 
+	List<TaskTemplate> findAllByTemperatureZone_Id(Long temperatureZoneId);
+
 	@Query("""
 		select t from TaskTemplate t
 		where t.id in :ids
