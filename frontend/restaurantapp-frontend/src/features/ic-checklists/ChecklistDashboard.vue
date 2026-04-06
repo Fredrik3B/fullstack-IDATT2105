@@ -9,6 +9,7 @@
       :periods="periods"
       :active-period="activePeriod"
       :manage-label="manageLabel"
+      :can-manage-task-pool="canManageTaskPool"
       :is-refreshing="isLoading"
       @update:activePeriod="emit('update:activePeriod', $event)"
       @open-library="emit('open-library')"
@@ -102,6 +103,10 @@ defineProps({
   manageLabel: {
     type: String,
     default: 'Task pool',
+  },
+  canManageTaskPool: {
+    type: Boolean,
+    default: false,
   },
   cards: {
     type: Array,
