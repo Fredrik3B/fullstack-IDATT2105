@@ -19,8 +19,7 @@ function normalizeChecklistCardIds(card) {
             ? section.items.map((item) => ({
                 ...item,
                 id: item?.id != null ? String(item.id) : item?.id,
-                templateId:
-                  item?.templateId != null ? String(item.templateId) : item?.templateId,
+                templateId: item?.templateId != null ? String(item.templateId) : item?.templateId,
                 latestMeasurement: item?.latestMeasurement
                   ? {
                       ...item.latestMeasurement,
