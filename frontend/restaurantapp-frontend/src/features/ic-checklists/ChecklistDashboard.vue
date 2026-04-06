@@ -9,6 +9,7 @@
       :periods="periods"
       :active-period="activePeriod"
       :manage-label="manageLabel"
+      :can-manage-checklists="canManageChecklists"
       :can-manage-task-pool="canManageTaskPool"
       :is-refreshing="isLoading"
       @update:activePeriod="emit('update:activePeriod', $event)"
@@ -44,6 +45,7 @@
         :key="card.id ?? card.title"
         v-bind="card"
         :now="now"
+        :can-manage-checklists="canManageChecklists"
         :highlighted-workbench="String(highlightedChecklistId ?? '') === String(card.id ?? '')"
         @toggle-task="
           emit('toggle-task', { cardIndex: card.__sourceIndex ?? cardIndex, ...$event })
@@ -103,6 +105,10 @@ defineProps({
   manageLabel: {
     type: String,
     default: 'Task pool',
+  },
+  canManageChecklists: {
+    type: Boolean,
+    default: false,
   },
   canManageTaskPool: {
     type: Boolean,

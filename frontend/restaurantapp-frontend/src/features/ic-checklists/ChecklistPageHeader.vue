@@ -29,7 +29,7 @@
         </button>
       </div>
 
-      <div class="primary-actions">
+      <div v-if="canManageChecklists" class="primary-actions">
         <button type="button" class="create-button" @click="emit('create')">New checklist</button>
         <button type="button" class="ghost-button" @click="emit('open-library')">
           Open library
@@ -46,7 +46,6 @@
       </div>
 
       <div v-if="canManageTaskPool" class="secondary-actions">
-        <span class="secondary-actions__label">Admin</span>
         <button type="button" class="secondary-button" @click="emit('manage-tasks')">
           {{ manageLabel }}
         </button>
@@ -88,6 +87,10 @@ defineProps({
   manageLabel: {
     type: String,
     default: 'Task pool',
+  },
+  canManageChecklists: {
+    type: Boolean,
+    default: false,
   },
   canManageTaskPool: {
     type: Boolean,
@@ -273,21 +276,12 @@ h1 {
 
 .secondary-actions {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.secondary-actions__label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-dark-border);
+  align-items: stretch;
 }
 
 .secondary-button {
-  background: transparent;
-  border: 1px dashed rgba(200, 200, 216, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(200, 200, 216, 0.18);
   color: #ffffff;
 }
 
