@@ -13,6 +13,7 @@ import edu.ntnu.idatt2105.backend.user.dto.UpdateMemberRolesRequest;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import edu.ntnu.idatt2105.backend.user.service.OrganizationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -58,9 +59,15 @@ public class OrganizationController {
 
   @Operation(summary = "See current join request")
   @GetMapping("/organizations/join-request")
+  @ApiResponse(responseCode = "200", description = "Returned join organization request for user")
+  @ApiResponse(responseCode = "204", description = "No join organization request for user")
   public ResponseEntity<JoinRequestResponse> seeJoinRequest(Authentication auth) {
     JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
-    return ResponseEntity.ok(organizationService.seeJoinRequest(principal.getUserId()));
+    JoinRequestResponse response = organizationService.seeJoinRequest(principal.getUserId());
+    if (response == null) {
+      return ResponseEntity.noContent().build();
+    }
+    return ResponseEntity.ok(response);
   }
 
   @Operation(summary = "Look up an organization by join code",

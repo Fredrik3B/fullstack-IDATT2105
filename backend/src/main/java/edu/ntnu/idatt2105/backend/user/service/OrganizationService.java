@@ -243,8 +243,8 @@ public class OrganizationService {
   }
 
   public JoinRequestResponse seeJoinRequest(UUID userId) {
-    JoinRequestModel joinRequest = joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
-        .orElseThrow(() -> new ResourceNotFoundException("Join request not found for user"));
-    return organizationMapper.toJoinRequestResponse(joinRequest);
+    return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
+        .map(organizationMapper::toJoinRequestResponse)
+        .orElse(null);
   }
 }
