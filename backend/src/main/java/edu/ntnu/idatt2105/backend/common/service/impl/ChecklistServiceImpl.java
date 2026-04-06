@@ -238,6 +238,9 @@ public class ChecklistServiceImpl implements ChecklistService {
 			throw new IllegalArgumentException("Checklist has no active tasks to submit.");
 		}
 		for (TasksModel task : activeTasks) {
+			if (task.getEndedAt() == null) {
+				task.setEndedAt(periodKeyToDateTime(checklist.getFrequency(), task.getPeriodKey()));
+			}
 			task.setActive(false);
 		}
 		tasksRepository.saveAll(activeTasks);
@@ -404,6 +407,13 @@ public class ChecklistServiceImpl implements ChecklistService {
 			checklistRepository.save(checklist);
 		}
 		return key;
+	}
+
+	private LocalDateTime periodKeyToDateTime(ChecklistFrequency frequency, String periodKey) {
+		String nextPeriodKey = PeriodKeyUtil.nextPeriodKey(frequency, periodKey);
+		return PeriodKeyUtil.periodStartDate(frequency, nextPeriodKey)
+			.atStartOfDay()
+			.minusSeconds(1);
 	}
 
 	private ChecklistModel synchronizeChecklistPeriodState(ChecklistModel checklist) {

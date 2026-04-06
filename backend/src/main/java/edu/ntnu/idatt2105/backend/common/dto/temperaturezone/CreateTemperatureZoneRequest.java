@@ -1,7 +1,7 @@
-package edu.ntnu.idatt2105.backend.common.dto.task;
+package edu.ntnu.idatt2105.backend.common.dto.temperaturezone;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -9,25 +9,23 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
-public record CreateTaskRequest(
+public record CreateTemperatureZoneRequest(
 	@NotNull
 	IcModule module,
 
 	@NotBlank
 	@Size(max = 120)
-	String title,
+	String name,
 
-	@Size(max = 255)
-	String meta,
+	@NotNull
+	TemperatureZone zoneType,
 
-	SectionTypes sectionType,
-
-	Long temperatureZoneId,
-
+	@NotNull
 	@DecimalMin("-999.99")
 	@DecimalMax("999.99")
 	BigDecimal targetMin,
 
+	@NotNull
 	@DecimalMin("-999.99")
 	@DecimalMax("999.99")
 	BigDecimal targetMax

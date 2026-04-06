@@ -57,15 +57,40 @@
             </label>
 
             <template v-if="isTemperatureControl">
-              <label class="field">
-                <span class="label">Target min (optional)</span>
-                <input v-model.number="targetMin" class="input" type="number" step="0.1" />
+              <label class="field full">
+                <span class="label">Fridge item</span>
+                <select v-model="temperatureZoneId" class="input" :disabled="loadingZones" required>
+                  <option disabled value="">
+                    {{ loadingZones ? 'Loading fridge items...' : 'Choose fridge item' }}
+                  </option>
+                  <option v-for="zone in temperatureZones" :key="zone.id" :value="String(zone.id)">
+                    {{ zone.name }} · {{ formatTemperatureZoneType(zone.zoneType) }}
+                  </option>
+                </select>
               </label>
 
-              <label class="field">
-                <span class="label">Target max (optional)</span>
-                <input v-model.number="targetMax" class="input" type="number" step="0.1" />
-              </label>
+              <div class="zone-panel full">
+                <div v-if="selectedTemperatureZone" class="zone-panel-copy">
+                  <div class="zone-panel-title">{{ selectedTemperatureZone.name }}</div>
+                  <div class="zone-panel-meta">
+                    {{ formatTemperatureZoneType(selectedTemperatureZone.zoneType) }} ·
+                    {{ selectedTemperatureZone.targetMin }}°C to {{ selectedTemperatureZone.targetMax }}°C
+                  </div>
+                  <p class="zone-panel-note">
+                    This task will reuse the selected fridge item's range. Edit the fridge item if the range should change.
+                  </p>
+                </div>
+                <div v-else class="zone-panel-copy">
+                  <div class="zone-panel-title">No fridge item selected yet</div>
+                  <p class="zone-panel-note">
+                    Temperature ranges are now owned by the fridge item, not by the task itself.
+                  </p>
+                </div>
+
+                <button type="button" class="secondary zone-link" @click="emit('manage-zones')">
+                  Manage fridge items
+                </button>
+              </div>
             </template>
           </div>
         </section>
@@ -83,7 +108,9 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { fetchTemperatureZones } from '../../api/temperatureZones'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
+import { formatTemperatureZoneType } from './temperatureZoneOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -95,15 +122,17 @@ const props = defineProps({
   initialTask: { type: Object, default: null },
   module: { type: String, required: true },
   moduleLabel: { type: String, default: '' },
+  zoneRefreshToken: { type: Number, default: 0 },
 })
 
-const emit = defineEmits(['update:open', 'created', 'updated', 'close'])
+const emit = defineEmits(['update:open', 'created', 'updated', 'close', 'manage-zones'])
 
 const title = ref('')
 const meta = ref('')
 const sectionType = ref('')
-const targetMin = ref(null)
-const targetMax = ref(null)
+const temperatureZoneId = ref('')
+const temperatureZones = ref([])
+const loadingZones = ref(false)
 const error = ref('')
 const isEditMode = computed(() => props.mode === 'edit')
 const modalTitle = computed(() => (isEditMode.value ? 'Edit task' : 'Create task'))
@@ -114,13 +143,15 @@ const modalSubtitle = computed(() =>
 )
 const submitButtonLabel = computed(() => (isEditMode.value ? 'Save changes' : 'Save task'))
 const isTemperatureControl = computed(() => sectionType.value === 'TEMPERATURE_CONTROL')
+const selectedTemperatureZone = computed(() =>
+  temperatureZones.value.find((zone) => String(zone.id) === String(temperatureZoneId.value)) ?? null,
+)
 
 function reset() {
   title.value = ''
   meta.value = ''
   sectionType.value = ''
-  targetMin.value = null
-  targetMax.value = null
+  temperatureZoneId.value = ''
   error.value = ''
 }
 
@@ -133,15 +164,29 @@ function initFromTask(task) {
   title.value = String(task.title ?? '').trim()
   meta.value = String(task.meta ?? '').trim()
   sectionType.value = String(task.sectionType ?? '')
-  targetMin.value = task.targetMin ?? null
-  targetMax.value = task.targetMax ?? null
+  temperatureZoneId.value = task.temperatureZoneId != null ? String(task.temperatureZoneId) : ''
   error.value = ''
+}
+
+async function loadTemperatureZones() {
+  if (!props.module) return
+  loadingZones.value = true
+  try {
+    const data = await fetchTemperatureZones({ module: props.module })
+    temperatureZones.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Failed to load temperature zones', err)
+    error.value = 'Could not load fridge items.'
+  } finally {
+    loadingZones.value = false
+  }
 }
 
 watch(
   () => props.open,
-  (isOpen) => {
+  async (isOpen) => {
     if (!isOpen) return
+    await loadTemperatureZones()
     if (isEditMode.value) {
       initFromTask(props.initialTask)
       return
@@ -157,11 +202,19 @@ watch(
   },
 )
 
+watch(
+  () => props.zoneRefreshToken,
+  () => {
+    if (props.open && isTemperatureControl.value) loadTemperatureZones()
+  },
+)
+
 watch(isTemperatureControl, (enabled) => {
   if (!enabled) {
-    targetMin.value = null
-    targetMax.value = null
+    temperatureZoneId.value = ''
+    return
   }
+  if (props.open) loadTemperatureZones()
 })
 
 function close() {
@@ -179,12 +232,8 @@ function submit() {
     error.value = 'Section type is required.'
     return
   }
-  if (
-    Number.isFinite(targetMin.value) &&
-    Number.isFinite(targetMax.value) &&
-    Number(targetMin.value) > Number(targetMax.value)
-  ) {
-    error.value = 'Target min cannot be greater than target max.'
+  if (isTemperatureControl.value && !selectedTemperatureZone.value) {
+    error.value = 'Choose a fridge item for temperature tasks.'
     return
   }
 
@@ -194,14 +243,9 @@ function submit() {
     title: title.value.trim(),
     meta: meta.value.trim(),
     sectionType: sectionType.value,
-    targetMin:
-      isTemperatureControl.value && Number.isFinite(Number(targetMin.value))
-        ? Number(targetMin.value)
-        : null,
-    targetMax:
-      isTemperatureControl.value && Number.isFinite(Number(targetMax.value))
-        ? Number(targetMax.value)
-        : null,
+    temperatureZoneId: isTemperatureControl.value ? Number(temperatureZoneId.value) : null,
+    targetMin: isTemperatureControl.value ? selectedTemperatureZone.value?.targetMin ?? null : null,
+    targetMax: isTemperatureControl.value ? selectedTemperatureZone.value?.targetMax ?? null : null,
   }
 
   if (isEditMode.value) {
@@ -321,8 +365,41 @@ h2 {
   gap: 8px;
 }
 
-.full {
+.full,
+.zone-panel {
   grid-column: 1 / -1;
+}
+
+.zone-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: rgba(8, 95, 99, 0.08);
+}
+
+.zone-panel-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.zone-panel-title {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.zone-panel-meta,
+.zone-panel-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.zone-link {
+  white-space: nowrap;
 }
 
 .label {
@@ -392,6 +469,11 @@ select.input::-ms-expand {
 @media (max-width: 720px) {
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .zone-panel {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

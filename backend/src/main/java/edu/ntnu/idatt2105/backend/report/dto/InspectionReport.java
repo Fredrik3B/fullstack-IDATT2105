@@ -2,6 +2,8 @@ package edu.ntnu.idatt2105.backend.report.dto;
 
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
+import edu.ntnu.idatt2105.backend.report.dto.shared.DeviationDayPoint;
+import edu.ntnu.idatt2105.backend.report.dto.shared.MissedTaskRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.OrgSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ReportPeriod;
 import edu.ntnu.idatt2105.backend.report.dto.shared.TemperaturePoint;
@@ -19,6 +21,8 @@ public class InspectionReport {
   private OrgSection organization;
   private ChecklistSection checklists;
   private List<TemperaturePoint> temperatureLog;
+  private List<DeviationDayPoint> deviationsByDay;
+  private List<MissedTaskRecord> missedTasks;
   private List<UnresolvedItemDto> deviations;
   private ComplianceStats foodStats;
   private ComplianceStats alcoholStats;
