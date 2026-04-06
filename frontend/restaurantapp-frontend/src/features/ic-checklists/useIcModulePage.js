@@ -1,5 +1,6 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
 import {
   createChecklist,
   deleteChecklist,
@@ -49,6 +50,7 @@ function normalizeChecklistCardIds(card) {
 }
 
 export function useIcModulePage({ module, moduleLabel }) {
+  const auth = useAuthStore()
   const toast = useToast()
   const isCreateOpen = ref(false)
   const isEditOpen = ref(false)
@@ -86,6 +88,7 @@ export function useIcModulePage({ module, moduleLabel }) {
   const workbenchCards = computed(() =>
     displayCards.value.filter((card) => card?.displayedOnWorkbench !== false),
   )
+  const canManageTaskPool = computed(() => auth.isAdminOrManager)
   const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
   const editingCard = computed(() =>
     Number.isInteger(editingCardIndex.value) ? cards.value[editingCardIndex.value] : null,
@@ -139,6 +142,7 @@ export function useIcModulePage({ module, moduleLabel }) {
   }
 
   function openTaskPoolModal() {
+    if (!canManageTaskPool.value) return
     isTaskPoolOpen.value = true
   }
 
@@ -338,6 +342,7 @@ export function useIcModulePage({ module, moduleLabel }) {
     activePeriod,
     cards,
     workbenchCards,
+    canManageTaskPool,
     loadedChecklistIds,
     highlightedChecklistId,
     now,
