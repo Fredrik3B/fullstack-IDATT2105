@@ -368,6 +368,7 @@ import { SECTION_TYPE_OPTIONS, formatSectionType } from './taskTemplateOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
+  canManageChecklists: { type: Boolean, default: false },
   mode: {
     type: String,
     default: 'create',

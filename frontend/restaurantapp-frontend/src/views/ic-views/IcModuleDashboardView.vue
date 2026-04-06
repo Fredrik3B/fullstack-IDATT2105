@@ -21,6 +21,7 @@ const {
   activePeriod,
   cards,
   workbenchCards,
+  canManageChecklists,
   canManageTaskPool,
   loadedChecklistIds,
   highlightedChecklistId,
@@ -71,6 +72,7 @@ const deleteDialogMessage = computed(
     :date-label="dateLabel"
     :module-description="config.moduleDescription"
     :summary-hint="config.summaryHint"
+    :can-manage-checklists="canManageChecklists"
     :can-manage-task-pool="canManageTaskPool"
     v-model:activePeriod="activePeriod"
     :cards="workbenchCards"
@@ -93,6 +95,7 @@ const deleteDialogMessage = computed(
     v-model:open="isCreateOpen"
     :module="config.module"
     :module-label="config.moduleLabel"
+    :can-manage-checklists="canManageChecklists"
     :can-manage-tasks="canManageTaskPool"
     :save-pending="isCreatingChecklist"
     @manage-tasks="openTaskPoolModal"
@@ -105,6 +108,7 @@ const deleteDialogMessage = computed(
     :initial-card="editingCard"
     :module="config.module"
     :module-label="config.moduleLabel"
+    :can-manage-checklists="canManageChecklists"
     :can-manage-tasks="canManageTaskPool"
     :save-pending="isUpdatingChecklist"
     :delete-pending="String(deletingChecklistId ?? '') === String(editingCard?.id ?? '')"

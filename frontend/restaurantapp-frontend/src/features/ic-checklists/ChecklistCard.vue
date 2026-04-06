@@ -21,7 +21,14 @@
         <div v-if="progress !== null" class="progress-track" aria-label="Checklist progress">
           <span class="progress-fill" :style="{ width: `${progress}%` }"></span>
         </div>
-        <button type="button" class="edit-button" @click="handleEditChecklist">Edit</button>
+        <button
+          v-if="canManageChecklists"
+          type="button"
+          class="edit-button"
+          @click="handleEditChecklist"
+        >
+          Edit
+        </button>
       </div>
     </header>
 
@@ -225,6 +232,10 @@ const props = defineProps({
   moduleChip: {
     type: String,
     default: 'IC-Food',
+  },
+  canManageChecklists: {
+    type: Boolean,
+    default: false,
   },
   highlightedWorkbench: {
     type: Boolean,
