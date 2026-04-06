@@ -1,5 +1,6 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
 import {
   createChecklist,
   deleteChecklist,
@@ -23,8 +24,7 @@ function normalizeChecklistCardIds(card) {
             ? section.items.map((item) => ({
                 ...item,
                 id: item?.id != null ? String(item.id) : item?.id,
-                templateId:
-                  item?.templateId != null ? String(item.templateId) : item?.templateId,
+                templateId: item?.templateId != null ? String(item.templateId) : item?.templateId,
                 latestMeasurement: item?.latestMeasurement
                   ? {
                       ...item.latestMeasurement,
@@ -50,16 +50,21 @@ function normalizeChecklistCardIds(card) {
 }
 
 export function useIcModulePage({ module, moduleLabel }) {
+  const auth = useAuthStore()
   const toast = useToast()
   const isCreateOpen = ref(false)
   const isEditOpen = ref(false)
   const isLibraryOpen = ref(false)
   const isTaskPoolOpen = ref(false)
   const isCreatingChecklist = ref(false)
+  const isUpdatingChecklist = ref(false)
   const isLoading = ref(false)
   const loadError = ref('')
   const editingCardIndex = ref(null)
   const highlightedChecklistId = ref(null)
+  const openingChecklistId = ref(null)
+  const deletingChecklistId = ref(null)
+  const removingChecklistId = ref(null)
   const deleteDialog = ref({
     open: false,
     checklist: null,
@@ -83,6 +88,8 @@ export function useIcModulePage({ module, moduleLabel }) {
   const workbenchCards = computed(() =>
     displayCards.value.filter((card) => card?.displayedOnWorkbench !== false),
   )
+  const canManageChecklists = computed(() => auth.isAdminOrManager)
+  const canManageTaskPool = computed(() => auth.isAdminOrManager)
   const loadedChecklistIds = computed(() => workbenchCards.value.map((card) => card.id))
   const editingCard = computed(() =>
     Number.isInteger(editingCardIndex.value) ? cards.value[editingCardIndex.value] : null,
@@ -104,6 +111,7 @@ export function useIcModulePage({ module, moduleLabel }) {
   }
 
   async function reloadChecklists() {
+    if (isLoading.value) return
     isLoading.value = true
     loadError.value = ''
 
@@ -127,18 +135,22 @@ export function useIcModulePage({ module, moduleLabel }) {
   })
 
   function openCreateModal() {
+    if (!canManageChecklists.value) return
     isCreateOpen.value = true
   }
 
   function openLibraryModal() {
+    if (!canManageChecklists.value) return
     isLibraryOpen.value = true
   }
 
   function openTaskPoolModal() {
+    if (!canManageTaskPool.value) return
     isTaskPoolOpen.value = true
   }
 
   function editChecklist({ cardIndex }) {
+    if (!canManageChecklists.value) return
     editingCardIndex.value = cardIndex
     isEditOpen.value = true
   }
@@ -192,6 +204,9 @@ export function useIcModulePage({ module, moduleLabel }) {
 
   async function handleUpdatedChecklist(updatedCard) {
     if (!Number.isInteger(editingCardIndex.value)) return
+    if (isUpdatingChecklist.value) return
+
+    isUpdatingChecklist.value = true
 
     try {
       await updateChecklist({
@@ -218,12 +233,17 @@ export function useIcModulePage({ module, moduleLabel }) {
           err?.response?.data?.message ??
           'Could not update checklist.',
       )
+    } finally {
+      isUpdatingChecklist.value = false
     }
   }
 
   async function handleDeleteChecklist(checklist) {
     const checklistId = checklist?.id
     if (!checklistId) return
+    if (String(deletingChecklistId.value ?? '') === String(checklistId)) return
+
+    deletingChecklistId.value = checklistId
 
     try {
       await deleteChecklist({ checklistId })
@@ -245,11 +265,16 @@ export function useIcModulePage({ module, moduleLabel }) {
           err?.response?.data?.message ??
           'Could not delete checklist.',
       )
+    } finally {
+      deletingChecklistId.value = null
     }
   }
 
   async function openChecklistOnWorkbench(card) {
     if (!card?.id) return
+    if (String(openingChecklistId.value ?? '') === String(card.id)) return
+
+    openingChecklistId.value = card.id
 
     try {
       const saved = await setChecklistWorkbenchState({
@@ -280,11 +305,16 @@ export function useIcModulePage({ module, moduleLabel }) {
           err?.response?.data?.message ??
           'Could not load checklist onto workbench.',
       )
+    } finally {
+      openingChecklistId.value = null
     }
   }
 
   async function removeChecklistFromWorkbench(card) {
     if (!card?.id) return
+    if (String(removingChecklistId.value ?? '') === String(card.id)) return
+
+    removingChecklistId.value = card.id
 
     try {
       await setChecklistWorkbenchState({
@@ -307,6 +337,8 @@ export function useIcModulePage({ module, moduleLabel }) {
           err?.response?.data?.message ??
           'Could not remove checklist from workbench.',
       )
+    } finally {
+      removingChecklistId.value = null
     }
   }
 
@@ -314,6 +346,8 @@ export function useIcModulePage({ module, moduleLabel }) {
     activePeriod,
     cards,
     workbenchCards,
+    canManageChecklists,
+    canManageTaskPool,
     loadedChecklistIds,
     highlightedChecklistId,
     now,
@@ -324,6 +358,11 @@ export function useIcModulePage({ module, moduleLabel }) {
     isEditOpen,
     isLibraryOpen,
     isTaskPoolOpen,
+    isCreatingChecklist,
+    isUpdatingChecklist,
+    openingChecklistId,
+    deletingChecklistId,
+    removingChecklistId,
     editingCard,
     deleteDialog,
     togglePending,

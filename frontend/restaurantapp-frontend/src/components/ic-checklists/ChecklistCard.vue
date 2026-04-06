@@ -21,7 +21,14 @@
         <div v-if="progress !== null" class="progress-track" aria-label="Checklist progress">
           <span class="progress-fill" :style="{ width: `${progress}%` }"></span>
         </div>
-        <button type="button" class="edit-button" @click="handleEditChecklist">Edit</button>
+        <button
+          v-if="canManageChecklists"
+          type="button"
+          class="edit-button"
+          @click="handleEditChecklist"
+        >
+          Edit
+        </button>
       </div>
     </header>
 
@@ -47,43 +54,45 @@
             <span v-else-if="task.state === 'pending'" class="task-marker__icon">!</span>
           </button>
 
-          <div class="task-label">
+          <div class="task-main">
             <div class="task-label__main">{{ task.label }}</div>
-            <div
-              v-if="isTemperatureTask(task) && formatTemperatureTarget(task)"
-              class="task-label__sub"
-            >
-              Target: {{ formatTemperatureTarget(task) }}
+            <div class="task-inline-meta">
+              <span v-if="task.meta" class="task-meta">{{ task.meta }}</span>
+              <span
+                v-if="isTemperatureTask(task) && formatTemperatureTarget(task)"
+                class="task-meta"
+              >
+                Target: {{ formatTemperatureTarget(task) }}
+              </span>
+              <span v-if="getLatestMeasurement(task)" class="task-meta">
+                Last: {{ getLatestMeasurement(task)?.valueC }} C
+              </span>
             </div>
           </div>
 
           <div class="task-actions">
-            <template v-if="isTemperatureTask(task)">
-              <span v-if="getLatestMeasurement(task)" class="task-meta"
-                >Last: {{ getLatestMeasurement(task)?.valueC }} C</span
+            <div v-if="isTemperatureTask(task)" class="temp-input">
+              <input
+                v-model.trim="temperatureDraftByTaskId[task.id]"
+                class="temp-field"
+                inputmode="decimal"
+                type="number"
+                step="0.1"
+                placeholder="C"
+                :aria-label="`Log temperature for ${task.label}`"
+                :disabled="task.isTemperatureSaving"
+                @keyup.enter="handleSaveTemperature(task)"
+              />
+              <button
+                type="button"
+                class="temp-save"
+                :class="{ loading: task.isTemperatureSaving }"
+                :disabled="!canSaveTemperature(task) || task.isTemperatureSaving"
+                @click="handleSaveTemperature(task)"
               >
-              <div class="temp-input">
-                <input
-                  v-model.trim="temperatureDraftByTaskId[task.id]"
-                  class="temp-field"
-                  inputmode="decimal"
-                  type="number"
-                  step="0.1"
-                  placeholder="C"
-                  :aria-label="`Log temperature for ${task.label}`"
-                />
-                <button
-                  type="button"
-                  class="temp-save"
-                  :disabled="!canSaveTemperature(task)"
-                  @click="handleSaveTemperature(task)"
-                >
-                  Save
-                </button>
-              </div>
-            </template>
-
-            <span v-else-if="task.meta" class="task-meta">{{ task.meta }}</span>
+                {{ task.isTemperatureSaving ? 'Saving...' : 'Save' }}
+              </button>
+            </div>
 
             <button
               type="button"
@@ -103,15 +112,18 @@
       </ul>
     </div>
 
-    <footer class="submit-bar" :class="{ overdue: periodExpired, blocked: !canSubmitCurrentPeriod }">
+    <footer
+      class="submit-bar"
+      :class="{ overdue: periodExpired, blocked: !canSubmitCurrentPeriod }"
+    >
       <div class="submit-copy">
         <div class="submit-title">
           {{
             !canSubmitCurrentPeriod
-              ? 'Submission locked until the next real period starts'
+              ? 'Submission is locked until the next real period starts'
               : periodExpired
-              ? 'This checklist period has ended'
-              : 'Submit when this checklist is ready'
+                ? 'This checklist period has ended'
+                : 'Submit when this checklist run is ready'
           }}
         </div>
         <div v-if="!canSubmitCurrentPeriod" class="submit-state-chip">
@@ -122,48 +134,42 @@
       <button
         type="button"
         class="submit-button"
-        :disabled="!canSubmitCurrentPeriod"
+        :class="{ loading: isSubmitting }"
+        :disabled="!canSubmitCurrentPeriod || isSubmitting"
         @click="handleSubmitChecklist"
       >
         {{
-          !canSubmitCurrentPeriod
-            ? 'Waiting for next period'
-            : periodExpired
-            ? 'Submit and load next period'
-            : 'Submit checklist'
+          isSubmitting
+            ? 'Submitting...'
+            : !canSubmitCurrentPeriod
+              ? 'Waiting for next period'
+              : periodExpired
+                ? 'Submit and load next period'
+                : 'Submit checklist'
         }}
       </button>
     </footer>
 
-    <div
-      v-if="confirmDialog.open"
-      class="confirm-overlay"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="confirmDialog.title"
-    >
-      <div class="confirm-dialog" :class="{ warning: confirmDialog.tone === 'warning' }">
-        <div class="confirm-kicker">{{ confirmDialog.kicker }}</div>
-        <h3>{{ confirmDialog.title }}</h3>
-        <p>{{ confirmDialog.message }}</p>
-        <div v-if="confirmDialog.detail" class="confirm-detail">{{ confirmDialog.detail }}</div>
-        <div class="confirm-actions">
-          <button type="button" class="confirm-secondary" @click="closeConfirmDialog">
-            Cancel
-          </button>
-          <button type="button" class="confirm-primary" @click="confirmDialog.onConfirm?.()">
-            {{ confirmDialog.confirmLabel }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <SharedConfirmDialog
+      v-model:open="confirmDialog.open"
+      :kicker="confirmDialog.kicker"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :detail="confirmDialog.detail"
+      :confirm-label="confirmDialog.confirmLabel"
+      :is-processing="confirmDialog.isProcessing"
+      :tone="confirmDialog.tone"
+      @cancel="closeConfirmDialog"
+      @confirm="runConfirmDialogAction"
+    />
   </article>
 </template>
 
 <script setup>
 import { computed, reactive } from 'vue'
-import { getPeriodEnd, getPeriodKey, isPeriodExpired, normalizePeriodEnum } from './recurrence'
-import { formatTemperatureTarget, isTemperatureTask } from './temperature'
+import { getPeriodEnd, getPeriodKey, isPeriodExpired, normalizePeriodEnum } from '../../composables/ic-checklists/recurrence'
+import SharedConfirmDialog from './SharedConfirmDialog.vue'
+import { formatTemperatureTarget, isTemperatureTask } from '../../composables/ic-checklists/temperature'
 
 const temperatureDraftByTaskId = reactive({})
 const confirmDialog = reactive({
@@ -174,6 +180,7 @@ const confirmDialog = reactive({
   detail: '',
   confirmLabel: 'Confirm',
   tone: 'default',
+  isProcessing: false,
   onConfirm: null,
 })
 
@@ -210,6 +217,10 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  isSubmitting: {
+    type: Boolean,
+    default: false,
+  },
   sections: {
     type: Array,
     required: true,
@@ -221,6 +232,10 @@ const props = defineProps({
   moduleChip: {
     type: String,
     default: 'IC-Food',
+  },
+  canManageChecklists: {
+    type: Boolean,
+    default: false,
   },
   highlightedWorkbench: {
     type: Boolean,
@@ -277,13 +292,14 @@ const formattedPeriodEnd = computed(() => {
 })
 const submitWarning = computed(() => {
   if (!canSubmitCurrentPeriod.value) {
-    return `This checklist was already submitted once, so the system has prepared the next ${periodLabel.value} run with period key ${props.activePeriodKey}. To prevent skipping ahead, submit stays locked until that real ${periodLabel.value} period actually begins.`
+    return `This checklist already prepared the next ${periodLabel.value} run, so submit stays locked until that real ${periodLabel.value} period begins.`
   }
   if (periodExpired.value) {
-    return `The current ${periodLabel.value} run ended${formattedPeriodEnd.value ? ` at ${formattedPeriodEnd.value}` : ''}. Submit it to lock the entries and load a fresh set of tasks with new ids.`
+    return `The current ${periodLabel.value} run ended${formattedPeriodEnd.value ? ` at ${formattedPeriodEnd.value}` : ''}. Submit to lock this run and start a fresh one.`
   }
   return `Submitting locks the current ${periodLabel.value} run and immediately starts a fresh one with new task ids.`
 })
+const isSubmitting = computed(() => Boolean(props.isSubmitting))
 
 function handleToggle(sectionIndex, taskIndex) {
   emit('toggle-task', { sectionIndex, taskIndex })
@@ -298,15 +314,15 @@ function handleEditChecklist() {
 }
 
 function handleSubmitChecklist() {
-  if (!canSubmitCurrentPeriod.value) return
+  if (!canSubmitCurrentPeriod.value || isSubmitting.value) return
   openConfirmDialog({
-    kicker: periodExpired.value ? 'Period Ended' : 'Submit Checklist',
+    kicker: periodExpired.value ? 'Period ended' : 'Submit checklist',
     title: periodExpired.value ? 'Start the next checklist period?' : 'Submit this checklist now?',
     message: periodExpired.value
       ? `The current ${periodLabel.value} period for "${props.title}" has ended.`
       : `This will close the current ${periodLabel.value} run for "${props.title}".`,
     detail:
-      'A fresh set of task ids will be created for the next run, and the current entries will stay locked to this finished period.',
+      'The current entries stay locked to the finished period, and the next run starts with a fresh set of task ids.',
     confirmLabel: periodExpired.value ? 'Submit and continue' : 'Submit checklist',
     tone: 'warning',
     onConfirm: () => {
@@ -331,21 +347,23 @@ function handleSaveTemperature(task) {
   if (!isTemperatureTask(task)) return
   const id = task?.id
   if (!id) return
+  if (task?.isTemperatureSaving) return
   const checklistId = props.id
   const valueC = Number(temperatureDraftByTaskId[id])
   if (!Number.isFinite(valueC)) return
 
   openConfirmDialog({
-    kicker: 'Confirm Reading',
+    kicker: 'Confirm reading',
     title: `Save ${valueC} C for ${task.label}?`,
-    message: 'Double-check the reading before saving it to the checklist log.',
+    message: 'Double-check the temperature before it is saved to the checklist log.',
     detail:
-      'Temperature entries are stored for reporting later, including monthly graphs and audit history.',
+      'Temperature readings are stored for reporting and audit history, so confirm the value before saving.',
     confirmLabel: 'Save reading',
     tone: 'default',
     onConfirm: () => {
       closeConfirmDialog()
       emit('log-temperature', { checklistId, taskId: id, valueC })
+      temperatureDraftByTaskId[id] = ''
     },
   })
 }
@@ -358,7 +376,20 @@ function openConfirmDialog(config) {
   confirmDialog.detail = config?.detail ?? ''
   confirmDialog.confirmLabel = config?.confirmLabel ?? 'Confirm'
   confirmDialog.tone = config?.tone ?? 'default'
+  confirmDialog.isProcessing = false
   confirmDialog.onConfirm = typeof config?.onConfirm === 'function' ? config.onConfirm : null
+}
+
+function runConfirmDialogAction() {
+  if (confirmDialog.isProcessing) return
+  confirmDialog.isProcessing = true
+  try {
+    confirmDialog.onConfirm?.()
+  } finally {
+    if (confirmDialog.open) {
+      confirmDialog.isProcessing = false
+    }
+  }
 }
 
 function closeConfirmDialog() {
@@ -369,6 +400,7 @@ function closeConfirmDialog() {
   confirmDialog.detail = ''
   confirmDialog.confirmLabel = 'Confirm'
   confirmDialog.tone = 'default'
+  confirmDialog.isProcessing = false
   confirmDialog.onConfirm = null
 }
 </script>
@@ -474,14 +506,6 @@ p {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    background 120ms ease;
-}
-
-.edit-button:hover {
-  border-color: var(--color-dark-secondary);
-  background: var(--color-bg-secondary);
 }
 
 .status-pill.success {
@@ -545,7 +569,7 @@ p {
   align-items: center;
   gap: var(--space-3);
   min-height: 68px;
-  padding: 0 var(--space-5);
+  padding: 14px var(--space-5);
   border-top: 1px solid var(--color-border-subtle);
   position: relative;
 }
@@ -579,22 +603,15 @@ p {
   background: #fff;
   padding: 0;
   cursor: pointer;
-  transition:
-    transform 120ms ease,
-    box-shadow 120ms ease,
-    border-color 120ms ease,
-    background 120ms ease;
 }
 
 .task-marker:disabled,
-.flag-button:disabled {
+.flag-button:disabled,
+.temp-field:disabled,
+.temp-save:disabled,
+.submit-button:disabled {
   cursor: wait;
   opacity: 0.7;
-}
-
-.task-marker:hover {
-  transform: scale(1.04);
-  box-shadow: 0 0 0 5px rgba(152, 197, 74, 0.14);
 }
 
 .task-marker__icon {
@@ -612,7 +629,6 @@ p {
 .task-row.pending .task-marker {
   border-color: var(--color-warning);
   background: var(--color-warning);
-  box-shadow: 0 0 0 4px rgba(232, 192, 48, 0.12);
 }
 
 .task-row.completed {
@@ -632,9 +648,10 @@ p {
   background: var(--color-success-border);
 }
 
-.task-label {
-  font-size: var(--font-size-md);
-  color: var(--color-text-primary);
+.task-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .task-label__main {
@@ -643,11 +660,10 @@ p {
   line-height: 1.4;
 }
 
-.task-label__sub {
-  margin-top: 2px;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-muted);
+.task-inline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .task-actions {
@@ -675,13 +691,6 @@ p {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   cursor: pointer;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease;
-}
-
-.flag-button:hover {
-  background: var(--color-bg-secondary);
 }
 
 .flag-button.active {
@@ -726,6 +735,12 @@ p {
   cursor: not-allowed;
 }
 
+.temp-save.loading,
+.submit-button.loading {
+  filter: saturate(0.82);
+  box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0.08);
+}
+
 .submit-bar {
   display: flex;
   justify-content: space-between;
@@ -741,8 +756,7 @@ p {
 }
 
 .submit-bar.blocked {
-  background:
-    linear-gradient(135deg, rgba(218, 228, 246, 0.92), rgba(242, 245, 250, 0.98));
+  background: linear-gradient(135deg, rgba(218, 228, 246, 0.92), rgba(242, 245, 250, 0.98));
   border-top-color: rgba(68, 92, 133, 0.22);
 }
 
@@ -791,103 +805,12 @@ p {
   text-align: center;
   white-space: normal;
   cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    opacity 140ms ease;
 }
 
 .submit-button:disabled {
   background: #c7d1e0;
   color: #53657f;
   cursor: not-allowed;
-}
-
-.confirm-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(16, 18, 33, 0.48);
-  backdrop-filter: blur(6px);
-}
-
-.confirm-dialog {
-  width: min(420px, 100%);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-primary);
-  box-shadow: 0 28px 60px rgba(10, 14, 24, 0.28);
-  padding: var(--space-5);
-}
-
-.confirm-dialog.warning {
-  border-color: var(--color-warning-border);
-  background: #fffdf5;
-}
-
-.confirm-kicker {
-  margin-bottom: 8px;
-  font-size: 11px;
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.confirm-dialog h3 {
-  margin: 0;
-  font-size: 24px;
-  line-height: 1.1;
-  color: var(--color-text-primary);
-}
-
-.confirm-dialog p {
-  margin: 10px 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-}
-
-.confirm-detail {
-  margin-top: 12px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.confirm-secondary,
-.confirm-primary {
-  border: 0;
-  border-radius: var(--radius-md);
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  font: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.confirm-secondary {
-  background: var(--color-bg-secondary);
-  color: var(--color-text-primary);
-}
-
-.confirm-primary {
-  background: var(--color-dark-secondary);
-  color: #ffffff;
 }
 
 @media (max-width: 720px) {
@@ -914,22 +837,11 @@ p {
 
   .task-row {
     grid-template-columns: 24px minmax(0, 1fr);
-    padding-top: 14px;
-    padding-bottom: 14px;
   }
 
   .task-actions {
     grid-column: 2;
     justify-content: flex-start;
-  }
-
-  .confirm-actions {
-    flex-direction: column-reverse;
-  }
-
-  .confirm-secondary,
-  .confirm-primary {
-    width: 100%;
   }
 }
 </style>

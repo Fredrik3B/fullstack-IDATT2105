@@ -37,6 +37,7 @@ describe('IC dashboard management flows', () => {
     })
 
     visitIcDashboard('IC_FOOD')
+    cy.contains('button', 'New checklist').should('be.visible')
     openCreateChecklistModal()
     cy.wait('@getTasks')
 
@@ -106,6 +107,7 @@ describe('IC dashboard management flows', () => {
     })
 
     visitIcDashboard('IC_FOOD')
+    cy.contains('button', 'Edit').should('be.visible')
 
     getChecklistCard('Current opening checklist').within(() => {
       cy.contains('button', 'Edit').click()
@@ -188,6 +190,7 @@ describe('IC dashboard management flows', () => {
     })
 
     visitIcDashboard('IC_FOOD')
+    cy.contains('button', 'Task pool').should('be.visible')
     openTaskPoolModal()
     cy.wait('@getTasks')
 
@@ -211,18 +214,21 @@ describe('IC dashboard management flows', () => {
       })
     })
 
-    cy.get('[role="dialog"][aria-label="Create task template"]').within(() => {
+    cy.get('[role="dialog"][aria-label="Edit task template"]').within(() => {
       cy.contains('.field', 'Task title').find('input').clear()
       cy.contains('.field', 'Task title').find('input').type('Log freezer reading')
       cy.contains('button', 'Save changes').click()
     })
 
     cy.wait('@updateTask')
-    cy.on('window:confirm', () => true)
     cy.get('[role="dialog"][aria-label="Manage task pool"]').within(() => {
       cy.contains('.task-row', 'Log freezer reading').within(() => {
         cy.contains('button', 'Delete').click()
       })
+    })
+
+    cy.get('[role="dialog"][aria-label="Delete shared task?"]').within(() => {
+      cy.contains('button', 'Delete task').click()
     })
 
     cy.wait('@deleteTask')
@@ -231,5 +237,31 @@ describe('IC dashboard management flows', () => {
       cy.contains('Log freezer reading').should('not.exist')
       cy.contains('Verify opening station').should('be.visible')
     })
+  })
+
+  it('keeps task pool access available to admins from the checklist editor', () => {
+    stubIcDashboardApi({
+      module: 'IC_FOOD',
+      tasks: [
+        createTaskTemplate({
+          id: 'food-task-1',
+          module: 'IC_FOOD',
+          title: 'Verify opening station',
+          sectionType: 'OPENING_CHECKS',
+        }),
+      ],
+    })
+
+    visitIcDashboard('IC_FOOD')
+    openCreateChecklistModal()
+    cy.wait('@getTasks')
+
+    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
+      cy.contains('button', 'Continue to tasks').click()
+      cy.contains('button', 'Open full task pool').should('be.visible').click()
+    })
+
+    cy.wait('@getTasks')
+    cy.get('[role="dialog"][aria-label="Manage task pool"]').should('be.visible')
   })
 })

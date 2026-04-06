@@ -1,5 +1,13 @@
 export function isTemperatureTask(task) {
-  return task && typeof task === 'object' && task.type === 'temperature'
+  if (!task || typeof task !== 'object') return false
+
+  return (
+    task.type === 'temperature' ||
+    task.sectionType === 'TEMPERATURE_CONTROL' ||
+    task.temperatureZoneId != null ||
+    task.targetMin != null ||
+    task.targetMax != null
+  )
 }
 
 export function formatTemperatureTarget(task) {
@@ -10,8 +18,8 @@ export function formatTemperatureTarget(task) {
   const max = Number.isFinite(task.targetMax) ? task.targetMax : null
 
   if (min !== null && max !== null) return `${min}-${max} ${unit}`
-  if (min !== null) return `≥ ${min} ${unit}`
-  if (max !== null) return `≤ ${max} ${unit}`
+  if (min !== null) return `>= ${min} ${unit}`
+  if (max !== null) return `<= ${max} ${unit}`
   return ''
 }
 
@@ -26,4 +34,3 @@ export function isTemperatureDeviation(task, valueC) {
   if (max !== null && valueC > max) return true
   return false
 }
-

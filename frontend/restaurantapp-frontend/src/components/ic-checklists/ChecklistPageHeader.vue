@@ -16,52 +16,45 @@
         }}</span>
       </div>
 
-      <div class="actions-row">
-        <div class="period-switcher" aria-label="Checklist period filter">
-          <button
-            v-for="option in periods"
-            :key="option"
-            type="button"
-            class="period-button"
-            :class="{ active: option === activePeriod }"
-            @click="handlePeriodClick(option)"
-          >
-            {{ option }}
-          </button>
-        </div>
+      <div class="period-switcher" aria-label="Checklist period filter">
+        <button
+          v-for="option in periods"
+          :key="option"
+          type="button"
+          class="period-button"
+          :class="{ active: option === activePeriod }"
+          @click="emit('update:activePeriod', option)"
+        >
+          {{ option }}
+        </button>
+      </div>
 
-        <button type="button" class="ghost-button" @click="emit('refresh')">Refresh</button>
-        <button type="button" class="ghost-button" @click="emit('manage-tasks')">
+      <div v-if="canManageChecklists" class="primary-actions">
+        <button type="button" class="create-button" @click="emit('create')">New checklist</button>
+        <button type="button" class="ghost-button" @click="emit('open-library')">
+          Open library
+        </button>
+        <button
+          type="button"
+          class="ghost-button"
+          :class="{ loading: isRefreshing }"
+          :disabled="isRefreshing"
+          @click="emit('refresh')"
+        >
+          {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
+        </button>
+      </div>
+
+      <div v-if="canManageTaskPool" class="secondary-actions">
+        <button type="button" class="secondary-button" @click="emit('manage-tasks')">
           {{ manageLabel }}
         </button>
-
-        <div class="menu-shell" ref="menuShell">
-          <button type="button" class="create-button" @click="menuOpen = !menuOpen">
-            New {{ createLabel.toLowerCase() }}
-            <span class="menu-caret" :class="{ open: menuOpen }">&#9662;</span>
-          </button>
-
-          <div v-if="menuOpen" class="menu-panel">
-            <button type="button" class="menu-item" @click="handleMenuAction('create')">
-              <span class="menu-item__title">Create checklist</span>
-              <span class="menu-item__hint">Build a new checklist from the shared task pool.</span>
-            </button>
-            <button type="button" class="menu-item" @click="handleMenuAction('library')">
-              <span class="menu-item__title">Open checklist library</span>
-              <span class="menu-item__hint"
-                >Bring an existing checklist back onto the workbench.</span
-              >
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
-
 defineProps({
   moduleLabel: {
     type: String,
@@ -91,13 +84,21 @@ defineProps({
     type: String,
     default: 'Daily',
   },
-  createLabel: {
-    type: String,
-    default: 'Checklists',
-  },
   manageLabel: {
     type: String,
     default: 'Task pool',
+  },
+  canManageChecklists: {
+    type: Boolean,
+    default: false,
+  },
+  canManageTaskPool: {
+    type: Boolean,
+    default: false,
+  },
+  isRefreshing: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -108,35 +109,6 @@ const emit = defineEmits([
   'manage-tasks',
   'refresh',
 ])
-const menuOpen = ref(false)
-const menuShell = ref(null)
-
-function handlePeriodClick(option) {
-  emit('update:activePeriod', option)
-}
-
-function handleMenuAction(action) {
-  menuOpen.value = false
-  if (action === 'create') {
-    emit('create')
-    return
-  }
-  emit('open-library')
-}
-
-function handleClickOutside(event) {
-  if (menuShell.value && !menuShell.value.contains(event.target)) {
-    menuOpen.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', handleClickOutside)
-})
 </script>
 
 <style scoped>
@@ -231,19 +203,9 @@ h1 {
   color: rgba(255, 255, 255, 0.76);
 }
 
-.actions-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.menu-shell {
-  position: relative;
-}
-
 .period-switcher {
   display: inline-flex;
+  width: fit-content;
   padding: 3px;
   border: 1px solid rgba(200, 200, 216, 0.18);
   border-radius: var(--radius-md);
@@ -253,7 +215,7 @@ h1 {
 .period-button,
 .ghost-button,
 .create-button,
-.menu-item {
+.secondary-button {
   border: 0;
   font-family: inherit;
 }
@@ -275,8 +237,15 @@ h1 {
   box-shadow: var(--shadow-sm);
 }
 
+.primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
 .ghost-button,
-.create-button {
+.create-button,
+.secondary-button {
   min-height: 40px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-md);
@@ -291,65 +260,29 @@ h1 {
   color: #ffffff;
 }
 
+.ghost-button.loading,
+.ghost-button:disabled,
+.create-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.72;
+  cursor: wait;
+  filter: saturate(0.85);
+}
+
 .create-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
   background: var(--color-accent);
   color: var(--color-dark-primary);
 }
 
-.menu-caret {
-  transition: transform 140ms ease;
+.secondary-actions {
+  display: flex;
+  align-items: stretch;
 }
 
-.menu-caret.open {
-  transform: rotate(180deg);
-}
-
-.menu-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  z-index: 20;
-  width: min(320px, 92vw);
-  padding: var(--space-2);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-lg);
-}
-
-.menu-item {
-  width: 100%;
-  display: block;
-  text-align: left;
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  background: transparent;
-  cursor: pointer;
-}
-
-.menu-item:hover {
-  background: var(--color-bg-secondary);
-}
-
-.menu-item + .menu-item {
-  margin-top: 2px;
-}
-
-.menu-item__title {
-  display: block;
-  color: var(--color-text-primary);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-}
-
-.menu-item__hint {
-  display: block;
-  margin-top: 4px;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
+.secondary-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(200, 200, 216, 0.18);
+  color: #ffffff;
 }
 
 @media (max-width: 900px) {
@@ -358,25 +291,15 @@ h1 {
     padding: var(--space-6);
   }
 
-  .actions {
-    width: 100%;
-  }
-
-  .actions-row {
+  .primary-actions,
+  .secondary-actions {
     flex-direction: column;
     align-items: stretch;
   }
 
   .period-switcher {
-    width: fit-content;
     max-width: 100%;
     overflow-x: auto;
-  }
-
-  .menu-panel {
-    left: 0;
-    right: auto;
-    width: 100%;
   }
 }
 </style>

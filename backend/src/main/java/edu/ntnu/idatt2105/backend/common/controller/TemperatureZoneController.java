@@ -37,6 +37,7 @@ public class TemperatureZoneController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@ResponseStatus(HttpStatus.CREATED)
 	@Operation(summary = "Create a temperature zone")
 	@ApiResponse(responseCode = "201", description = "Temperature zone created")
@@ -45,6 +46,7 @@ public class TemperatureZoneController {
 	}
 
 	@PutMapping("/{zoneId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Update a temperature zone")
 	@ApiResponse(responseCode = "200", description = "Temperature zone updated")
 	public TemperatureZoneResponse updateZone(
@@ -56,6 +58,7 @@ public class TemperatureZoneController {
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Fetch all temperature zones")
 	@ApiResponse(responseCode = "200", description = "Temperature zones returned")
 	public List<TemperatureZoneResponse> getAllZones(@RequestParam IcModule module, Authentication auth) {
@@ -63,6 +66,7 @@ public class TemperatureZoneController {
 	}
 
 	@DeleteMapping("/{zoneId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Operation(summary = "Delete a temperature zone")
 	@ApiResponse(responseCode = "204", description = "Temperature zone deleted")
