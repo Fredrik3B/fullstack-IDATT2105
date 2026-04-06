@@ -129,6 +129,25 @@ describe('Create Restaurant Page', () => {
     cy.contains('Something went wrong').should('be.visible')
   })
 
+  it('shows an error when refresh fails after a successful restaurant creation', () => {
+    cy.intercept('POST', '/api/organizations', {
+      statusCode: 201,
+      body: { id: 10, joinCode: 'EVR-2847' },
+    }).as('createOrg')
+    cy.intercept('POST', '**/api/auth/refresh', {
+      statusCode: 500,
+      body: {},
+    }).as('refreshFail')
+
+    fillForm()
+    cy.get('button[type="submit"]').click()
+    cy.wait('@createOrg')
+    cy.wait('@refreshFail')
+
+    cy.contains('Something went wrong').should('be.visible')
+    cy.contains('Workspace created').should('not.exist')
+  })
+
   it('disables the submit button while the request is in flight', () => {
     cy.intercept('POST', '/api/organizations', (req) => {
       req.on('response', (res) => { res.setDelay(300) })

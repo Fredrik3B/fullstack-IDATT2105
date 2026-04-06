@@ -122,6 +122,34 @@ describe('Login Page', () => {
     cy.contains('Create one').click()
     cy.url().should('include', '/register')
   })
+
+  // ── Route guard behavior ──────────────────────────────────────────────────
+
+  it('redirects authenticated users with an active restaurant from /login to dashboard', () => {
+    cy.setAuthState({
+      roles: ['ROLE_ADMIN'],
+      user: { id: 10, name: 'Admin User', email: 'admin@example.com' },
+      restaurantStatus: 'active',
+      restaurantId: 1,
+      restaurantName: 'Best Restaurant',
+      restaurantJoinCode: 'BST-0001',
+    })
+
+    cy.visitAuthenticated('/login')
+    cy.url().should('eq', Cypress.config('baseUrl') + '/')
+  })
+
+  it('redirects authenticated users without an active restaurant from /login to /onboarding', () => {
+    cy.setAuthState({
+      roles: ['ROLE_STAFF'],
+      user: { id: 11, name: 'Staff User', email: 'staff@example.com' },
+      restaurantStatus: null,
+      restaurantId: null,
+    })
+
+    cy.visitAuthenticated('/login')
+    cy.url().should('include', '/onboarding')
+  })
 })
 
 // ── Helpers ────────────────────────────────────────────────────────────────

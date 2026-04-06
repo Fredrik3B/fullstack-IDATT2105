@@ -109,7 +109,7 @@ describe('Register Page', () => {
     cy.url().should('include', '/onboarding')
   })
 
-  it('shows an error alert when the server returns an error', () => {
+  it('shows an inline email error when the server returns 409 conflict', () => {
     cy.intercept('POST', '/api/auth/register', { statusCode: 409 }).as('registerFail')
 
     cy.get('#name').type('Jane Doe')
@@ -118,7 +118,8 @@ describe('Register Page', () => {
     cy.get('#confirmPassword').type('password123')
     cy.get('button[type="submit"]').click()
     cy.wait('@registerFail')
-    cy.contains('Something went wrong').should('be.visible')
+    cy.contains('An account with this email already exists.').should('be.visible')
+    cy.contains('Something went wrong').should('not.exist')
   })
 
   it('disables the submit button while the request is in flight', () => {
@@ -140,6 +141,34 @@ describe('Register Page', () => {
   it('navigates to /login when clicking "Log in"', () => {
     cy.contains('Log in').click()
     cy.url().should('include', '/login')
+  })
+
+  // ── Route guard behavior ──────────────────────────────────────────────────
+
+  it('redirects authenticated users with an active restaurant from /register to dashboard', () => {
+    cy.setAuthState({
+      roles: ['ROLE_ADMIN'],
+      user: { id: 20, name: 'Admin User', email: 'admin@example.com' },
+      restaurantStatus: 'active',
+      restaurantId: 1,
+      restaurantName: 'Best Restaurant',
+      restaurantJoinCode: 'BST-0001',
+    })
+
+    cy.visitAuthenticated('/register')
+    cy.url().should('eq', Cypress.config('baseUrl') + '/')
+  })
+
+  it('redirects authenticated users without an active restaurant from /register to /onboarding', () => {
+    cy.setAuthState({
+      roles: ['ROLE_STAFF'],
+      user: { id: 21, name: 'Staff User', email: 'staff@example.com' },
+      restaurantStatus: null,
+      restaurantId: null,
+    })
+
+    cy.visitAuthenticated('/register')
+    cy.url().should('include', '/onboarding')
   })
 })
 
