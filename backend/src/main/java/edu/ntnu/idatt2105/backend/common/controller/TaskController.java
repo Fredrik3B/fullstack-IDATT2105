@@ -39,6 +39,7 @@ public class TaskController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Create a task")
 	@ApiResponse(responseCode = "201", description = "Task created")
 	public TaskResponse createTask(@Valid @RequestBody CreateTaskRequest request, Authentication auth) {
@@ -46,6 +47,7 @@ public class TaskController {
 	}
 
 	@PutMapping("/{taskId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Update a task")
 	@ApiResponse(responseCode = "200", description = "Task updated")
 	public TaskResponse updateTask(
@@ -72,6 +74,7 @@ public class TaskController {
 
 	@DeleteMapping("/{taskId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 	@Operation(summary = "Delete a task")
 	@ApiResponse(responseCode = "204", description = "Task deleted")
 	public void deleteTask(@PathVariable Long taskId, Authentication auth) {
