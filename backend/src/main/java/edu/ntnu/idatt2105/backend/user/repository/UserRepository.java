@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface UserRepository extends JpaRepository<UserModel, UUID> {
   Optional<UserModel> findByEmail(String email);
@@ -14,4 +16,9 @@ public interface UserRepository extends JpaRepository<UserModel, UUID> {
   List<UserModel> findAllByOrganization(OrganizationModel org);
 
   List<UserModel> findAllByOrganizationId(UUID organizationId);
+
+  List<UserModel> findAllByIdIn(List<UUID> userIds);
+
+  @Query("SELECT COUNT(u) FROM UserModel u JOIN u.roles r WHERE u.organization.id = :orgId AND r.name = 'ADMIN'")
+  long countAdminsByOrganizationId(@Param("orgId") UUID orgId);
 }
