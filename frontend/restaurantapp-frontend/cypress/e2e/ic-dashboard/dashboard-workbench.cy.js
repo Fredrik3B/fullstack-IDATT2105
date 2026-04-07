@@ -6,6 +6,14 @@ import {
   visitIcDashboard,
 } from './icDashboardTestUtils'
 
+function getTodayPeriodKey() {
+  const today = new Date()
+  const yyyy = today.getFullYear()
+  const mm = String(today.getMonth() + 1).padStart(2, '0')
+  const dd = String(today.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 describe('IC dashboard workbench actions', () => {
   beforeEach(() => {
     setIcDashboardAuth()
@@ -176,6 +184,7 @@ describe('IC dashboard workbench actions', () => {
           id: 'food-submit',
           module: 'IC_FOOD',
           title: 'Closing checklist',
+          activePeriodKey: getTodayPeriodKey(),
           sections: [
             {
               title: 'Closing checks',
@@ -200,11 +209,15 @@ describe('IC dashboard workbench actions', () => {
     visitIcDashboard('IC_FOOD')
 
     getChecklistCard('Closing checklist').within(() => {
-      cy.contains('button', 'Submit checklist').click()
+      cy.get('.submit-button').should('not.be.disabled').click()
     })
 
-    cy.get('[role="dialog"][aria-label="Submit this checklist now?"]').within(() => {
-      cy.contains('button', 'Submit checklist').click()
+    cy.get('[role="dialog"]').then(($dialog) => {
+      const label = $dialog.attr('aria-label')
+      expect(['Submit this checklist now?', 'Start the next checklist period?']).to.include(label)
+      cy.wrap($dialog).within(() => {
+        cy.get('button').contains(/Submit checklist|Submit and continue/).click()
+      })
     })
 
     cy.wait('@submitChecklist')

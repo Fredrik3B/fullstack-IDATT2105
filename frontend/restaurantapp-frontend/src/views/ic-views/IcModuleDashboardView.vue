@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ChecklistDashboard from '../../components/ic-checklists/ChecklistDashboard.vue'
 import ChecklistLibraryModal from '../../components/ic-checklists/ChecklistLibraryModal.vue'
 import CreateChecklistModal from '../../components/ic-checklists/CreateChecklistModal.vue'
@@ -63,6 +63,11 @@ const deleteDialogMessage = computed(
   () =>
     `"${deleteDialog.value.checklist?.title || 'This checklist'}" will be removed from the library and any current workbench usage.`,
 )
+const taskPoolRefreshToken = ref(0)
+
+function handleTaskPoolChanged() {
+  taskPoolRefreshToken.value += 1
+}
 </script>
 
 <template>
@@ -97,6 +102,7 @@ const deleteDialogMessage = computed(
     :module-label="config.moduleLabel"
     :can-manage-checklists="canManageChecklists"
     :can-manage-tasks="canManageTaskPool"
+    :task-pool-refresh-token="taskPoolRefreshToken"
     :save-pending="isCreatingChecklist"
     @manage-tasks="openTaskPoolModal"
     @created="handleCreatedChecklist"
@@ -110,6 +116,7 @@ const deleteDialogMessage = computed(
     :module-label="config.moduleLabel"
     :can-manage-checklists="canManageChecklists"
     :can-manage-tasks="canManageTaskPool"
+    :task-pool-refresh-token="taskPoolRefreshToken"
     :save-pending="isUpdatingChecklist"
     :delete-pending="String(deletingChecklistId ?? '') === String(editingCard?.id ?? '')"
     :remove-pending="String(removingChecklistId ?? '') === String(editingCard?.id ?? '')"
@@ -133,6 +140,7 @@ const deleteDialogMessage = computed(
     v-model:open="isTaskPoolOpen"
     :module="config.module"
     :module-label="config.moduleLabel"
+    @changed="handleTaskPoolChanged"
   />
 
   <SharedConfirmDialog

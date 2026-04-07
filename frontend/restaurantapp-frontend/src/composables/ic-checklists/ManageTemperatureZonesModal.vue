@@ -22,7 +22,7 @@
             <span class="panel-label">Shared temperature items</span>
             <p class="panel-copy">Temperature tasks should pick one of these items instead of defining their own range.</p>
           </div>
-          <button type="button" class="primary" @click="isCreateOpen = true">New fridge item</button>
+          <button type="button" class="secondary" @click="isCreateOpen = true">New fridge item</button>
         </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
@@ -90,6 +90,7 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   module: { type: String, required: true },
   moduleLabel: { type: String, default: '' },
+  startInCreateMode: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:open', 'close', 'changed'])
@@ -132,7 +133,20 @@ async function loadZones() {
 watch(
   () => props.open,
   async (isOpen) => {
-    if (isOpen) await loadZones()
+    if (!isOpen) return
+    await loadZones()
+    if (props.startInCreateMode) {
+      isCreateOpen.value = true
+    }
+  },
+)
+
+watch(
+  () => props.startInCreateMode,
+  (shouldStart) => {
+    if (props.open && shouldStart) {
+      isCreateOpen.value = true
+    }
   },
 )
 
