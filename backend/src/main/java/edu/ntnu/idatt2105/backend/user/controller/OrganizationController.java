@@ -40,6 +40,7 @@ public class OrganizationController {
 
   @Operation(summary = "Create a new organization",
       description = "Creator becomes ADMIN of the organization. Generates a join code.")
+  @PostMapping
   public ResponseEntity<OrganizationResponse> createOrganization(
       @RequestBody @Valid CreateOrganizationRequest request, Authentication auth
   ) {

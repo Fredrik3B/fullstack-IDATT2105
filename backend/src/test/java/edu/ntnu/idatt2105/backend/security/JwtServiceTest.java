@@ -25,8 +25,7 @@ class JwtServiceTest {
     jwtService = new JwtService();
     ReflectionTestUtils.setField(jwtService, "secret",
         "dGhpcyBpcyBhIHZlcnkgc2VjcmV0IGtleSBmb3IgdGVzdGluZyBwdXJwb3Nlcw==");
-    ReflectionTestUtils.setField(jwtService, "expiration", 100000000);
-    ReflectionTestUtils.setField(jwtService, "refreshExpiration", 1000000000);
+    ReflectionTestUtils.setField(jwtService, "expiration", 100000000L);
 
     UserModel user = new UserModel();
     user.setId(UUID.randomUUID());
@@ -109,27 +108,4 @@ class JwtServiceTest {
   }
 
 
-  @Test
-  void validateToken() {
-  }
-
-  @Test
-  void extractEmail() {
-  }
-
-  @Test
-  void extractRoles() {
-  }
-
-  @Test
-  void extractUserId() {
-  }
-
-  @Test
-  void extractOrganizationId() {
-  }
-
-  @Test
-  void tokenExpired() {
-  }
 }
