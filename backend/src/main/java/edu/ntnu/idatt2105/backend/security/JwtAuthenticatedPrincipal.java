@@ -6,7 +6,10 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Lightweight principal constructed from JWT claims.
@@ -17,7 +20,7 @@ import org.springframework.security.core.GrantedAuthority;
  *
  * <p>Access in controllers:</p>
  * <pre>
- * JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+ * JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
  * UUID orgId = principal.getOrganizationId();
  * </pre>
  *
@@ -33,6 +36,17 @@ public class JwtAuthenticatedPrincipal {
   private final UUID organizationId;
   private final String username;
   private final Collection<? extends GrantedAuthority> authorities;
+
+  /**
+   * Extract the principal from a Spring Security Authentication object.
+   * Throws 401 if authentication is missing or not JWT-based.
+   */
+  public static JwtAuthenticatedPrincipal from(Authentication auth) {
+    if (auth == null || !(auth.getPrincipal() instanceof JwtAuthenticatedPrincipal principal)) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+    }
+    return principal;
+  }
 
   public UUID requireOrganizationId() {
     if (organizationId == null) {

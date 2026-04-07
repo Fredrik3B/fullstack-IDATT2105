@@ -1,6 +1,5 @@
 package edu.ntnu.idatt2105.backend.user.controller;
 
-import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
@@ -43,8 +42,7 @@ public class OrganizationController {
   public ResponseEntity<OrganizationResponse> createOrganization(
       @RequestBody @Valid CreateOrganizationRequest request, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
-
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     OrganizationResponse resp =  organizationService.create(request, principal.getUserId());
     return ResponseEntity.ok(resp);
   }
@@ -52,7 +50,7 @@ public class OrganizationController {
   @Operation(summary = "Withdraw a pending join request")
   @DeleteMapping("/organizations/join-request")
   public ResponseEntity<Void> withdrawJoinRequest(Authentication auth) {
-    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.withdrawJoinRequest(principal.getUserId());
     return ResponseEntity.ok().build();
   }
@@ -62,7 +60,7 @@ public class OrganizationController {
   @ApiResponse(responseCode = "200", description = "Returned join organization request for user")
   @ApiResponse(responseCode = "204", description = "No join organization request for user")
   public ResponseEntity<JoinRequestResponse> seeJoinRequest(Authentication auth) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     JoinRequestResponse response = organizationService.seeJoinRequest(principal.getUserId());
     if (response == null) {
       return ResponseEntity.noContent().build();
@@ -83,7 +81,7 @@ public class OrganizationController {
   public ResponseEntity<OrganizationResponse> joinOrganization(
       @RequestBody @Valid JoinOrganizationRequest request,
       Authentication auth) {
-    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     return ResponseEntity.ok(organizationService.requestToJoin(request, principal.getUserId()));
   }
 
@@ -94,7 +92,7 @@ public class OrganizationController {
   public ResponseEntity<Void> acceptRequest(
       @PathVariable UUID id, @RequestBody @Valid ResolveJoinRequest request, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.resolveRequest(
         id, principal.getUserId(), principal.getOrganizationId(), request.getAction()
     );
@@ -108,7 +106,7 @@ public class OrganizationController {
   public ResponseEntity<List<JoinOrganizationDto>> getOrganizationRequests(
       @RequestParam(required = false) JoinOrgStatus status, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     List<JoinOrganizationDto> requests = organizationService.getRequests(
         principal.getOrganizationId(), status);
     return ResponseEntity.ok(requests);
@@ -118,7 +116,7 @@ public class OrganizationController {
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
   @GetMapping("/organizations/members")
   public ResponseEntity<List<MemberDto>> getMembers(Authentication auth) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     return ResponseEntity.ok(organizationService.getMembers(principal.getOrganizationId()));
   }
 
@@ -126,7 +124,7 @@ public class OrganizationController {
   @PreAuthorize("hasRole('ADMIN')")
   @DeleteMapping("/organizations/members/{userId}")
   public ResponseEntity<Void> removeMember(@PathVariable UUID userId, Authentication auth) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.removeMember(principal.getOrganizationId(), userId, principal.getUserId());
     return ResponseEntity.ok().build();
   }
@@ -137,7 +135,7 @@ public class OrganizationController {
   public ResponseEntity<Void> updateMemberRoles(
       @PathVariable UUID userId, @RequestBody @Valid UpdateMemberRolesRequest request, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.updateMemberRoles(
         principal.getOrganizationId(), userId, principal.getUserId(), request.getRoles());
     return ResponseEntity.ok().build();

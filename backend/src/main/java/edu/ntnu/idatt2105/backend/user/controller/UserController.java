@@ -1,13 +1,11 @@
 package edu.ntnu.idatt2105.backend.user.controller;
 
-import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse.UserInfo;
-import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.service.UserService;
@@ -16,7 +14,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Duration;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

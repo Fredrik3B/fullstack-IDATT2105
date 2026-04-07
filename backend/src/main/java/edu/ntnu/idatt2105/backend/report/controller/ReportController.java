@@ -39,7 +39,7 @@ public class ReportController {
       Authentication auth
   ) {
 
-    UUID orgId = ((JwtAuthenticatedPrincipal) auth.getPrincipal()).requireOrganizationId();
+    UUID orgId = JwtAuthenticatedPrincipal.from(auth).requireOrganizationId();
     if (from == null) from = LocalDateTime.now().minusMonths(1);
     if (to == null) to = LocalDateTime.now();
     return ResponseEntity.ok(reportService.generateSummary(orgId, from, to));
@@ -53,7 +53,7 @@ public class ReportController {
       @RequestParam(required = false) LocalDateTime to,
       Authentication auth
   ) {
-    UUID orgId = ((JwtAuthenticatedPrincipal) auth.getPrincipal()).requireOrganizationId();
+    UUID orgId = JwtAuthenticatedPrincipal.from(auth).requireOrganizationId();
     if (from == null) from = LocalDateTime.now().minusMonths(1);
     if (to == null) to = LocalDateTime.now();
     return ResponseEntity.ok(reportService.generateInspection(orgId, from, to));
@@ -66,7 +66,7 @@ public class ReportController {
       @RequestParam(required = false) LocalDateTime from,
       @RequestParam(required = false) LocalDateTime to,
       Authentication auth) {
-    UUID orgId = ((JwtAuthenticatedPrincipal) auth.getPrincipal()).requireOrganizationId();
+    UUID orgId = JwtAuthenticatedPrincipal.from(auth).requireOrganizationId();
     if (from == null) from = LocalDateTime.now().minusMonths(1);
     if (to == null) to = LocalDateTime.now();
 
@@ -82,7 +82,7 @@ public class ReportController {
       @RequestBody @Valid DeviationReport request, Authentication auth
   ) {
     JwtAuthenticatedPrincipal principal =
-        (JwtAuthenticatedPrincipal) auth.getPrincipal();
+        JwtAuthenticatedPrincipal.from(auth);
     DeviationCreatedResponse response = reportService.createDeviationReport(
         request, principal.getUserId(), principal.getOrganizationId());
     return ResponseEntity.status(HttpStatus.CREATED).body(response);

@@ -56,7 +56,7 @@ public class ChecklistController {
 		@Valid @RequestBody CreateChecklistCardRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
 			"IC create checklist: orgId={} userId={} module={} period={} title='{}' taskTemplates={}",
@@ -80,7 +80,7 @@ public class ChecklistController {
 		@RequestParam IcModule module,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC fetch checklists: orgId={} userId={} module={}",
 			principal.getOrganizationId(),
@@ -101,7 +101,7 @@ public class ChecklistController {
 		@Valid @RequestBody UpdateChecklistCardRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
 			"IC update checklist: orgId={} userId={} checklistId={} period={} title='{}' taskTemplates={}",
@@ -126,7 +126,7 @@ public class ChecklistController {
 		@Valid @RequestBody TaskCompletionRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC set completion: orgId={} userId={} checklistId={} taskId={} state={} periodKey={} completedAt={}",
 			principal.getOrganizationId(),
@@ -149,7 +149,7 @@ public class ChecklistController {
 		@Valid @RequestBody TaskFlagRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC set flag: orgId={} userId={} checklistId={} taskId={} state={} periodKey={} flaggedAt={}",
 			principal.getOrganizationId(),
@@ -167,7 +167,7 @@ public class ChecklistController {
 	@Operation(summary = "Submit the current checklist period and start a new one")
 	@ApiResponse(responseCode = "200", description = "Checklist submitted")
 	public ChecklistCardResponse submitChecklist(@PathVariable Long checklistId, Authentication auth) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC submit checklist: orgId={} userId={} checklistId={}",
 			principal.getOrganizationId(),
@@ -186,7 +186,7 @@ public class ChecklistController {
 		@Valid @RequestBody ChecklistWorkbenchStateRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC set workbench state: orgId={} userId={} checklistId={} displayedOnWorkbench={}",
 			principal.getOrganizationId(),
@@ -203,7 +203,7 @@ public class ChecklistController {
 	@Operation(summary = "Delete a checklist")
 	@ApiResponse(responseCode = "204", description = "Checklist deleted")
 	public void deleteChecklist(@PathVariable Long checklistId, Authentication auth) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC delete checklist: orgId={} userId={} checklistId={}",
 			principal.getOrganizationId(),
