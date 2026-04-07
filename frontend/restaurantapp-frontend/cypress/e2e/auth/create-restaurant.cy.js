@@ -149,15 +149,21 @@ describe('Create Restaurant Page', () => {
   })
 
   it('disables the submit button while the request is in flight', () => {
-    cy.intercept('POST', '/api/organizations', (req) => {
-      req.on('response', (res) => { res.setDelay(300) })
+    cy.intercept('POST', '/api/organizations', {
+      delay: 1000,
+      statusCode: 201,
+      body: { id: 10, joinCode: 'EVR-2847' },
     }).as('createSlow')
-    cy.intercept('POST', '**/api/auth/refresh', { statusCode: 200, body: buildRefreshResponse() })
+    cy.intercept('POST', '**/api/auth/refresh', {
+      statusCode: 200,
+      body: buildRefreshResponse(),
+    }).as('refresh')
 
     fillForm()
     cy.get('button[type="submit"]').click()
     cy.get('button[type="submit"]').should('be.disabled')
     cy.wait('@createSlow')
+    cy.wait('@refresh')
   })
 
   // ── Navigation ────────────────────────────────────────────────────────────

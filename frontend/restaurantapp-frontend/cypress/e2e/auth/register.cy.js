@@ -123,8 +123,15 @@ describe('Register Page', () => {
   })
 
   it('disables the submit button while the request is in flight', () => {
-    cy.intercept('POST', '/api/auth/register', (req) => {
-      req.on('response', (res) => { res.setDelay(300) })
+    cy.intercept('POST', '/api/auth/register', {
+      delay: 1000,
+      statusCode: 201,
+      body: {
+        accessToken: makeJwt(['ROLE_STAFF']),
+        user: { id: 3, name: 'Jane Doe', email: 'jane@example.com' },
+        restaurant: null,
+        restaurantStatus: null,
+      },
     }).as('registerSlow')
 
     cy.get('#name').type('Jane Doe')
