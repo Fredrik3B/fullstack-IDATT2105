@@ -31,63 +31,7 @@
     <!-- Stats overview -->
     <section>
       <h2 class="section-heading">Compliance overview</h2>
-      <div class="stats-grid">
-        <div class="stat-block">
-          <h3 class="stat-block-title">
-            <span class="module-dot module-dot--food"></span>
-            IK-Mat (Food)
-          </h3>
-          <div class="stat-row">
-            <div class="stat-item">
-              <span class="stat-number">{{ report.foodStats.completedTasks }}/{{ report.foodStats.totalTasks }}</span>
-              <span class="stat-desc">Tasks completed</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number" :class="rateClass(report.foodStats.completionRate)">
-                {{ formatRate(report.foodStats.completionRate) }}%
-              </span>
-              <span class="stat-desc">Completion rate</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number" :class="{ 'stat-danger': report.foodStats.deviatedTasks > 0 }">
-                {{ report.foodStats.deviatedTasks }}
-              </span>
-              <span class="stat-desc">Deviations</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number" :class="{ 'stat-danger': report.foodStats.outOfRangeReadings > 0 }">
-                {{ report.foodStats.outOfRangeReadings }}/{{ report.foodStats.temperatureReadings }}
-              </span>
-              <span class="stat-desc">Temp. out of range</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="stat-block">
-          <h3 class="stat-block-title">
-            <span class="module-dot module-dot--alcohol"></span>
-            IK-Alkohol (Alcohol)
-          </h3>
-          <div class="stat-row">
-            <div class="stat-item">
-              <span class="stat-number">{{ report.alcoholStats.completedTasks }}/{{ report.alcoholStats.totalTasks }}</span>
-              <span class="stat-desc">Tasks completed</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number" :class="rateClass(report.alcoholStats.completionRate)">
-                {{ formatRate(report.alcoholStats.completionRate) }}%
-              </span>
-              <span class="stat-desc">Completion rate</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-number" :class="{ 'stat-danger': report.alcoholStats.deviatedTasks > 0 }">
-                {{ report.alcoholStats.deviatedTasks }}
-              </span>
-              <span class="stat-desc">Deviations</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ComplianceStatsGrid :food-stats="report.foodStats" :alcohol-stats="report.alcoholStats" />
     </section>
 
     <!-- Checklists -->
@@ -225,6 +169,8 @@
 import { computed } from 'vue'
 import DeviationTrendChart from '../ui/DeviationTrendChart.vue'
 import TemperatureChart from '../ui/TemperatureChart.vue'
+import ComplianceStatsGrid from './ComplianceStatsGrid.vue'
+import { formatDate, formatDateTime, formatRate, rateClass, formatTemperatureRange } from './reportHelpers.js'
 
 const props = defineProps({
   report: { type: Object, required: true }
@@ -244,13 +190,8 @@ const temperatureZones = computed(() => {
         : `${baseLabel}::${point.targetMin ?? ''}::${point.targetMax ?? ''}`
 
     if (!grouped.has(key)) {
-      grouped.set(key, {
-        key,
-        label,
-        log: [],
-      })
+      grouped.set(key, { key, label, log: [] })
     }
-
     grouped.get(key).log.push(point)
   })
 
@@ -262,58 +203,28 @@ const temperatureZones = computed(() => {
     .sort((a, b) => a.label.localeCompare(b.label))
 })
 
-const checklistRows = computed(() => Array.isArray(props.report?.checklists?.checklists) ? props.report.checklists.checklists : [])
+const checklistRows = computed(() =>
+  Array.isArray(props.report?.checklists?.checklists) ? props.report.checklists.checklists : []
+)
 
 const totalChecklistCompletions = computed(() =>
-  checklistRows.value.reduce((sum, checklist) => sum + Number(checklist.completionsInPeriod || 0), 0),
+  checklistRows.value.reduce((sum, cl) => sum + Number(cl.completionsInPeriod || 0), 0),
 )
 
 const averageChecklistCompletionRate = computed(() => {
   if (!checklistRows.value.length) return 0
-  return checklistRows.value.reduce((sum, checklist) => sum + Number(checklist.averageCompletionRate || 0), 0) / checklistRows.value.length
+  return checklistRows.value.reduce((sum, cl) => sum + Number(cl.averageCompletionRate || 0), 0) / checklistRows.value.length
 })
 
 const deviationChecklistRows = computed(() =>
   [...checklistRows.value]
-    .filter((checklist) => Number(checklist.deviatedTasks || 0) > 0)
+    .filter((cl) => Number(cl.deviatedTasks || 0) > 0)
     .sort((a, b) =>
       Number(b.deviatedTasks || 0) - Number(a.deviatedTasks || 0) ||
       String(a.name).localeCompare(String(b.name)),
     )
     .slice(0, 8),
 )
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-}
-
-function formatDateTime(dateStr) {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  })
-}
-
-function formatRate(rate) {
-  if (rate == null || isNaN(rate)) return '0'
-  return Number(rate).toFixed(1)
-}
-
-function rateClass(rate) {
-  if (rate >= 90) return 'stat-ok'
-  if (rate > 0) return 'stat-warn'
-  return ''
-}
-
-function formatTemperatureRange(point) {
-  if (!point) return ''
-  if (point.targetMin != null && point.targetMax != null) return `${point.targetMin}°C - ${point.targetMax}°C`
-  if (point.targetMin != null) return `>= ${point.targetMin}°C`
-  if (point.targetMax != null) return `<= ${point.targetMax}°C`
-  return ''
-}
 </script>
 
 <style scoped>
@@ -325,40 +236,48 @@ function formatTemperatureRange(point) {
   padding: var(--space-6);
   box-shadow: var(--shadow-sm);
 }
+
 .report-header-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: var(--space-5);
 }
+
 .report-org-name {
   margin: 0;
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
+
 .report-period {
   margin: var(--space-1) 0 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
+
 .report-generated {
   font-size: var(--font-size-xs);
   color: var(--color-text-hint);
   white-space: nowrap;
 }
+
 .report-org-details {
   display: flex;
   gap: var(--space-8);
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
+
 .org-detail { display: flex; flex-direction: column; gap: 2px; }
+
 .org-detail-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-muted);
 }
+
 .org-detail-value {
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
@@ -371,21 +290,16 @@ function formatTemperatureRange(point) {
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
+
 .report-sections {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
 }
 
-.temperature-chart-grid {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.temperature-zone-card {
-  display: grid;
-  gap: var(--space-3);
-}
+/* ── Temperature ── */
+.temperature-chart-grid { display: grid; gap: var(--space-4); }
+.temperature-zone-card { display: grid; gap: var(--space-3); }
 
 .temperature-zone-header {
   display: flex;
@@ -407,6 +321,7 @@ function formatTemperatureRange(point) {
   color: var(--color-text-muted);
 }
 
+/* ── Insight cards ── */
 .insight-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -443,39 +358,7 @@ function formatTemperatureRange(point) {
   color: var(--color-text-muted);
 }
 
-/* ── Stats ── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-4);
-}
-.stat-block {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
-  box-shadow: var(--shadow-sm);
-}
-.stat-block-title {
-  margin: 0 0 var(--space-4);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.module-dot { width: 8px; height: 8px; border-radius: var(--radius-full); flex-shrink: 0; }
-.module-dot--food { background: var(--color-accent); }
-.module-dot--alcohol { background: var(--color-dark-tertiary); }
-.stat-row { display: flex; gap: var(--space-6); flex-wrap: wrap; }
-.stat-item { display: flex; flex-direction: column; gap: 2px; }
-.stat-number {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-.stat-desc { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+/* ── State classes (used in tables) ── */
 .stat-ok { color: var(--color-success-text, #16a34a); }
 .stat-warn { color: var(--color-warning, #d97706); }
 .stat-danger { color: var(--color-danger, #dc2626); }
@@ -488,9 +371,10 @@ function formatTemperatureRange(point) {
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
+
 .table-head {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr;
   padding: var(--space-3) var(--space-6);
   background: var(--color-bg-tertiary);
   font-size: var(--font-size-xs);
@@ -500,21 +384,24 @@ function formatTemperatureRange(point) {
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--color-border);
 }
+
 .table-head--insights { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
 .table-head--missed { grid-template-columns: 2fr 1.5fr 1fr 0.8fr; }
+
 .table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr;
   padding: var(--space-3) var(--space-6);
   border-bottom: 1px solid var(--color-border-subtle, var(--color-border));
   align-items: center;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 }
+
 .table-row--insights { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
 .table-row--missed { grid-template-columns: 2fr 1.5fr 1fr 0.8fr; }
 .table-row:last-child { border-bottom: none; }
-.table-row--danger { background: color-mix(in srgb, var(--color-danger, #dc2626) 6%, transparent); }
+
 .table-empty {
   padding: var(--space-8);
   text-align: center;
@@ -527,9 +414,9 @@ function formatTemperatureRange(point) {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
+
 .cell-name { font-weight: var(--font-weight-medium); }
 .cell-muted { color: var(--color-text-muted); font-size: var(--font-size-xs); }
-.cell-temp { font-weight: var(--font-weight-bold); }
 
 /* ── Badges ── */
 .module-badge {
@@ -539,22 +426,12 @@ function formatTemperatureRange(point) {
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
 }
+
 .module-badge--food { background: var(--color-accent-light); color: var(--color-accent-text); }
 .module-badge--alcohol { background: var(--color-bg-subtle, #f0f0f0); color: var(--color-dark-tertiary); }
-.status-pill {
-  display: inline-block;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-}
-.status-pill--ok { background: var(--color-success-bg, #dcfce7); color: var(--color-success-text, #16a34a); }
-.status-pill--danger { background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, transparent); color: var(--color-danger, #dc2626); }
 
-/* ── Deviations ── */
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .stats-grid { grid-template-columns: 1fr; }
   .insight-grid { grid-template-columns: 1fr; }
   .report-header-top { flex-direction: column; gap: var(--space-2); }
   .report-org-details { flex-direction: column; gap: var(--space-3); }
@@ -563,6 +440,6 @@ function formatTemperatureRange(point) {
 
 @media print {
   .report-sections { gap: var(--space-4); }
-  .report-header-card, .stat-block, .report-table, .deviation-card { box-shadow: none; border-color: #ddd; }
+  .report-header-card, .report-table { box-shadow: none; border-color: #ddd; }
 }
 </style>
