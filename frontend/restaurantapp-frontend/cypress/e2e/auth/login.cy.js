@@ -59,8 +59,15 @@ describe('Login Page', () => {
   })
 
   it('disables the submit button while the request is in flight', () => {
-    cy.intercept('POST', '/api/auth/login', (req) => {
-      req.on('response', (res) => { res.setDelay(300) })
+    cy.intercept('POST', '/api/auth/login', {
+      delay: 1000,
+      statusCode: 200,
+      body: {
+        accessToken: buildStaffToken(),
+        user: { id: 1, name: 'Test User', email: 'user@example.com' },
+        restaurant: null,
+        restaurantStatus: null,
+      },
     }).as('loginSlow')
     cy.get('#email').type('user@example.com')
     cy.get('#password').type('password123')
