@@ -5,17 +5,23 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 
 @Entity
-@Data
+@Getter
+@Setter
 @Table(name = "join_requests")
 public class JoinRequestModel {
 
@@ -23,16 +29,21 @@ public class JoinRequestModel {
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(nullable = false)
-  private UUID userId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private UserModel user;
 
-  @Column(nullable = false)
-  private UUID organizationId;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "organization_id", nullable = false)
+  private OrganizationModel organization;
 
   @Enumerated(EnumType.STRING)
   private JoinOrgStatus status;
 
   private LocalDateTime createdAt;
   private LocalDateTime resolvedAt;
-  private UUID resolvedBy;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "resolved_by")
+  private UserModel resolvedBy;
 }
