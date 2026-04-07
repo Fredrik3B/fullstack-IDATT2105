@@ -5,11 +5,39 @@ import DocumentsView from '@/views/DocumentsView.vue'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
+const mockRoute = { query: {} }
+const mockRouterPush = vi.fn()
+
+vi.mock('vue-router', () => ({
+  useRoute: () => mockRoute,
+  useRouter: () => ({ push: mockRouterPush }),
+}))
+
 vi.mock('@/api/documents', () => ({
   fetchDocuments: vi.fn(),
-  uploadDocument: vi.fn(),
   downloadDocument: vi.fn(),
   deleteDocument: vi.fn(),
+}))
+
+vi.mock('@/composables/useToast', () => ({
+  useToast: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }),
+}))
+
+// Stub child components — DocumentCard renders doc.name so filtering tests work
+vi.mock('@/components/documents/DocumentCard.vue', () => ({
+  default: {
+    template: '<div class="doc-card"><span class="doc-name">{{ doc?.name }}</span><button class="delete-btn" @click="$emit(\'delete\', doc)">Delete</button></div>',
+    props: ['doc', 'isAdminOrManager'],
+    emits: ['preview', 'download', 'delete'],
+  },
+}))
+
+vi.mock('@/components/documents/DocumentUploadModal.vue', () => ({
+  default: { template: '<div class="upload-modal" />', emits: ['uploaded', 'close'] },
+}))
+
+vi.mock('@/components/documents/DocumentPreviewModal.vue', () => ({
+  default: { template: '<div class="preview-modal" />', props: ['doc', 'previewUrl', 'loading', 'error'], emits: ['close', 'download'] },
 }))
 
 vi.mock('lucide-vue-next', () => ({
@@ -18,7 +46,7 @@ vi.mock('lucide-vue-next', () => ({
   ChevronDown: { template: '<span />' },
 }))
 
-import { fetchDocuments, uploadDocument, downloadDocument, deleteDocument } from '@/api/documents'
+import { fetchDocuments, deleteDocument } from '@/api/documents'
 import { useAuthStore } from '@/stores/auth'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -41,28 +69,27 @@ function makeDoc(overrides = {}) {
   }
 }
 
-async function mountView(authOverrides = {}) {
+function mountView(authSetup = () => {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
 
   const auth = useAuthStore()
   auth.user = { id: 1, name: 'Test User', email: 'test@example.com' }
   auth.accessToken = 'fake-token'
-  auth.restaurantId = 1
-  Object.assign(auth, authOverrides)
+  authSetup(auth)
 
-  const wrapper = mount(DocumentsView, {
+  return mount(DocumentsView, {
     global: { plugins: [pinia] },
     attachTo: document.body,
   })
-  await flushPromises()
-  return wrapper
 }
 
 // ── Setup ──────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockRoute.query = {}
+  mockRouterPush.mockClear()
   fetchDocuments.mockResolvedValue([])
 })
 
@@ -73,31 +100,29 @@ describe('DocumentsView', () => {
   // ── Loading & error states ─────────────────────────────────────────────
 
   describe('loading and error states', () => {
-    it('sets loading state while fetching', async () => {
+    it('shows loading state while fetching', async () => {
       let resolve
       fetchDocuments.mockReturnValue(new Promise(r => { resolve = r }))
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const wrapper = mount(DocumentsView, {
-        global: { plugins: [pinia] },
-        attachTo: document.body,
-      })
-      // loading ref should be true before the promise resolves
-      expect(wrapper.vm.loading).toBe(true)
+      const wrapper = mountView()
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.loading-state').exists()).toBe(true)
       resolve([])
       await flushPromises()
-      expect(wrapper.vm.loading).toBe(false)
+      expect(wrapper.find('.loading-state').exists()).toBe(false)
     })
 
     it('shows error state when fetch fails', async () => {
       fetchDocuments.mockRejectedValue(new Error('Network error'))
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+      expect(wrapper.find('.error-state').exists()).toBe(true)
       expect(wrapper.text()).toContain('Failed to load documents')
     })
 
-    it('renders document grid when fetch succeeds', async () => {
+    it('renders document grid when fetch succeeds with documents', async () => {
       fetchDocuments.mockResolvedValue([makeDoc()])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
       expect(wrapper.find('.doc-grid').exists()).toBe(true)
       expect(wrapper.text()).toContain('Test Doc')
     })
@@ -111,11 +136,29 @@ describe('DocumentsView', () => {
         makeDoc({ id: 1, name: 'Hygiene Policy', originalFileName: 'hygiene.pdf' }),
         makeDoc({ id: 2, name: 'Fire Safety Plan', originalFileName: 'fire.pdf' }),
       ])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+
       await wrapper.find('.search-input').setValue('hygiene')
       await wrapper.vm.$nextTick()
+
       expect(wrapper.text()).toContain('Hygiene Policy')
       expect(wrapper.text()).not.toContain('Fire Safety Plan')
+    })
+
+    it('filters documents by original filename', async () => {
+      fetchDocuments.mockResolvedValue([
+        makeDoc({ id: 1, name: 'Document A', originalFileName: 'alcohol_policy.pdf' }),
+        makeDoc({ id: 2, name: 'Document B', originalFileName: 'food_guide.pdf' }),
+      ])
+      const wrapper = mountView()
+      await flushPromises()
+
+      await wrapper.find('.search-input').setValue('alcohol')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.text()).toContain('Document A')
+      expect(wrapper.text()).not.toContain('Document B')
     })
 
     it('filters documents by category select', async () => {
@@ -123,10 +166,12 @@ describe('DocumentsView', () => {
         makeDoc({ id: 1, name: 'Doc A', category: 'GUIDELINES' }),
         makeDoc({ id: 2, name: 'Doc B', category: 'TRAINING' }),
       ])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+
       await wrapper.find('#filter-cat').setValue('TRAINING')
       await wrapper.vm.$nextTick()
-      // Only TRAINING category should be visible
+
       expect(wrapper.text()).toContain('Doc B')
       expect(wrapper.text()).not.toContain('Doc A')
     })
@@ -134,11 +179,14 @@ describe('DocumentsView', () => {
     it('filters documents by module select', async () => {
       fetchDocuments.mockResolvedValue([
         makeDoc({ id: 1, name: 'Shared Doc', module: 'SHARED' }),
-        makeDoc({ id: 2, name: 'Food Doc', module: 'IC_FOOD' }),
+        makeDoc({ id: 2, name: 'Food Doc', module: 'IC_FOOD', category: 'GUIDELINES' }),
       ])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+
       await wrapper.find('#filter-module').setValue('IC_FOOD')
       await wrapper.vm.$nextTick()
+
       expect(wrapper.text()).toContain('Food Doc')
       expect(wrapper.text()).not.toContain('Shared Doc')
     })
@@ -148,9 +196,44 @@ describe('DocumentsView', () => {
         makeDoc({ id: 1, name: 'Doc A', category: 'GUIDELINES' }),
         makeDoc({ id: 2, name: 'Doc B', category: 'TRAINING' }),
       ])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+
       expect(wrapper.text()).toContain('Doc A')
       expect(wrapper.text()).toContain('Doc B')
+    })
+
+    it('updates document count in insight card after filtering', async () => {
+      fetchDocuments.mockResolvedValue([
+        makeDoc({ id: 1, name: 'Doc A', category: 'GUIDELINES' }),
+        makeDoc({ id: 2, name: 'Doc B', category: 'TRAINING' }),
+      ])
+      const wrapper = mountView()
+      await flushPromises()
+
+      expect(wrapper.find('.insight-value').text()).toBe('2')
+
+      await wrapper.find('#filter-cat').setValue('GUIDELINES')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.insight-value').text()).toBe('1')
+    })
+  })
+
+  // ── Route query filters ─────────────────────────────────────────────────
+
+  describe('route query filters', () => {
+    it('pre-fills category filter from route query', async () => {
+      mockRoute.query = { category: 'training' }
+      fetchDocuments.mockResolvedValue([
+        makeDoc({ id: 1, name: 'Training Doc', category: 'TRAINING' }),
+        makeDoc({ id: 2, name: 'Guide Doc', category: 'GUIDELINES' }),
+      ])
+      const wrapper = mountView()
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Training Doc')
+      expect(wrapper.text()).not.toContain('Guide Doc')
     })
   })
 
@@ -163,7 +246,9 @@ describe('DocumentsView', () => {
       fetchDocuments.mockResolvedValue([
         makeDoc({ id: 1, name: 'Food Safety Cert', category: 'CERTIFICATE', expiryDate: soon.toISOString().split('T')[0] }),
       ])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+
       expect(wrapper.find('.expiry-banner').exists()).toBe(true)
       expect(wrapper.text()).toContain('Food Safety Cert')
     })
@@ -174,7 +259,9 @@ describe('DocumentsView', () => {
       fetchDocuments.mockResolvedValue([
         makeDoc({ id: 1, name: 'Valid Cert', category: 'CERTIFICATE', expiryDate: future.toISOString().split('T')[0] }),
       ])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+
       expect(wrapper.find('.expiry-banner').exists()).toBe(false)
     })
 
@@ -184,123 +271,117 @@ describe('DocumentsView', () => {
       fetchDocuments.mockResolvedValue([
         makeDoc({ id: 1, name: 'Expiring Cert', category: 'CERTIFICATE', expiryDate: soon.toISOString().split('T')[0] }),
       ])
-      const wrapper = await mountView()
-      expect(wrapper.find('.expiry-banner').exists()).toBe(true)
+      const wrapper = mountView()
+      await flushPromises()
+
       await wrapper.find('.expiry-banner-close').trigger('click')
       await wrapper.vm.$nextTick()
+
       expect(wrapper.find('.expiry-banner').exists()).toBe(false)
     })
 
-    it('marks expired certificates with expired label', async () => {
+    it('marks expired certificates with expired chip class', async () => {
       const past = new Date()
       past.setDate(past.getDate() - 5)
       fetchDocuments.mockResolvedValue([
         makeDoc({ id: 1, name: 'Expired Cert', category: 'CERTIFICATE', expiryDate: past.toISOString().split('T')[0] }),
       ])
-      const wrapper = await mountView()
+      const wrapper = mountView()
+      await flushPromises()
+
       expect(wrapper.find('.expiry-chip--expired').exists()).toBe(true)
       expect(wrapper.text()).toContain('Expired')
     })
+
+    it('marks soon-expiring certificates with warning chip class', async () => {
+      const soon = new Date()
+      soon.setDate(soon.getDate() + 15)
+      fetchDocuments.mockResolvedValue([
+        makeDoc({ id: 1, name: 'Warning Cert', category: 'CERTIFICATE', expiryDate: soon.toISOString().split('T')[0] }),
+      ])
+      const wrapper = mountView()
+      await flushPromises()
+
+      expect(wrapper.find('.expiry-chip--warning').exists()).toBe(true)
+    })
   })
 
-  // ── Upload modal (admin/manager) ───────────────────────────────────────
+  // ── Upload button visibility ────────────────────────────────────────────
 
-  describe('upload modal', () => {
-    it('shows upload button for admin', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const auth = useAuthStore()
-      auth.user = { id: 1, name: 'Admin', email: 'admin@example.com' }
-      auth.accessToken = 'fake-token'
-      auth.roles = ['ROLE_ADMIN']
-      // Manually set isAdminOrManager computed via store
-      vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
-
-      const wrapper = mount(DocumentsView, { global: { plugins: [pinia] }, attachTo: document.body })
+  describe('upload button visibility', () => {
+    it('shows upload button for admin or manager', async () => {
+      const wrapper = mountView(auth => {
+        vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
+      })
       await flushPromises()
+
       expect(wrapper.find('.btn-upload').exists()).toBe(true)
     })
 
-    it('hides upload button for non-admin', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const auth = useAuthStore()
-      auth.user = { id: 2, name: 'Staff', email: 'staff@example.com' }
-      auth.accessToken = 'fake-token'
-      vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(false)
-
-      const wrapper = mount(DocumentsView, { global: { plugins: [pinia] }, attachTo: document.body })
+    it('hides upload button for staff', async () => {
+      const wrapper = mountView(auth => {
+        vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(false)
+      })
       await flushPromises()
+
       expect(wrapper.find('.btn-upload').exists()).toBe(false)
     })
 
     it('opens upload modal when upload button is clicked', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const auth = useAuthStore()
-      auth.user = { id: 1, name: 'Admin', email: 'admin@example.com' }
-      auth.accessToken = 'fake-token'
-      vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
-
-      const wrapper = mount(DocumentsView, { global: { plugins: [pinia] }, attachTo: document.body })
+      const wrapper = mountView(auth => {
+        vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
+      })
       await flushPromises()
+
       expect(wrapper.vm.showUploadModal).toBe(false)
       await wrapper.find('.btn-upload').trigger('click')
+      // Modal is teleported to body — check reactive state instead
       expect(wrapper.vm.showUploadModal).toBe(true)
-    })
-
-    it('closes upload modal when closeModal is called', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const auth = useAuthStore()
-      vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
-
-      const wrapper = mount(DocumentsView, { global: { plugins: [pinia] }, attachTo: document.body })
-      await flushPromises()
-      await wrapper.find('.btn-upload').trigger('click')
-      expect(wrapper.vm.showUploadModal).toBe(true)
-      wrapper.vm.closeModal()
-      await wrapper.vm.$nextTick()
-      expect(wrapper.vm.showUploadModal).toBe(false)
-    })
-
-    it('shows expiry date field only when category is CERTIFICATE', async () => {
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const auth = useAuthStore()
-      vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
-
-      const wrapper = mount(DocumentsView, { global: { plugins: [pinia] }, attachTo: document.body })
-      await flushPromises()
-      await wrapper.find('.btn-upload').trigger('click')
-      await wrapper.vm.$nextTick()
-
-      expect(document.querySelector('#upload-expiry')).toBeNull()
-      // Set category to CERTIFICATE via the vm to trigger reactivity
-      wrapper.vm.uploadForm.category = 'CERTIFICATE'
-      await wrapper.vm.$nextTick()
-      expect(document.querySelector('#upload-expiry')).not.toBeNull()
     })
   })
 
-  // ── Delete ─────────────────────────────────────────────────────────────
+  // ── Category collapse ──────────────────────────────────────────────────
+
+  describe('category collapse', () => {
+    it('collapses a category section when header is clicked', async () => {
+      fetchDocuments.mockResolvedValue([makeDoc({ id: 1, name: 'Policy Doc', category: 'GUIDELINES' })])
+      const wrapper = mountView()
+      await flushPromises()
+
+      expect(wrapper.find('.doc-grid').exists()).toBe(true)
+      await wrapper.find('.category-header').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.doc-grid').exists()).toBe(false)
+    })
+
+    it('expands a collapsed category when header is clicked again', async () => {
+      fetchDocuments.mockResolvedValue([makeDoc({ id: 1, name: 'Policy Doc', category: 'GUIDELINES' })])
+      const wrapper = mountView()
+      await flushPromises()
+
+      await wrapper.find('.category-header').trigger('click')
+      await wrapper.vm.$nextTick()
+      await wrapper.find('.category-header').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('.doc-grid').exists()).toBe(true)
+    })
+  })
+
+  // ── Delete via DocumentCard event ──────────────────────────────────────
 
   describe('delete', () => {
-    it('removes document from list after successful delete', async () => {
+    it('calls deleteDocument and removes doc when confirmed', async () => {
       fetchDocuments.mockResolvedValue([makeDoc({ id: 5, name: 'To Delete' })])
       deleteDocument.mockResolvedValue()
       vi.spyOn(window, 'confirm').mockReturnValue(true)
 
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const auth = useAuthStore()
-      vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
-
-      const wrapper = mount(DocumentsView, { global: { plugins: [pinia] }, attachTo: document.body })
+      const wrapper = mountView()
       await flushPromises()
 
       expect(wrapper.text()).toContain('To Delete')
-      await wrapper.find('.doc-btn--danger').trigger('click')
+      await wrapper.find('.delete-btn').trigger('click')
       await flushPromises()
 
       expect(deleteDocument).toHaveBeenCalledWith(5)
@@ -311,43 +392,14 @@ describe('DocumentsView', () => {
       fetchDocuments.mockResolvedValue([makeDoc({ id: 5, name: 'Keep Me' })])
       vi.spyOn(window, 'confirm').mockReturnValue(false)
 
-      const pinia = createPinia()
-      setActivePinia(pinia)
-      const auth = useAuthStore()
-      vi.spyOn(auth, 'isAdminOrManager', 'get').mockReturnValue(true)
-
-      const wrapper = mount(DocumentsView, { global: { plugins: [pinia] }, attachTo: document.body })
+      const wrapper = mountView()
       await flushPromises()
-      await wrapper.find('.doc-btn--danger').trigger('click')
+
+      await wrapper.find('.delete-btn').trigger('click')
       await flushPromises()
 
       expect(deleteDocument).not.toHaveBeenCalled()
       expect(wrapper.text()).toContain('Keep Me')
-    })
-  })
-
-  // ── Category collapse ──────────────────────────────────────────────────
-
-  describe('category collapse', () => {
-    it('collapses a category section when header is clicked', async () => {
-      fetchDocuments.mockResolvedValue([makeDoc({ id: 1, name: 'Policy Doc', category: 'GUIDELINES' })])
-      const wrapper = await mountView()
-
-      expect(wrapper.find('.doc-grid').exists()).toBe(true)
-      await wrapper.find('.category-header').trigger('click')
-      await wrapper.vm.$nextTick()
-      expect(wrapper.find('.doc-grid').exists()).toBe(false)
-    })
-
-    it('expands a collapsed category section when header is clicked again', async () => {
-      fetchDocuments.mockResolvedValue([makeDoc({ id: 1, name: 'Policy Doc', category: 'GUIDELINES' })])
-      const wrapper = await mountView()
-
-      await wrapper.find('.category-header').trigger('click')
-      await wrapper.vm.$nextTick()
-      await wrapper.find('.category-header').trigger('click')
-      await wrapper.vm.$nextTick()
-      expect(wrapper.find('.doc-grid').exists()).toBe(true)
     })
   })
 
