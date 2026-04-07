@@ -1,25 +1,20 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
-import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
+import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
 import java.util.Set;
-import java.util.UUID;
 
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException;
 import edu.ntnu.idatt2105.backend.security.JwtService;
 import edu.ntnu.idatt2105.backend.security.UserPrincipal;
-import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
-import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.repository.JoinRequestRepository;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
@@ -39,7 +34,7 @@ public class UserService {
   private final JoinRequestRepository joinRequestRepository;
 
 
-  public AuthDto register(CreateUserRequest request) {
+  public LoginResponse register(CreateUserRequest request) {
     if (userRepository.findByEmail(request.getEmail()).isPresent()) {
       throw new UserAlreadyExistsException(request.getEmail());
     }
@@ -57,76 +52,37 @@ public class UserService {
 
 
     UserModel savedUser = userRepository.save(user);
-    UserPrincipal principal = new UserPrincipal(user);
-
-    return new AuthDto(
-        jwtService.generateToken(principal),
-        jwtService.generateRefreshToken(principal),
-        savedUser
-    );
+    return buildLoginResponse(savedUser);
 
   }
 
-  public AuthDto login(LoginRequest request) {
-    String email = request.getEmail();
-    String password = request.getPassword();
-
-    UserModel user = userRepository.findByEmail(email)
+  public LoginResponse login(LoginRequest request) {
+    UserModel user = userRepository.findByEmail(request.getEmail())
         .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
-    if (!passwordEncoder.matches(password, user.getPassword())) {
+    if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
       throw new BadCredentialsException("Invalid credentials");
     }
 
-    UserPrincipal principal = new UserPrincipal(user);
-
-    return new AuthDto(
-        jwtService.generateToken(principal),
-        jwtService.generateRefreshToken(principal),
-        user
-    );
+    return buildLoginResponse(user);
   }
 
-  public AuthDto refreshToken(String refreshToken) {
+  public LoginResponse refreshToken(String refreshToken) {
     String email = jwtService.extractEmail(refreshToken);
     UserModel user = userRepository.findByEmail(email)
         .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
 
+    return buildLoginResponse(user);
+  }
+
+  /**
+   * Builds a LoginResponse with fresh tokens for the given user.
+   * The refresh token is included here but the controller moves it to an HttpOnly cookie.
+   */
+  private LoginResponse buildLoginResponse(UserModel user) {
     UserPrincipal principal = new UserPrincipal(user);
-
-    return new AuthDto(
-        jwtService.generateToken(principal),
-        jwtService.generateRefreshToken(principal),
-        user
-    );
+    String accessToken = jwtService.generateToken(principal);
+    String refreshToken = jwtService.generateRefreshToken(principal);
+    return userMapper.toLoginResponse(accessToken, refreshToken, user);
   }
-  // With new relationship this can be shortened
-  // might have screwed things up here, org join code gone
-  // use enums
-  public MeResponse getMe(UUID userId) {
-    UserModel user = userRepository.findById(userId)
-        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-    String name = (user.getFirstName() + " " + user.getLastName()).trim();
-    UUID orgId = user.getOrganization().getId();
-
-    if (orgId != null) {
-      OrganizationModel org = organizationRepository.findById(orgId)
-          .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-      return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-          "active", org.getId(), org.getName(), org.getJoinCode());
-    }
-
-    return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
-        .map(request -> {
-          OrganizationModel org = organizationRepository.findById(orgId)
-              .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-          return new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-              "pending", org.getId(), org.getName(), null);
-        })
-        .orElse(new MeResponse(new MeResponse.UserInfo(user.getEmail(), name),
-            null, null, null, null));
-
-  }
-
 }
