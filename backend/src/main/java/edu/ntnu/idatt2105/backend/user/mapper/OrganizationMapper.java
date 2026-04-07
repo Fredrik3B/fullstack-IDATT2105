@@ -21,7 +21,8 @@ public class OrganizationMapper {
         .build();
   }
 
-  public JoinOrganizationDto toJoinRequestDto(JoinRequestModel request,  UserModel user) {
+  public JoinOrganizationDto toJoinRequestDto(JoinRequestModel request) {
+    UserModel user = request.getUser();
     return JoinOrganizationDto.builder()
         .requestId(request.getId())
         .email(user.getEmail())

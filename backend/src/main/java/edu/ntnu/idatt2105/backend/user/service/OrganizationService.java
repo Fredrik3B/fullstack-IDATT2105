@@ -65,7 +65,9 @@ public class OrganizationService {
   }
 
   public void withdrawJoinRequest(UUID userId) {
-    List<JoinRequestModel> pending = joinRequestRepository.findAllByUserIdAndStatus(userId, JoinOrgStatus.PENDING);
+    UserModel user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    List<JoinRequestModel> pending = joinRequestRepository.findAllByUserAndStatus(user, JoinOrgStatus.PENDING);
     if (pending.isEmpty()) {
       throw new ResourceNotFoundException("No pending join request found");
     }
@@ -87,20 +89,18 @@ public class OrganizationService {
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (user.getOrganization() != null) {
-      throw new RuntimeException("User already belongs to an organization");
+      throw new IllegalStateException("User already belongs to an organization");
     }
 
-    if (joinRequestRepository.existsByUserIdAndStatus(userId, JoinOrgStatus.PENDING)) {
-      throw new RuntimeException("You already have a pending join request");
+    if (joinRequestRepository.existsByUserAndStatus(user, JoinOrgStatus.PENDING)) {
+      throw new IllegalStateException("You already have a pending join request");
     }
 
     JoinRequestModel joinRequest = new JoinRequestModel();
-    joinRequest.setUserId(userId);
-    joinRequest.setOrganizationId(org.getId());
+    joinRequest.setUser(user);
+    joinRequest.setOrganization(org);
     joinRequest.setStatus(JoinOrgStatus.PENDING);
-
     joinRequest.setCreatedAt(LocalDateTime.now());
-
     joinRequestRepository.save(joinRequest);
 
     return organizationMapper.toResponse(org);
@@ -151,49 +151,36 @@ public class OrganizationService {
   public void resolveRequest(UUID requestId, UUID userId, UUID organizationId, JoinOrgStatus action) {
     JoinRequestModel request = joinRequestRepository.findById(requestId)
         .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
-    if (!request.getOrganizationId().equals(organizationId)) {
-      throw new RuntimeException("Request does not belong to your organization");
+
+    if (!request.getOrganization().getId().equals(organizationId)) {
+      throw new IllegalStateException("Request does not belong to your organization");
     }
     if (request.getStatus() != JoinOrgStatus.PENDING) {
-      throw new RuntimeException("Request already resolved");
+      throw new IllegalStateException("Request already resolved");
     }
 
+    UserModel resolver = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
     if (action == JoinOrgStatus.ACCEPTED) {
-      UserModel user = userRepository.findById(request.getUserId())
-          .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-      OrganizationModel org = organizationRepository.findById(request.getOrganizationId())
-          .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-
-      user.setOrganization(org);
-      userRepository.save(user);
+      UserModel requestUser = request.getUser();
+      requestUser.setOrganization(request.getOrganization());
+      userRepository.save(requestUser);
     }
 
-    request.setStatus(action == JoinOrgStatus.ACCEPTED
-        ? JoinOrgStatus.ACCEPTED : JoinOrgStatus.DECLINED);
+    request.setStatus(action == JoinOrgStatus.ACCEPTED ? JoinOrgStatus.ACCEPTED : JoinOrgStatus.DECLINED);
     request.setResolvedAt(LocalDateTime.now());
-    request.setResolvedBy(userId);
+    request.setResolvedBy(resolver);
     joinRequestRepository.save(request);
   }
 
   public List<JoinOrganizationDto> getRequests(UUID organizationId, JoinOrgStatus status) {
     List<JoinRequestModel> requests = status != null
-        ? joinRequestRepository.findAllByOrganizationIdAndStatus(organizationId, status)
-        : joinRequestRepository.findAllByOrganizationId(organizationId);
-
-    List<UUID> userIds = requests.stream()
-        .map(JoinRequestModel::getUserId)
-        .toList();
-
-    Map<UUID, UserModel> userMap = userRepository.findAllByIdIn(userIds).stream()
-        .collect(Collectors.toMap(UserModel::getId, u -> u));
+        ? joinRequestRepository.findAllByOrganizationIdAndStatusWithUser(organizationId, status)
+        : joinRequestRepository.findAllByOrganizationIdWithUser(organizationId);
 
     return requests.stream()
-        .map(request -> {
-          UserModel user = userMap.get(request.getUserId());
-          if (user == null) throw new ResourceNotFoundException("User not found");
-          return organizationMapper.toJoinRequestDto(request, user);
-        })
+        .map(organizationMapper::toJoinRequestDto)
         .toList();
   }
 
@@ -205,13 +192,11 @@ public class OrganizationService {
 
   public void removeMember(UUID organizationId, UUID targetUserId, UUID requestingUserId) {
     if (targetUserId.equals(requestingUserId)) {
-      throw new RuntimeException("Cannot remove yourself from the organization");
+      throw new IllegalStateException("Cannot remove yourself from the organization");
     }
-    UserModel user = userRepository.findById(targetUserId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    if (!organizationId.equals(user.getOrganization() == null ? null : user.getOrganization().getId())) {
-      throw new RuntimeException("User does not belong to your organization");
-    }
+
+    UserModel user = requireOrgMember(targetUserId, organizationId);
+
     RoleModel staffRole = roleRepository.findByName(RoleEnum.STAFF)
         .orElseThrow(() -> new ResourceNotFoundException("STAFF role not found"));
     user.getRoles().clear();
@@ -222,35 +207,45 @@ public class OrganizationService {
 
   public void updateMemberRoles(UUID organizationId, UUID targetUserId, UUID requestingUserId, List<String> roleNames) {
     if (targetUserId.equals(requestingUserId)) {
-      throw new RuntimeException("Cannot change your own roles");
+      throw new IllegalStateException("Cannot change your own roles");
     }
-    UserModel user = userRepository.findById(targetUserId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    if (!organizationId.equals(user.getOrganization() == null ? null : user.getOrganization().getId())) {
-      throw new RuntimeException("User does not belong to your organization");
-    }
+
+    UserModel user = requireOrgMember(targetUserId, organizationId);
+
     List<RoleModel> newRoles = roleNames.stream()
         .map(name -> roleRepository.findByName(RoleEnum.valueOf(name))
-            .orElseThrow(() -> new RuntimeException("Unknown role: " + name)))
+            .orElseThrow(() -> new IllegalArgumentException("Unknown role: " + name)))
         .toList();
 
     boolean wouldRemoveLastAdmin = user.getRoles().stream()
         .anyMatch(r -> r.getName() == RoleEnum.ADMIN)
         && newRoles.stream().noneMatch(r -> r.getName() == RoleEnum.ADMIN);
-    if (wouldRemoveLastAdmin) {
-      long adminCount = userRepository.countAdminsByOrganizationId(organizationId);
-      if (adminCount <= 1) {
-        throw new RuntimeException("Cannot remove the last admin from the organization");
-      }
+
+    if (wouldRemoveLastAdmin && userRepository.countAdminsByOrganizationId(organizationId) <= 1) {
+      throw new IllegalStateException("Cannot remove the last admin from the organization");
     }
+
     user.getRoles().clear();
     user.getRoles().addAll(newRoles);
     userRepository.save(user);
   }
 
   public JoinRequestResponse seeJoinRequest(UUID userId) {
-    return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
+    return joinRequestRepository.findFirstByUser_IdAndStatus(userId, JoinOrgStatus.PENDING)
         .map(organizationMapper::toJoinRequestResponse)
         .orElse(null);
+  }
+
+  /**
+   * Loads a user by ID and verifies they belong to the given organization.
+   */
+  private UserModel requireOrgMember(UUID userId, UUID organizationId) {
+    UserModel user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    UUID userOrgId = user.getOrganization() != null ? user.getOrganization().getId() : null;
+    if (!organizationId.equals(userOrgId)) {
+      throw new IllegalStateException("User does not belong to your organization");
+    }
+    return user;
   }
 }
