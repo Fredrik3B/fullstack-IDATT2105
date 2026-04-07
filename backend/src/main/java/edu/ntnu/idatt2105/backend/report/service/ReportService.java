@@ -144,6 +144,7 @@ public class ReportService {
               .averageCompletionRate(averageCompletionRate)
               .build();
         })
+        .filter(record -> record.getCompletionsInPeriod() > 0)
         .sorted(Comparator.comparing(ChecklistRecord::getName, String.CASE_INSENSITIVE_ORDER))
         .toList();
 
