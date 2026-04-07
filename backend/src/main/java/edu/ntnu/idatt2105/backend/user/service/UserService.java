@@ -89,9 +89,6 @@ public class UserService {
   }
 
   public AuthDto refreshToken(String refreshToken) {
-    if (jwtService.tokenExpired(refreshToken)) {
-      throw new BadCredentialsException("Refresh token expired");
-    }
     String email = jwtService.extractEmail(refreshToken);
     UserModel user = userRepository.findByEmail(email)
         .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
@@ -104,7 +101,6 @@ public class UserService {
         user
     );
   }
-
   // With new relationship this can be shortened
   // might have screwed things up here, org join code gone
   // use enums

@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.common.dto.task;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
 import java.math.BigDecimal;
 
 public record TaskResponse(
@@ -10,6 +11,9 @@ public record TaskResponse(
 	String title,
 	String meta,
 	SectionTypes sectionType,
+	Long temperatureZoneId,
+	String temperatureZoneName,
+	TemperatureZone temperatureZoneType,
 	String unit,
 	BigDecimal targetMin,
 	BigDecimal targetMax

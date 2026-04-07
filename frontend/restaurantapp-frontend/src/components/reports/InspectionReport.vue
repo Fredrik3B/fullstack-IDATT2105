@@ -92,14 +92,27 @@
 
     <!-- Checklists -->
     <section>
-      <h2 class="section-heading">Checklists ({{ report.checklists.activeChecklists }} active of {{ report.checklists.totalChecklists }})</h2>
+      <h2 class="section-heading">Checklist performance</h2>
+      <div class="insight-grid">
+        <div class="insight-card">
+          <span class="insight-label">Checklist completions</span>
+          <strong class="insight-value">{{ totalChecklistCompletions }}</strong>
+          <span class="insight-copy">Submitted runs during this period</span>
+        </div>
+        <div class="insight-card">
+          <span class="insight-label">Avg completion rate</span>
+          <strong class="insight-value">{{ formatRate(averageChecklistCompletionRate) }}%</strong>
+          <span class="insight-copy">Average checklist quality across runs</span>
+        </div>
+      </div>
       <div class="report-table">
         <div class="table-head">
           <span>Name</span>
           <span>Area</span>
           <span>Frequency</span>
-          <span>Completed</span>
-          <span>Rate</span>
+          <span>Runs</span>
+          <span>Expected</span>
+          <span>Avg rate</span>
           <span>Deviations</span>
         </div>
         <div v-for="cl in report.checklists.checklists" :key="cl.name" class="table-row">
@@ -110,8 +123,9 @@
             </span>
           </span>
           <span class="cell-muted">{{ cl.frequency }}</span>
-          <span>{{ cl.completedTasks }}/{{ cl.totalTasks }}</span>
-          <span :class="rateClass(cl.completionRate)">{{ formatRate(cl.completionRate) }}%</span>
+          <span>{{ cl.completionsInPeriod }}</span>
+          <span>{{ cl.expectedRuns }}</span>
+          <span :class="rateClass(cl.averageCompletionRate)">{{ formatRate(cl.averageCompletionRate) }}%</span>
           <span :class="{ 'stat-danger': cl.deviatedTasks > 0 }">{{ cl.deviatedTasks }}</span>
         </div>
         <div v-if="!report.checklists.checklists.length" class="table-empty">
@@ -120,65 +134,87 @@
       </div>
     </section>
 
-    <!-- Temperature chart -->
-    <section v-if="report.temperatureLog.length">
-      <h2 class="section-heading">Temperature trend</h2>
-      <TemperatureChart :log="report.temperatureLog" />
-    </section>
-
-    <!-- Temperature table -->
     <section>
-      <h2 class="section-heading">Temperature log ({{ report.temperatureLog.length }} readings)</h2>
+      <h2 class="section-heading">Deviations by checklist</h2>
       <div class="report-table">
-        <div class="table-head table-head--temp">
-          <span>Time</span>
-          <span>Task</span>
-          <span>Value</span>
-          <span>Range</span>
-          <span>Status</span>
-          <span>Recorded by</span>
+        <div class="table-head table-head--insights">
+          <span>Checklist</span>
+          <span>Area</span>
+          <span>Deviations</span>
+          <span>Runs</span>
+          <span>Avg rate</span>
         </div>
-        <div v-for="(point, i) in report.temperatureLog" :key="i"
-             class="table-row table-row--temp"
-             :class="{ 'table-row--danger': !point.withinRange }">
-          <span class="cell-muted">{{ formatDateTime(point.measuredAt) }}</span>
-          <span class="cell-name">{{ point.taskName }}</span>
-          <span class="cell-temp" :class="{ 'stat-danger': !point.withinRange }">
-            {{ point.valueC }}°C
-          </span>
-          <span class="cell-muted">{{ point.targetMin }}°C – {{ point.targetMax }}°C</span>
+        <div
+          v-for="cl in deviationChecklistRows"
+          :key="`${cl.name}-${cl.complianceArea}`"
+          class="table-row table-row--insights"
+        >
+          <span class="cell-name">{{ cl.name }}</span>
           <span>
-            <span class="status-pill" :class="point.withinRange ? 'status-pill--ok' : 'status-pill--danger'">
-              {{ point.withinRange ? 'OK' : 'Out of range' }}
+            <span class="module-badge" :class="cl.complianceArea === 'IK_MAT' ? 'module-badge--food' : 'module-badge--alcohol'">
+              {{ cl.complianceArea === 'IK_MAT' ? 'Food' : 'Alcohol' }}
             </span>
           </span>
-          <span class="cell-muted">{{ point.recordedBy }}</span>
+          <span :class="{ 'stat-danger': cl.deviatedTasks > 0 }">{{ cl.deviatedTasks }}</span>
+          <span>{{ cl.completionsInPeriod }}</span>
+          <span :class="rateClass(cl.averageCompletionRate)">{{ formatRate(cl.averageCompletionRate) }}%</span>
         </div>
-        <div v-if="!report.temperatureLog.length" class="table-empty">
-          No temperature readings in this period
+        <div v-if="!deviationChecklistRows.length" class="table-empty">
+          No checklist deviations in this period
         </div>
       </div>
     </section>
 
-    <!-- Deviations -->
-    <section>
-      <h2 class="section-heading">Deviations ({{ report.deviations.length }})</h2>
-      <div v-if="report.deviations.length" class="deviation-list">
-        <div v-for="(dev, i) in report.deviations" :key="i" class="deviation-card">
-          <div class="deviation-header">
-            <span class="deviation-task">{{ dev.taskName }}</span>
-            <span class="cell-muted">{{ dev.checklistName }}</span>
+    <!-- Temperature chart -->
+    <section v-if="report.temperatureLog.length">
+      <h2 class="section-heading">Temperature trends by zone</h2>
+      <div class="temperature-chart-grid">
+        <div
+          v-for="zone in temperatureZones"
+          :key="zone.key"
+          class="temperature-zone-card"
+        >
+          <div class="temperature-zone-header">
+            <h3 class="temperature-zone-title">{{ zone.label }}</h3>
+            <p class="temperature-zone-meta">{{ zone.log.length }} readings</p>
           </div>
-          <div class="deviation-details">
-            <span class="cell-muted" v-if="dev.endedAt">{{ formatDateTime(dev.endedAt) }}</span>
-            <span class="cell-muted" v-if="dev.periodKey">Period: {{ dev.periodKey }}</span>
-          </div>
-          <p v-if="dev.meta" class="deviation-meta">{{ dev.meta }}</p>
+          <TemperatureChart :log="zone.log" />
         </div>
       </div>
-      <div v-else class="empty-state-small">
-        <p class="empty-title">No deviations</p>
-        <p class="empty-sub">No deviated tasks found in this period.</p>
+    </section>
+
+    <section>
+      <h2 class="section-heading">Deviations by day</h2>
+      <DeviationTrendChart v-if="report.deviationsByDay.length" :points="report.deviationsByDay" />
+      <div v-else class="table-empty chart-empty">No deviation trend in this period</div>
+    </section>
+
+    <section>
+      <h2 class="section-heading">Most missed tasks</h2>
+      <div class="report-table">
+        <div class="table-head table-head--missed">
+          <span>Task</span>
+          <span>Checklist</span>
+          <span>Area</span>
+          <span>Missed</span>
+        </div>
+        <div
+          v-for="task in report.missedTasks"
+          :key="`${task.checklistName}-${task.taskName}`"
+          class="table-row table-row--missed"
+        >
+          <span class="cell-name">{{ task.taskName }}</span>
+          <span class="cell-muted">{{ task.checklistName }}</span>
+          <span>
+            <span class="module-badge" :class="task.complianceArea === 'IK_MAT' ? 'module-badge--food' : 'module-badge--alcohol'">
+              {{ task.complianceArea === 'IK_MAT' ? 'Food' : 'Alcohol' }}
+            </span>
+          </span>
+          <span :class="{ 'stat-danger': task.missedCount > 0 }">{{ task.missedCount }}</span>
+        </div>
+        <div v-if="!report.missedTasks.length" class="table-empty">
+          No missed tasks in this period
+        </div>
       </div>
     </section>
 
@@ -186,11 +222,66 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import DeviationTrendChart from '../ui/DeviationTrendChart.vue'
 import TemperatureChart from '../ui/TemperatureChart.vue'
 
-defineProps({
+const props = defineProps({
   report: { type: Object, required: true }
 })
+
+const temperatureZones = computed(() => {
+  const grouped = new Map()
+  const log = Array.isArray(props.report?.temperatureLog) ? props.report.temperatureLog : []
+
+  log.forEach((point) => {
+    const rangeLabel = formatTemperatureRange(point)
+    const baseLabel = point.zoneName || point.taskName
+    const label = rangeLabel ? `${baseLabel} (${rangeLabel})` : baseLabel
+    const key =
+      point.zoneId != null
+        ? `zone-${point.zoneId}`
+        : `${baseLabel}::${point.targetMin ?? ''}::${point.targetMax ?? ''}`
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        key,
+        label,
+        log: [],
+      })
+    }
+
+    grouped.get(key).log.push(point)
+  })
+
+  return Array.from(grouped.values())
+    .map((zone) => ({
+      ...zone,
+      log: [...zone.log].sort((a, b) => new Date(a.measuredAt) - new Date(b.measuredAt)),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
+
+const checklistRows = computed(() => Array.isArray(props.report?.checklists?.checklists) ? props.report.checklists.checklists : [])
+
+const totalChecklistCompletions = computed(() =>
+  checklistRows.value.reduce((sum, checklist) => sum + Number(checklist.completionsInPeriod || 0), 0),
+)
+
+const averageChecklistCompletionRate = computed(() => {
+  if (!checklistRows.value.length) return 0
+  return checklistRows.value.reduce((sum, checklist) => sum + Number(checklist.averageCompletionRate || 0), 0) / checklistRows.value.length
+})
+
+const deviationChecklistRows = computed(() =>
+  [...checklistRows.value]
+    .filter((checklist) => Number(checklist.deviatedTasks || 0) > 0)
+    .sort((a, b) =>
+      Number(b.deviatedTasks || 0) - Number(a.deviatedTasks || 0) ||
+      String(a.name).localeCompare(String(b.name)),
+    )
+    .slice(0, 8),
+)
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -213,6 +304,14 @@ function formatRate(rate) {
 function rateClass(rate) {
   if (rate >= 90) return 'stat-ok'
   if (rate > 0) return 'stat-warn'
+  return ''
+}
+
+function formatTemperatureRange(point) {
+  if (!point) return ''
+  if (point.targetMin != null && point.targetMax != null) return `${point.targetMin}°C - ${point.targetMax}°C`
+  if (point.targetMin != null) return `>= ${point.targetMin}°C`
+  if (point.targetMax != null) return `<= ${point.targetMax}°C`
   return ''
 }
 </script>
@@ -278,6 +377,72 @@ function rateClass(rate) {
   gap: var(--space-8);
 }
 
+.temperature-chart-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.temperature-zone-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.temperature-zone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.temperature-zone-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.temperature-zone-meta {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.insight-card {
+  display: grid;
+  gap: 6px;
+  padding: var(--space-5);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.insight-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.insight-value {
+  font-size: 30px;
+  line-height: 1;
+  color: var(--color-text-primary);
+}
+
+.insight-copy {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
 /* ── Stats ── */
 .stats-grid {
   display: grid;
@@ -335,7 +500,8 @@ function rateClass(rate) {
   letter-spacing: 0.06em;
   border-bottom: 1px solid var(--color-border);
 }
-.table-head--temp { grid-template-columns: 1.2fr 1.5fr 0.7fr 1fr 1fr 1.2fr; }
+.table-head--insights { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+.table-head--missed { grid-template-columns: 2fr 1.5fr 1fr 0.8fr; }
 .table-row {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
@@ -345,7 +511,8 @@ function rateClass(rate) {
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
 }
-.table-row--temp { grid-template-columns: 1.2fr 1.5fr 0.7fr 1fr 1fr 1.2fr; }
+.table-row--insights { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+.table-row--missed { grid-template-columns: 2fr 1.5fr 1fr 0.8fr; }
 .table-row:last-child { border-bottom: none; }
 .table-row--danger { background: color-mix(in srgb, var(--color-danger, #dc2626) 6%, transparent); }
 .table-empty {
@@ -353,6 +520,12 @@ function rateClass(rate) {
   text-align: center;
   font-size: var(--font-size-sm);
   color: var(--color-text-hint);
+}
+
+.chart-empty {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 .cell-name { font-weight: var(--font-weight-medium); }
 .cell-muted { color: var(--color-text-muted); font-size: var(--font-size-xs); }
@@ -379,49 +552,10 @@ function rateClass(rate) {
 .status-pill--danger { background: color-mix(in srgb, var(--color-danger, #dc2626) 12%, transparent); color: var(--color-danger, #dc2626); }
 
 /* ── Deviations ── */
-.deviation-list { display: flex; flex-direction: column; gap: var(--space-3); }
-.deviation-card {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-danger, #dc2626);
-  border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-sm);
-}
-.deviation-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: var(--space-2);
-}
-.deviation-task { font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
-.deviation-details { display: flex; gap: var(--space-4); margin-bottom: var(--space-2); }
-.deviation-meta { margin: 0; font-size: var(--font-size-sm); color: var(--color-text-muted); }
-
-/* ── Empty ── */
-.empty-state-small {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-8) var(--space-6);
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-}
-.empty-title {
-  margin: 0 0 var(--space-2);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-}
-.empty-sub {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-}
-
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .stats-grid { grid-template-columns: 1fr; }
+  .insight-grid { grid-template-columns: 1fr; }
   .report-header-top { flex-direction: column; gap: var(--space-2); }
   .report-org-details { flex-direction: column; gap: var(--space-3); }
   .table-head, .table-row { font-size: var(--font-size-xs); padding: var(--space-2) var(--space-3); }

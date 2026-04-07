@@ -22,6 +22,8 @@ public record CreateTaskRequest(
 
 	SectionTypes sectionType,
 
+	Long temperatureZoneId,
+
 	@DecimalMin("-999.99")
 	@DecimalMax("999.99")
 	BigDecimal targetMin,

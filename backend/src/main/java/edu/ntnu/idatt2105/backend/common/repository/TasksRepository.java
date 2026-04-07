@@ -90,4 +90,15 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 			"AND t.endedAt BETWEEN :from AND :to")
 	int countDeviatedByChecklistInPeriod(@Param("checklistId") Long checklistId,
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	@Query("SELECT DISTINCT t FROM TasksModel t " +
+			"JOIN FETCH t.checklist c " +
+			"JOIN FETCH t.taskTemplate tt " +
+			"WHERE c.organization.id = :orgId " +
+			"AND t.endedAt BETWEEN :from AND :to")
+	List<TasksModel> findAllByOrgIdInPeriodWithRelations(
+		@Param("orgId") UUID orgId,
+		@Param("from") LocalDateTime from,
+		@Param("to") LocalDateTime to
+	);
 }

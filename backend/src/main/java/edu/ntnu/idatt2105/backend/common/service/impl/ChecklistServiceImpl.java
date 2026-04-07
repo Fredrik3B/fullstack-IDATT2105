@@ -27,6 +27,7 @@ import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -219,24 +220,32 @@ public class ChecklistServiceImpl implements ChecklistService {
 	@Override
 	@Transactional
 	public ChecklistCardResponse submitChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
-		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
+		ChecklistModel checklist = synchronizeChecklistPeriodState(
+			getChecklist(checklistId, requirePrincipal(principal).getOrganizationId())
+		);
 		sortTemplates(checklist);
 		if (checklist.getTaskTemplates() == null || checklist.getTaskTemplates().isEmpty()) {
 			throw new IllegalArgumentException("Checklist must contain at least one task before it can be submitted.");
 		}
 
 		String activePeriodKey = resolveActivePeriodKey(checklist);
+		String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault());
+		if (!Objects.equals(activePeriodKey, currentPeriodKey)) {
+			throw new IllegalStateException("This checklist has already been submitted for the current period.");
+		}
 		List<TasksModel> activeTasks = ensureTasksForActivePeriod(checklist);
 		if (activeTasks.isEmpty()) {
 			throw new IllegalArgumentException("Checklist has no active tasks to submit.");
 		}
 		for (TasksModel task : activeTasks) {
+			if (task.getEndedAt() == null) {
+				task.setEndedAt(periodKeyToDateTime(checklist.getFrequency(), task.getPeriodKey()));
+			}
 			task.setActive(false);
 		}
 		tasksRepository.saveAll(activeTasks);
 
 		checklist.setActivePeriodKey(PeriodKeyUtil.nextPeriodKey(checklist.getFrequency(), activePeriodKey));
-		checklist.setDisplayedOnWorkbench(checklist.isRecurring());
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
 		sortTemplates(savedChecklist);
 		return toCardResponse(savedChecklist);
@@ -350,30 +359,41 @@ public class ChecklistServiceImpl implements ChecklistService {
 	}
 
 	private ChecklistCardResponse toCardResponse(ChecklistModel checklist) {
-		List<TasksModel> tasks = checklist.isDisplayedOnWorkbench()
-			? ensureTasksForActivePeriod(checklist)
+		ChecklistModel currentChecklist = synchronizeChecklistPeriodState(checklist);
+		String activePeriodKey = resolveActivePeriodKey(currentChecklist);
+		String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(currentChecklist.getFrequency(), ZoneId.systemDefault());
+		boolean shouldLoadActiveTasks = currentChecklist.isDisplayedOnWorkbench()
+			&& (currentChecklist.isRecurring() || Objects.equals(activePeriodKey, currentPeriodKey));
+		List<TasksModel> tasks = shouldLoadActiveTasks
+			? ensureTasksForActivePeriod(currentChecklist)
 			: List.of();
 		Map<Long, TemperatureMeasurementModel> latestMeasurementsByTaskId = latestMeasurementsByTaskId(tasks);
 		int completedCount = (int) tasks.stream().filter(TasksModel::isCompleted).count();
 		int total = tasks.size();
 		Integer progress = total == 0 ? 0 : Math.toIntExact(Math.round((completedCount * 100.0) / total));
 		boolean completed = total > 0 && completedCount == total;
-		List<ChecklistSectionResponse> sections = checklist.isDisplayedOnWorkbench()
+		List<ChecklistSectionResponse> sections = shouldLoadActiveTasks
 			? toSectionResponses(tasks, latestMeasurementsByTaskId)
-			: toTemplateSectionResponses(checklist);
+			: toTemplateSectionResponses(currentChecklist);
+		String statusLabel = currentChecklist.isDisplayedOnWorkbench()
+			? (shouldLoadActiveTasks ? (completed ? "Ready to submit" : "In progress") : "Waiting for next period")
+			: "In library";
+		String statusTone = currentChecklist.isDisplayedOnWorkbench()
+			? (shouldLoadActiveTasks ? (completed ? "success" : "muted") : "muted")
+			: "muted";
 
 		return new ChecklistCardResponse(
-			checklist.getId(),
-			PeriodKeyUtil.frequencyToPeriod(checklist.getFrequency()),
-			resolveActivePeriodKey(checklist),
-			checklist.isRecurring(),
-			checklist.isDisplayedOnWorkbench(),
-			checklist.getName(),
-			checklist.getDescription() != null ? checklist.getDescription() : "",
+			currentChecklist.getId(),
+			PeriodKeyUtil.frequencyToPeriod(currentChecklist.getFrequency()),
+			activePeriodKey,
+			currentChecklist.isRecurring(),
+			currentChecklist.isDisplayedOnWorkbench(),
+			currentChecklist.getName(),
+			currentChecklist.getDescription() != null ? currentChecklist.getDescription() : "",
 			null,
 			Boolean.FALSE,
-			checklist.isDisplayedOnWorkbench() ? (completed ? "Ready to submit" : "In progress") : "In library",
-			checklist.isDisplayedOnWorkbench() ? (completed ? "success" : "muted") : "muted",
+			statusLabel,
+			statusTone,
 			progress,
 			sections
 		);
@@ -387,6 +407,30 @@ public class ChecklistServiceImpl implements ChecklistService {
 			checklistRepository.save(checklist);
 		}
 		return key;
+	}
+
+	private LocalDateTime periodKeyToDateTime(ChecklistFrequency frequency, String periodKey) {
+		String nextPeriodKey = PeriodKeyUtil.nextPeriodKey(frequency, periodKey);
+		return PeriodKeyUtil.periodStartDate(frequency, nextPeriodKey)
+			.atStartOfDay()
+			.minusSeconds(1);
+	}
+
+	private ChecklistModel synchronizeChecklistPeriodState(ChecklistModel checklist) {
+		String activeKey = resolveActivePeriodKey(checklist);
+		String currentKey = PeriodKeyUtil.currentPeriodKey(checklist.getFrequency(), ZoneId.systemDefault());
+		LocalDate activeStart = PeriodKeyUtil.periodStartDate(checklist.getFrequency(), activeKey);
+		LocalDate currentStart = PeriodKeyUtil.periodStartDate(checklist.getFrequency(), currentKey);
+
+		if (activeStart.isBefore(currentStart)) {
+			deactivateActiveTasks(checklist.getId());
+			checklist.setActivePeriodKey(currentKey);
+			ChecklistModel savedChecklist = checklistRepository.save(checklist);
+			sortTemplates(savedChecklist);
+			return savedChecklist;
+		}
+
+		return checklist;
 	}
 
 	private void deactivateActiveTasks(Long checklistId) {

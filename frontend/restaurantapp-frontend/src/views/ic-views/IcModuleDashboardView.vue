@@ -1,10 +1,12 @@
 <script setup>
-import ChecklistDashboard from '../../features/ic-checklists/ChecklistDashboard.vue'
-import ChecklistLibraryModal from '../../features/ic-checklists/ChecklistLibraryModal.vue'
-import CreateChecklistModal from '../../features/ic-checklists/CreateChecklistModal.vue'
-import ManageTaskTemplatesModal from '../../features/ic-checklists/ManageTaskTemplatesModal.vue'
-import { getIcModuleConfig } from '../../features/ic-checklists/moduleConfig'
-import { useIcModulePage } from '../../features/ic-checklists/useIcModulePage'
+import { computed } from 'vue'
+import ChecklistDashboard from '../../components/ic-checklists/ChecklistDashboard.vue'
+import ChecklistLibraryModal from '../../components/ic-checklists/ChecklistLibraryModal.vue'
+import CreateChecklistModal from '../../components/ic-checklists/CreateChecklistModal.vue'
+import ManageTaskTemplatesModal from '../../components/ic-checklists/ManageTaskTemplatesModal.vue'
+import SharedConfirmDialog from '../../components/ic-checklists/SharedConfirmDialog.vue'
+import { getIcModuleConfig } from '../../composables/ic-checklists/moduleConfig'
+import { useIcModulePage } from '../../composables/ic-checklists/useIcModulePage'
 
 const props = defineProps({
   module: {
@@ -19,6 +21,8 @@ const {
   activePeriod,
   cards,
   workbenchCards,
+  canManageChecklists,
+  canManageTaskPool,
   loadedChecklistIds,
   highlightedChecklistId,
   now,
@@ -29,6 +33,11 @@ const {
   isEditOpen,
   isLibraryOpen,
   isTaskPoolOpen,
+  isCreatingChecklist,
+  isUpdatingChecklist,
+  openingChecklistId,
+  deletingChecklistId,
+  removingChecklistId,
   editingCard,
   deleteDialog,
   togglePending,
@@ -47,7 +56,13 @@ const {
   handleUpdatedChecklist,
   handleDeleteChecklist,
   openChecklistOnWorkbench,
+  removeChecklistFromWorkbench,
 } = useIcModulePage(config)
+
+const deleteDialogMessage = computed(
+  () =>
+    `"${deleteDialog.value.checklist?.title || 'This checklist'}" will be removed from the library and any current workbench usage.`,
+)
 </script>
 
 <template>
@@ -57,6 +72,8 @@ const {
     :date-label="dateLabel"
     :module-description="config.moduleDescription"
     :summary-hint="config.summaryHint"
+    :can-manage-checklists="canManageChecklists"
+    :can-manage-task-pool="canManageTaskPool"
     v-model:activePeriod="activePeriod"
     :cards="workbenchCards"
     :highlighted-checklist-id="highlightedChecklistId"
@@ -78,6 +95,9 @@ const {
     v-model:open="isCreateOpen"
     :module="config.module"
     :module-label="config.moduleLabel"
+    :can-manage-checklists="canManageChecklists"
+    :can-manage-tasks="canManageTaskPool"
+    :save-pending="isCreatingChecklist"
     @manage-tasks="openTaskPoolModal"
     @created="handleCreatedChecklist"
   />
@@ -88,9 +108,15 @@ const {
     :initial-card="editingCard"
     :module="config.module"
     :module-label="config.moduleLabel"
+    :can-manage-checklists="canManageChecklists"
+    :can-manage-tasks="canManageTaskPool"
+    :save-pending="isUpdatingChecklist"
+    :delete-pending="String(deletingChecklistId ?? '') === String(editingCard?.id ?? '')"
+    :remove-pending="String(removingChecklistId ?? '') === String(editingCard?.id ?? '')"
     @manage-tasks="openTaskPoolModal"
     @close="closeEditModal"
     @delete="requestDeleteChecklist"
+    @remove-from-workbench="removeChecklistFromWorkbench"
     @updated="handleUpdatedChecklist"
   />
 
@@ -99,6 +125,7 @@ const {
     :module-label="config.moduleLabel"
     :cards="cards"
     :loaded-checklist-ids="loadedChecklistIds"
+    :opening-checklist-id="openingChecklistId"
     @open-checklist="openChecklistOnWorkbench"
   />
 
@@ -108,126 +135,16 @@ const {
     :module-label="config.moduleLabel"
   />
 
-  <div
-    v-if="deleteDialog.open"
-    class="confirm-overlay"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Delete checklist"
-  >
-    <div class="confirm-dialog">
-      <div class="confirm-kicker">{{ config.moduleLabel }}</div>
-      <h2>Delete checklist?</h2>
-      <p>
-        "{{ deleteDialog.checklist?.title || 'This checklist' }}" will be removed from the library
-        and any current workbench usage.
-      </p>
-      <div class="confirm-note">This action cannot be undone.</div>
-      <div class="confirm-actions">
-        <button type="button" class="confirm-secondary" @click="closeDeleteDialog">Cancel</button>
-        <button
-          type="button"
-          class="confirm-danger"
-          @click="handleDeleteChecklist(deleteDialog.checklist)"
-        >
-          Delete checklist
-        </button>
-      </div>
-    </div>
-  </div>
+  <SharedConfirmDialog
+    v-model:open="deleteDialog.open"
+    :kicker="config.moduleLabel"
+    title="Delete checklist?"
+    :message="deleteDialogMessage"
+    detail="This action cannot be undone."
+    confirm-label="Delete checklist"
+    :is-processing="String(deletingChecklistId ?? '') === String(deleteDialog.checklist?.id ?? '')"
+    tone="danger"
+    @cancel="closeDeleteDialog"
+    @confirm="handleDeleteChecklist(deleteDialog.checklist)"
+  />
 </template>
-
-<style scoped>
-.confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-  background: rgba(12, 16, 28, 0.52);
-  backdrop-filter: blur(2px);
-}
-
-.confirm-dialog {
-  width: min(440px, 100%);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-primary);
-  box-shadow: var(--shadow-lg);
-  padding: var(--space-6);
-  display: grid;
-  gap: var(--space-4);
-}
-
-.confirm-kicker {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.confirm-dialog h2 {
-  margin: 0;
-  font-size: var(--font-size-2xl);
-  line-height: 1.2;
-  color: var(--color-text-primary);
-}
-
-.confirm-dialog p,
-.confirm-note {
-  margin: 0;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-normal);
-  color: var(--color-text-secondary);
-}
-
-.confirm-note {
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--color-danger-bg);
-  color: var(--color-danger-text);
-}
-
-.confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-}
-
-.confirm-secondary,
-.confirm-danger {
-  min-height: 40px;
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  font: inherit;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-}
-
-.confirm-secondary {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.confirm-danger {
-  background: var(--color-danger);
-  color: #ffffff;
-}
-
-@media (max-width: 720px) {
-  .confirm-actions {
-    flex-direction: column-reverse;
-  }
-
-  .confirm-secondary,
-  .confirm-danger {
-    width: 100%;
-  }
-}
-</style>

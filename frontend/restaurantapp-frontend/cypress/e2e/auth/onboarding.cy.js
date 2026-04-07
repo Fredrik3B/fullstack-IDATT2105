@@ -95,15 +95,29 @@ describe('Restaurant Onboarding Page', () => {
 
   describe('when user already has a pending request', () => {
     beforeEach(() => {
-      // Re-stub auth with pending restaurant status
+      // Start from onboarding and move to pending via real join flow.
       cy.setAuthState({
         roles: ['ROLE_STAFF'],
         user: { id: 1, name: 'New User', email: 'newuser@example.com' },
-        restaurantStatus: 'pending',
-        restaurantId: 7,
-        restaurantName: 'Pending Place',
+        restaurantStatus: null,
+        restaurantId: null,
       })
+
+      cy.intercept('GET', '/api/organizations/lookup*', {
+        statusCode: 200,
+        body: { name: 'Pending Place' },
+      }).as('lookupPending')
+      cy.intercept('POST', '/api/organizations/join', {
+        statusCode: 200,
+        body: { id: 7 },
+      }).as('joinPending')
+
       cy.visitAuthenticated('/onboarding')
+      cy.contains('Join existing restaurant').click()
+      cy.get('#joinCode').type('PND-0007')
+      cy.contains('Send access request').click()
+      cy.wait('@lookupPending')
+      cy.wait('@joinPending')
     })
 
     it('shows the pending card directly', () => {
@@ -119,6 +133,17 @@ describe('Restaurant Onboarding Page', () => {
 
       cy.contains('Join existing restaurant').should('be.visible')
       cy.contains('Create new restaurant').should('be.visible')
+    })
+
+    it('stays on the pending view and shows an error when withdrawing fails', () => {
+      cy.intercept('DELETE', '/api/organizations/join-request', { statusCode: 500 }).as('withdrawFail')
+
+      cy.contains('Withdraw request').click()
+      cy.wait('@withdrawFail')
+
+      cy.contains('Request sent').should('be.visible')
+      cy.contains('Withdraw request').should('be.visible')
+      cy.contains('Join existing restaurant').should('not.exist')
     })
   })
 
@@ -136,5 +161,32 @@ describe('Restaurant Onboarding Page', () => {
     cy.contains('Log out').click()
     cy.wait('@logout')
     cy.url().should('include', '/login')
+  })
+
+  // ── Route guard behavior ──────────────────────────────────────────────────
+
+  it('redirects users without an active restaurant from app pages to /onboarding', () => {
+    cy.setAuthState({
+      roles: ['ROLE_STAFF'],
+      user: { id: 3, name: 'Pending User', email: 'pending@example.com' },
+      restaurantStatus: 'pending',
+      restaurantId: null,
+    })
+
+    cy.visitAuthenticated('/documents')
+    cy.url().should('include', '/onboarding')
+  })
+
+  it('redirects users with an active restaurant away from /onboarding to dashboard', () => {
+    cy.setAuthState({
+      roles: ['ROLE_STAFF'],
+      user: { id: 4, name: 'Active User', email: 'active@example.com' },
+      restaurantStatus: 'active',
+      restaurantId: 22,
+      restaurantName: 'Active Place',
+    })
+
+    cy.visitAuthenticated('/onboarding')
+    cy.url().should('eq', Cypress.config('baseUrl') + '/')
   })
 })

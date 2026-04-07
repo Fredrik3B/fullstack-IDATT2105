@@ -11,8 +11,11 @@ public class ChecklistRecord {
   private String description;
   private String frequency;
   private ComplianceArea complianceArea;
+  private int completionsInPeriod;
+  private int expectedRuns;
   private int totalTasks;
   private int completedTasks;
   private int deviatedTasks;
   private double completionRate;
+  private double averageCompletionRate;
 }

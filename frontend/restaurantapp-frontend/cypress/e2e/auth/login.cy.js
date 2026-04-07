@@ -74,12 +74,13 @@ describe('Login Page', () => {
   it('redirects to /onboarding after login when user has no restaurant', () => {
     cy.intercept('POST', '/api/auth/login', {
       statusCode: 200,
-      body: { accessToken: buildStaffToken(), email: 'user@example.com', name: 'Test User', role: 'ROLE_STAFF' },
+      body: {
+        accessToken: buildStaffToken(),
+        user: { id: 1, name: 'Test User', email: 'user@example.com' },
+        restaurant: null,
+        restaurantStatus: null,
+      },
     }).as('loginOk')
-    cy.intercept('GET', '/api/auth/me', {
-      statusCode: 200,
-      body: { user: { id: 1, name: 'Test User', email: 'user@example.com' }, restaurantStatus: null, restaurantId: null, restaurantName: null, restaurantJoinCode: null },
-    }).as('authMe')
 
     cy.get('#email').type('user@example.com')
     cy.get('#password').type('password123')
@@ -91,12 +92,13 @@ describe('Login Page', () => {
   it('redirects to dashboard after login when user has an active restaurant', () => {
     cy.intercept('POST', '/api/auth/login', {
       statusCode: 200,
-      body: { accessToken: buildAdminToken(), email: 'admin@example.com', name: 'Admin User', role: 'ROLE_ADMIN' },
+      body: {
+        accessToken: buildAdminToken(),
+        user: { id: 2, name: 'Admin User', email: 'admin@example.com' },
+        restaurant: { id: 1, name: 'Best Restaurant', joinCode: 'BST-0001' },
+        restaurantStatus: 'active',
+      },
     }).as('loginOk')
-    cy.intercept('GET', '/api/auth/me', {
-      statusCode: 200,
-      body: { user: { id: 2, name: 'Admin User', email: 'admin@example.com' }, restaurantStatus: 'active', restaurantId: 1, restaurantName: 'Best Restaurant', restaurantJoinCode: 'BST-0001' },
-    }).as('authMe')
 
     cy.get('#email').type('admin@example.com')
     cy.get('#password').type('password123')
@@ -119,6 +121,34 @@ describe('Login Page', () => {
   it('navigates to /register when clicking "Create one"', () => {
     cy.contains('Create one').click()
     cy.url().should('include', '/register')
+  })
+
+  // ── Route guard behavior ──────────────────────────────────────────────────
+
+  it('redirects authenticated users with an active restaurant from /login to dashboard', () => {
+    cy.setAuthState({
+      roles: ['ROLE_ADMIN'],
+      user: { id: 10, name: 'Admin User', email: 'admin@example.com' },
+      restaurantStatus: 'active',
+      restaurantId: 1,
+      restaurantName: 'Best Restaurant',
+      restaurantJoinCode: 'BST-0001',
+    })
+
+    cy.visitAuthenticated('/login')
+    cy.url().should('eq', Cypress.config('baseUrl') + '/')
+  })
+
+  it('redirects authenticated users without an active restaurant from /login to /onboarding', () => {
+    cy.setAuthState({
+      roles: ['ROLE_STAFF'],
+      user: { id: 11, name: 'Staff User', email: 'staff@example.com' },
+      restaurantStatus: null,
+      restaurantId: null,
+    })
+
+    cy.visitAuthenticated('/login')
+    cy.url().should('include', '/onboarding')
   })
 })
 

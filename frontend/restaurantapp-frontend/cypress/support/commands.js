@@ -4,6 +4,7 @@
 
 /** Shared token storage between setAuthState and visitAuthenticated. */
 let _currentTestToken = null
+let _currentSession = null
 
 /**
  * Build a minimal, structurally-valid JWT for testing.
@@ -20,8 +21,8 @@ function makeTestJwt(roles = []) {
 }
 
 /**
- * Stub the /api/auth/me endpoint and store the token so that
- * `cy.visitAuthenticated()` can inject it into localStorage before page load.
+ * Store token + session so `cy.visitAuthenticated()` can inject auth state
+ * into localStorage before page load.
  *
  * Options:
  *   roles           {string[]}  JWT roles, e.g. ['ROLE_ADMIN']   (default: ['ROLE_STAFF'])
@@ -37,16 +38,17 @@ Cypress.Commands.add('setAuthState', (options = {}) => {
   // Store token so visitAuthenticated() can read it synchronously
   _currentTestToken = token
 
-  cy.intercept('GET', '/api/auth/me', {
-    statusCode: 200,
-    body: {
-      user: options.user ?? { id: 1, name: 'Test User', email: 'test@example.com' },
-      restaurantStatus: options.restaurantStatus ?? null,
-      restaurantId: options.restaurantId ?? null,
-      restaurantName: options.restaurantName ?? null,
-      restaurantJoinCode: options.restaurantJoinCode ?? null,
-    },
-  }).as('authMe')
+  _currentSession = {
+    user: options.user ?? { id: 1, name: 'Test User', email: 'test@example.com' },
+    restaurant: options.restaurantId || options.restaurantName || options.restaurantJoinCode
+      ? {
+          id: options.restaurantId ?? null,
+          name: options.restaurantName ?? null,
+          joinCode: options.restaurantJoinCode ?? null,
+        }
+      : null,
+    restaurantStatus: options.restaurantStatus ?? null,
+  }
 })
 
 /**
@@ -61,6 +63,9 @@ Cypress.Commands.add('visitAuthenticated', (url, visitOptions = {}) => {
     ...visitOptions,
     onBeforeLoad(win) {
       win.localStorage.setItem('iksystem_access_token', token)
+      if (_currentSession) {
+        win.localStorage.setItem('iksystem_session', JSON.stringify(_currentSession))
+      }
       visitOptions.onBeforeLoad?.(win)
     },
   })

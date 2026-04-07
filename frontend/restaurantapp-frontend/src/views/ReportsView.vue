@@ -61,11 +61,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { fetchInspectionReport, fetchSummaryReport } from '../api/reports'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { fetchInspectionReport, fetchSummaryReport } from '@/api/reports'
 import InspectionReport from '@/components/reports/InspectionReport.vue'
 import SummaryReport from '@/components/reports/SummaryReport.vue'
 import DeviationReportForm from '@/components/reports/DeviationReportForm.vue'
+
+const route = useRoute()
 
 const showDeviationForm = ref(false)
 
@@ -84,6 +87,42 @@ const monthAgo = new Date(today)
 monthAgo.setMonth(monthAgo.getMonth() - 1)
 const fromDate = ref(monthAgo.toISOString().slice(0, 10))
 const toDate = ref(today.toISOString().slice(0, 10))
+
+function applyPresetRange(preset) {
+  const now = new Date()
+  const from = new Date(now)
+
+  if (preset === 'today') { /* from stays as now */ }
+  else if (preset === 'week') { from.setDate(from.getDate() - 7) }
+  else if (preset === 'month') { from.setMonth(from.getMonth() - 1) }
+  else return
+
+  fromDate.value = from.toISOString().slice(0, 10)
+  toDate.value = now.toISOString().slice(0, 10)
+}
+
+async function applyRouteQueryIntent(query) {
+  const action = String(query?.action ?? '').toLowerCase()
+  const preset = String(query?.preset ?? '').toLowerCase()
+  const requestedType = String(query?.reportType ?? '').toLowerCase()
+  const autoLoad = String(query?.autoload ?? '') === '1'
+
+  if (requestedType === 'inspection' || requestedType === 'summary') {
+    reportType.value = requestedType
+  }
+
+  if (preset) {
+    applyPresetRange(preset)
+  }
+
+  if (action === 'deviation') {
+    showDeviationForm.value = true
+  }
+
+  if (autoLoad) {
+    await loadReport()
+  }
+}
 
 async function loadReport() {
   loading.value = true
@@ -107,6 +146,17 @@ async function loadReport() {
 function printReport() {
   window.print()
 }
+
+onMounted(async () => {
+  await applyRouteQueryIntent(route.query)
+})
+
+watch(
+  () => route.query,
+  async (query) => {
+    await applyRouteQueryIntent(query)
+  }
+)
 </script>
 
 <style scoped>

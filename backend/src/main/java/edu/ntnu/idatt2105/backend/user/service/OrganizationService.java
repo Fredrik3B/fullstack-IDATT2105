@@ -7,6 +7,7 @@ import edu.ntnu.idatt2105.backend.common.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
+import edu.ntnu.idatt2105.backend.user.dto.JoinRequestResponse;
 import edu.ntnu.idatt2105.backend.user.dto.MemberDto;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
@@ -239,5 +240,11 @@ public class OrganizationService {
     user.getRoles().clear();
     user.getRoles().addAll(newRoles);
     userRepository.save(user);
+  }
+
+  public JoinRequestResponse seeJoinRequest(UUID userId) {
+    return joinRequestRepository.findFirstByUserIdAndStatus(userId, JoinOrgStatus.PENDING)
+        .map(organizationMapper::toJoinRequestResponse)
+        .orElse(null);
   }
 }

@@ -9,6 +9,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 // implement correct relations
@@ -41,6 +44,10 @@ public class TaskTemplate extends AuditableEntity {
 
 	@Column (nullable = false)
 	private UUID organisationId;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "temperature_zone_id")
+	private TemperatureZoneModel temperatureZone;
 
 	public String getTitle() {
 		return title;
@@ -104,5 +111,13 @@ public class TaskTemplate extends AuditableEntity {
 
 	public void setOrganisationId(UUID organisationId) {
 		this.organisationId = organisationId;
+	}
+
+	public TemperatureZoneModel getTemperatureZone() {
+		return temperatureZone;
+	}
+
+	public void setTemperatureZone(TemperatureZoneModel temperatureZone) {
+		this.temperatureZone = temperatureZone;
 	}
 }

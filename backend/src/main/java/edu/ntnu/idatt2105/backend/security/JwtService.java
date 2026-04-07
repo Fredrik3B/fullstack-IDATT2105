@@ -107,14 +107,14 @@ public class JwtService {
   }
 
   /**
-   * Validates that the token is not expired and that the subject matches with expected username.
+   * Validates that the token is not expired and that the subject matches with expected email.
    *
    * @param token the JWT string
-   * @param username the username subject is expected to match
+   * @param email the email subject is expected to match
    * @return true if token is valid
    */
-  public boolean validateToken(String token, String username) {
-    return extractEmail(token).equals(username) && !tokenExpired(token);
+  public boolean validateToken(String token, String email) {
+    return extractEmail(token).equals(email);
   }
 
   public String extractEmail(String token) {
@@ -135,9 +135,6 @@ public class JwtService {
     return orgId != null ? UUID.fromString(orgId) : null;
   }
 
-  public boolean tokenExpired(String token) {
-    return getClaims(token).getExpiration().before(new Date());
-  }
 
   private SecretKey getSigningKey() {
     return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
