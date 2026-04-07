@@ -90,6 +90,7 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   module: { type: String, required: true },
   moduleLabel: { type: String, default: '' },
+  startInCreateMode: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:open', 'close', 'changed'])
@@ -132,7 +133,20 @@ async function loadZones() {
 watch(
   () => props.open,
   async (isOpen) => {
-    if (isOpen) await loadZones()
+    if (!isOpen) return
+    await loadZones()
+    if (props.startInCreateMode) {
+      isCreateOpen.value = true
+    }
+  },
+)
+
+watch(
+  () => props.startInCreateMode,
+  (shouldStart) => {
+    if (props.open && shouldStart) {
+      isCreateOpen.value = true
+    }
   },
 )
 

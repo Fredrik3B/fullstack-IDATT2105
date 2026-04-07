@@ -223,6 +223,17 @@
                       </select>
                     </label>
 
+                    <div class="quick-create-zone-actions full">
+                      <button
+                        type="button"
+                        class="secondary"
+                        :disabled="creatingTask"
+                        @click="openZoneManagerForCreate"
+                      >
+                        New fridge item
+                      </button>
+                    </div>
+
                     <p class="quick-create-note full">
                       Temperature ranges come from the selected fridge item. Add or edit fridge
                       items from the full task pool.
@@ -363,6 +374,14 @@
       @cancel="closeRemoveFromWorkbenchConfirm"
       @confirm="confirmRemoveFromWorkbench"
     />
+
+    <ManageTemperatureZonesModal
+      v-model:open="isZoneManagerOpen"
+      :module="module"
+      :module-label="moduleLabel"
+      :start-in-create-mode="zoneManagerShouldStartInCreateMode"
+      @changed="handleZonesChanged"
+    />
   </div>
 </template>
 
@@ -371,6 +390,7 @@ import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, fetchTasks } from '../../api/tasks'
 import { fetchTemperatureZones } from '../../api/temperatureZones'
+import ManageTemperatureZonesModal from '../../composables/ic-checklists/ManageTemperatureZonesModal.vue'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
 import { formatTemperatureZoneType } from '../../composables/ic-checklists/temperatureZoneOptions'
@@ -387,6 +407,7 @@ const props = defineProps({
   module: { type: String, required: true },
   moduleLabel: { type: String, default: '' },
   canManageTasks: { type: Boolean, default: false },
+  taskPoolRefreshToken: { type: Number, default: 0 },
   savePending: { type: Boolean, default: false },
   deletePending: { type: Boolean, default: false },
   removePending: { type: Boolean, default: false },
@@ -417,6 +438,8 @@ const loadingTemperatureZones = ref(false)
 const creatingTask = ref(false)
 const activeStep = ref('details')
 const isQuickCreateOpen = ref(false)
+const isZoneManagerOpen = ref(false)
+const zoneManagerShouldStartInCreateMode = ref(false)
 const quickTaskError = ref('')
 const removeWorkbenchConfirm = ref({
   open: false,
@@ -546,6 +569,8 @@ async function loadTasks() {
   try {
     const data = await fetchTasks({ module: props.module })
     poolTasks.value = Array.isArray(data) ? data : []
+    const availableTaskIds = new Set(poolTasks.value.map((task) => task.id))
+    selectedTaskIds.value = selectedTaskIds.value.filter((id) => availableTaskIds.has(id))
   } catch (err) {
     console.error('Failed to fetch task pool', err)
     error.value = 'Could not load task pool.'
@@ -559,6 +584,15 @@ async function loadTemperatureZones() {
   try {
     const data = await fetchTemperatureZones({ module: props.module })
     temperatureZones.value = Array.isArray(data) ? data : []
+    if (
+      quickTask.value.sectionType === 'TEMPERATURE_CONTROL' &&
+      quickTask.value.temperatureZoneId &&
+      !temperatureZones.value.some(
+        (zone) => String(zone.id) === String(quickTask.value.temperatureZoneId),
+      )
+    ) {
+      quickTask.value.temperatureZoneId = ''
+    }
   } catch (err) {
     console.error('Failed to fetch temperature zones', err)
     quickTaskError.value = 'Could not load fridge items.'
@@ -585,6 +619,14 @@ watch(
 )
 
 watch(
+  () => props.taskPoolRefreshToken,
+  async () => {
+    if (!props.open) return
+    await Promise.all([loadTasks(), loadTemperatureZones()])
+  },
+)
+
+watch(
   () => quickTask.value.sectionType,
   (sectionType) => {
     if (sectionType !== 'TEMPERATURE_CONTROL') {
@@ -597,9 +639,21 @@ watch(
 
 function handleClose() {
   if (isBusy.value) return
+  isZoneManagerOpen.value = false
+  zoneManagerShouldStartInCreateMode.value = false
   closeRemoveFromWorkbenchConfirm()
   emit('update:open', false)
   emit('close')
+}
+
+function openZoneManagerForCreate() {
+  zoneManagerShouldStartInCreateMode.value = true
+  isZoneManagerOpen.value = true
+}
+
+async function handleZonesChanged() {
+  zoneManagerShouldStartInCreateMode.value = false
+  await loadTemperatureZones()
 }
 
 async function handleQuickCreateTask() {
@@ -1100,6 +1154,12 @@ h2 {
   margin: 0;
   font-size: 13px;
   color: var(--color-text-muted);
+}
+
+.quick-create-zone-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .modal-footer {
