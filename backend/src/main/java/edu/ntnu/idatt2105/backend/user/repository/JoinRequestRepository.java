@@ -25,5 +25,5 @@ public interface JoinRequestRepository extends JpaRepository<JoinRequestModel, U
   @Query("SELECT j FROM JoinRequestModel j JOIN FETCH j.user WHERE j.organization.id = :orgId")
   List<JoinRequestModel> findAllByOrganizationIdWithUser(@Param("orgId") UUID orgId);
 
-  Optional<JoinRequestModel> findFirstByUser_IdAndStatus(UUID userId, JoinOrgStatus status);}
+  Optional<JoinRequestModel> findFirstByUser_IdAndStatus(UUID userId, JoinOrgStatus status);
 }
