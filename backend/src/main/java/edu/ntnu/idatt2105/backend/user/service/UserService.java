@@ -30,9 +30,6 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
   private final UserMapper userMapper;
   private final JwtService jwtService;
-  private final OrganizationRepository organizationRepository;
-  private final JoinRequestRepository joinRequestRepository;
-
 
   public LoginResponse register(CreateUserRequest request) {
     if (userRepository.findByEmail(request.getEmail()).isPresent()) {
