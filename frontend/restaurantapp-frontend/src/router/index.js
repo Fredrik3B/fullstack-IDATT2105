@@ -73,7 +73,7 @@ const router = createRouter({
         {
           path: 'admin/requests',
           name: 'admin-requests',
-          component: () => import('../views/admin/JoinRequestsView.vue')
+          component: () => import('../views/admin/AdminPanel.vue')
         }
       ]
     }
