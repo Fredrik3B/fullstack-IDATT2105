@@ -1,30 +1,20 @@
 package edu.ntnu.idatt2105.backend.user.controller;
 
-import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
-import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
-import edu.ntnu.idatt2105.backend.user.dto.AuthDto;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
-import edu.ntnu.idatt2105.backend.user.dto.LoginResponse.UserInfo;
-import edu.ntnu.idatt2105.backend.user.dto.MeResponse;
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
-import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Duration;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,12 +32,6 @@ public class UserController {
 
   private final UserService userService;
 
-  @GetMapping("/not-in-use")
-  public ResponseEntity<MeResponse> getMe(Authentication authentication) {
-    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(authentication);
-    return ResponseEntity.ok(userService.getMe(principal.getUserId()));
-  }
-
 
   @Operation(summary = "Register a new user",
       description = "Creates a user with STAFF role. Returns access token, refresh token in HttpOnly cookie.")
@@ -55,15 +39,13 @@ public class UserController {
   @ApiResponse(responseCode = "409", description = "Email already in use")
   @PostMapping("/register")
   public ResponseEntity<LoginResponse> register(@RequestBody @Valid CreateUserRequest request) {
-    AuthDto result = userService.register(request);
-    return buildLoginResponse(result);
+    return sendWithCookie(userService.register(request));
   }
 
   @Operation(summary = "Login with email and password")
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest request) {
-    AuthDto result = userService.login(request);
-    return buildLoginResponse(result);
+    return sendWithCookie(userService.login(request));
   }
 
   @PostMapping("/refresh")
@@ -73,8 +55,7 @@ public class UserController {
     if (refreshToken == null) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
-    AuthDto result = userService.refreshToken(refreshToken);
-    return buildLoginResponse(result);
+    return sendWithCookie(userService.refreshToken(refreshToken));
   }
 
   @PostMapping("/logout")
@@ -92,20 +73,12 @@ public class UserController {
         .build();
   }
 
-  private ResponseEntity<LoginResponse> buildLoginResponse(AuthDto result) {
-    ResponseCookie cookie = createRefreshTokenCookie(result.getRefreshToken());
-    UserModel user = result.getUser();
-
-
-    LoginResponse.RestaurantInfo restaurant = null;
-    OrganizationModel org = user.getOrganization();
-    if (org != null) {
-      restaurant = new LoginResponse.RestaurantInfo(org.getId(), org.getName(), org.getJoinCode());
-    }
-
-    LoginResponse response = new LoginResponse(result.getAccessToken(),
-        new UserInfo(user.getEmail(), user.getFirstName() + " " + user.getLastName()),
-        restaurant);
+  private ResponseEntity<LoginResponse> sendWithCookie(LoginResponse response) {
+    ResponseCookie cookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
+        .httpOnly(true).secure(cookieSecure)
+        .path("/api/auth/refresh").maxAge(Duration.ofDays(7)).sameSite("Lax")
+        .build();
+    response.setRefreshToken(null);
 
     return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, cookie.toString())

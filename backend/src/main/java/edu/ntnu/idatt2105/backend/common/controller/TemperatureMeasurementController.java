@@ -50,7 +50,7 @@ public class TemperatureMeasurementController {
 		@Valid @RequestBody CreateTemperatureMeasurementRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC create temperature measurement: orgId={} userId={} module={} checklistId={} taskId={} valueC={} measuredAt={} periodKey={}",
 			principal.getOrganizationId(),
@@ -76,7 +76,7 @@ public class TemperatureMeasurementController {
 		@RequestParam(required = false) LocalDateTime to,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC fetch temperature measurements: orgId={} userId={} module={} from={} to={}",
 			principal.getOrganizationId(),

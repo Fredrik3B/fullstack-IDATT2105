@@ -63,7 +63,7 @@ public class DocumentController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expiryDate,
             Authentication auth
     ) {
-        JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+        JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
         LOGGER.info("Document create request: orgId={} userId={} name='{}' category={} module={} isLink={}",
                 principal.getOrganizationId(), principal.getUserId(), name, category, module, externalUrl != null);
         return documentService.uploadDocument(file, externalUrl, name, description, category, module, expiryDate, principal);
@@ -77,7 +77,7 @@ public class DocumentController {
             @RequestParam(value = "module", required = false) DocumentModule module,
             Authentication auth
     ) {
-        JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+        JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
         LOGGER.info("Document list: orgId={} category={} module={}",
                 principal.getOrganizationId(), category, module);
         return documentService.getDocuments(category, module, principal);
@@ -90,7 +90,7 @@ public class DocumentController {
             @PathVariable Long documentId,
             Authentication auth
     ) {
-        JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+        JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
         LOGGER.info("Document download: orgId={} documentId={}", principal.getOrganizationId(), documentId);
 
         Resource resource = documentService.downloadDocument(documentId, principal);
@@ -109,7 +109,7 @@ public class DocumentController {
     @Operation(summary = "Delete a document")
     @ApiResponse(responseCode = "204", description = "Document deleted")
     public void deleteDocument(@PathVariable Long documentId, Authentication auth) {
-        JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+        JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
         LOGGER.info("Document delete: orgId={} documentId={}", principal.getOrganizationId(), documentId);
         documentService.deleteDocument(documentId, principal);
     }
