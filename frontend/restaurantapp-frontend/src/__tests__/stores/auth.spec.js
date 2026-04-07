@@ -328,18 +328,22 @@ describe('useAuthStore', () => {
       expect(localStorage.getItem(SESSION_KEY)).toBeNull()
     })
 
-    it('does not run twice when called multiple times', async () => {
+    it('does not run twice when called multiple times (idempotency)', async () => {
+      // Use a session WITHOUT a restaurant so fetchPendingRequest is triggered on
+      // the first initAuth call. If _initDone guard is missing, a second call would
+      // trigger fetchPendingRequest again — making api.get called twice instead of once.
       localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         user: { id: 1, email: 'test@example.com', name: 'Test User' },
-        restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+        restaurant: null,
       }))
+      api.get.mockResolvedValue({ status: 204, data: null })
 
       const auth = useAuthStore()
       await auth.initAuth()
       await auth.initAuth()
 
-      expect(api.get).not.toHaveBeenCalled()
+      expect(api.get).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -503,16 +507,47 @@ describe('useAuthStore', () => {
   // ── createRestaurant ───────────────────────────────────────────────────
 
   describe('createRestaurant', () => {
-    it('posts to /api/organizations and returns the created restaurant data', async () => {
-      const createdRestaurant = { id: 'uuid-1', name: 'New Place', joinCode: 'NEW-0001' }
+    const payload = { name: 'New Place', orgNumber: '123456789', address: 'Gate 1', postalCode: '0150', city: 'Oslo' }
+    const createdRestaurant = { id: 'uuid-1', name: 'New Place', joinCode: 'NEW-0001' }
+
+    it('posts the payload to /api/organizations', async () => {
       api.post.mockResolvedValueOnce({ data: createdRestaurant })
-      // refreshAccessToken uses plain axios
       axios.post = vi.fn().mockResolvedValueOnce({ data: makeAuthResponse().data })
 
       const auth = useAuthStore()
-      const result = await auth.createRestaurant({ name: 'New Place', orgNumber: '123456789', address: 'Gate 1', postalCode: '0150', city: 'Oslo' })
+      await auth.createRestaurant(payload)
 
-      expect(result).toMatchObject({ joinCode: 'NEW-0001' })
+      expect(api.post).toHaveBeenCalledWith('/api/organizations', payload)
+    })
+
+    it('calls refreshAccessToken after creating the restaurant', async () => {
+      // refreshAccessToken must be called so the JWT is updated with the new
+      // org ID and ROLE_ADMIN. If it is skipped, the user's token is stale.
+      api.post.mockResolvedValueOnce({ data: createdRestaurant })
+      const refreshSpy = vi.fn().mockResolvedValueOnce({ data: makeAuthResponse().data })
+      axios.post = refreshSpy
+
+      const auth = useAuthStore()
+      await auth.createRestaurant(payload)
+
+      expect(refreshSpy).toHaveBeenCalledOnce()
+    })
+
+    it('returns the created restaurant data including the join code', async () => {
+      api.post.mockResolvedValueOnce({ data: createdRestaurant })
+      axios.post = vi.fn().mockResolvedValueOnce({ data: makeAuthResponse().data })
+
+      const auth = useAuthStore()
+      const result = await auth.createRestaurant(payload)
+
+      expect(result).toMatchObject({ id: 'uuid-1', name: 'New Place', joinCode: 'NEW-0001' })
+    })
+
+    it('throws when the API call fails', async () => {
+      api.post.mockRejectedValueOnce(new Error('Conflict'))
+
+      const auth = useAuthStore()
+      await expect(auth.createRestaurant(payload)).rejects.toThrow('Conflict')
     })
   })
 
@@ -546,6 +581,230 @@ describe('useAuthStore', () => {
       await auth.updateMemberRoles(42, ['ROLE_ADMIN'])
 
       expect(api.put).toHaveBeenCalledWith('/api/organizations/members/42/roles', { roles: ['ROLE_ADMIN'] })
+    })
+  })
+
+  // ── hasActiveRestaurant / hasPendingRequest ────────────────────────────
+
+  describe('hasActiveRestaurant', () => {
+    it('is false when restaurant is null', () => {
+      const auth = useAuthStore()
+      expect(auth.hasActiveRestaurant).toBe(false)
+    })
+
+    it('is true when restaurant has an id', () => {
+      const auth = useAuthStore()
+      auth.restaurant = { id: 'r1', name: 'Pizza Palace', joinCode: 'PIZ-1234' }
+      expect(auth.hasActiveRestaurant).toBe(true)
+    })
+
+    it('is false when restaurant object exists but id is null', () => {
+      const auth = useAuthStore()
+      auth.restaurant = { id: null }
+      expect(auth.hasActiveRestaurant).toBe(false)
+    })
+  })
+
+  describe('hasPendingRequest', () => {
+    it('is false when pendingRequest is null', () => {
+      const auth = useAuthStore()
+      expect(auth.hasPendingRequest).toBe(false)
+    })
+
+    it('is true when pendingRequest is set', () => {
+      const auth = useAuthStore()
+      auth.pendingRequest = { status: 'PENDING', restaurantName: 'Some Place' }
+      expect(auth.hasPendingRequest).toBe(true)
+    })
+  })
+
+  // ── lookupRestaurant ───────────────────────────────────────────────────
+
+  describe('lookupRestaurant', () => {
+    it('calls GET /api/organizations/lookup with the join code', async () => {
+      api.get.mockResolvedValueOnce({ data: { name: 'Pizza Palace' } })
+      const auth = useAuthStore()
+
+      await auth.lookupRestaurant('PIZ-1234')
+
+      expect(api.get).toHaveBeenCalledWith('/api/organizations/lookup?code=PIZ-1234')
+    })
+
+    it('returns the restaurant data from the response', async () => {
+      api.get.mockResolvedValueOnce({ data: { name: 'Pizza Palace' } })
+      const auth = useAuthStore()
+
+      const result = await auth.lookupRestaurant('PIZ-1234')
+
+      expect(result).toEqual({ name: 'Pizza Palace' })
+    })
+
+    it('throws when the lookup fails (invalid code)', async () => {
+      api.get.mockRejectedValueOnce(new Error('Not found'))
+      const auth = useAuthStore()
+
+      await expect(auth.lookupRestaurant('BAD-CODE')).rejects.toThrow('Not found')
+    })
+  })
+
+  // ── fetchJoinRequests ──────────────────────────────────────────────────
+
+  describe('fetchJoinRequests', () => {
+    it('calls GET /api/organizations/requests with no query param when status is null', async () => {
+      api.get.mockResolvedValueOnce({ data: [] })
+      const auth = useAuthStore()
+
+      await auth.fetchJoinRequests()
+
+      expect(api.get).toHaveBeenCalledWith('/api/organizations/requests')
+    })
+
+    it('appends ?status=PENDING when status is provided', async () => {
+      api.get.mockResolvedValueOnce({ data: [] })
+      const auth = useAuthStore()
+
+      await auth.fetchJoinRequests('PENDING')
+
+      expect(api.get).toHaveBeenCalledWith('/api/organizations/requests?status=PENDING')
+    })
+
+    it('appends ?status=DECLINED when status is DECLINED', async () => {
+      api.get.mockResolvedValueOnce({ data: [] })
+      const auth = useAuthStore()
+
+      await auth.fetchJoinRequests('DECLINED')
+
+      expect(api.get).toHaveBeenCalledWith('/api/organizations/requests?status=DECLINED')
+    })
+
+    it('returns the list of requests from the response', async () => {
+      const requests = [{ requestId: 'r1', firstName: 'Bob' }]
+      api.get.mockResolvedValueOnce({ data: requests })
+      const auth = useAuthStore()
+
+      const result = await auth.fetchJoinRequests('PENDING')
+
+      expect(result).toEqual(requests)
+    })
+
+    it('throws when the request fails', async () => {
+      api.get.mockRejectedValueOnce(new Error('Forbidden'))
+      const auth = useAuthStore()
+
+      await expect(auth.fetchJoinRequests('PENDING')).rejects.toThrow('Forbidden')
+    })
+  })
+
+  // ── resolveJoinRequest ─────────────────────────────────────────────────
+
+  describe('resolveJoinRequest', () => {
+    it('calls POST /api/organizations/requests/:id with ACCEPTED action', async () => {
+      api.post.mockResolvedValueOnce({})
+      const auth = useAuthStore()
+
+      await auth.resolveJoinRequest('req-uuid-1', 'ACCEPTED')
+
+      expect(api.post).toHaveBeenCalledWith('/api/organizations/requests/req-uuid-1', { action: 'ACCEPTED' })
+    })
+
+    it('calls POST /api/organizations/requests/:id with DECLINED action', async () => {
+      api.post.mockResolvedValueOnce({})
+      const auth = useAuthStore()
+
+      await auth.resolveJoinRequest('req-uuid-2', 'DECLINED')
+
+      expect(api.post).toHaveBeenCalledWith('/api/organizations/requests/req-uuid-2', { action: 'DECLINED' })
+    })
+
+    it('throws when the resolve call fails', async () => {
+      api.post.mockRejectedValueOnce(new Error('Forbidden'))
+      const auth = useAuthStore()
+
+      await expect(auth.resolveJoinRequest('req-uuid-1', 'ACCEPTED')).rejects.toThrow('Forbidden')
+    })
+  })
+
+  // ── refreshAccessToken (extended) ──────────────────────────────────────
+
+  describe('refreshAccessToken (extended)', () => {
+    it('saves the new token and user to state and localStorage', async () => {
+      const { data } = makeAuthResponse({
+        accessToken: 'refreshed-token',
+        user: { id: 1, email: 'test@example.com', name: 'Test User' },
+        restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+      })
+      axios.post = vi.fn().mockResolvedValueOnce({ data })
+
+      const auth = useAuthStore()
+      await auth.refreshAccessToken()
+
+      expect(auth.accessToken).toBe('refreshed-token')
+      expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBe('refreshed-token')
+    })
+
+    it('throws when the refresh request fails', async () => {
+      axios.post = vi.fn().mockRejectedValueOnce(new Error('Unauthorized'))
+      const auth = useAuthStore()
+
+      await expect(auth.refreshAccessToken()).rejects.toThrow('Unauthorized')
+    })
+
+    it('does not update state when refresh fails', async () => {
+      axios.post = vi.fn().mockRejectedValueOnce(new Error('Unauthorized'))
+      const auth = useAuthStore()
+      auth.accessToken = 'old-token'
+
+      try { await auth.refreshAccessToken() } catch { /* expected */ }
+
+      expect(auth.accessToken).toBe('old-token')
+    })
+  })
+
+  // ── initAuth (extended) ────────────────────────────────────────────────
+
+  describe('initAuth (extended)', () => {
+    it('returns early without touching state when SESSION_KEY is missing', async () => {
+      localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
+      // SESSION_KEY deliberately not set
+
+      const auth = useAuthStore()
+      await auth.initAuth()
+
+      expect(auth.accessToken).toBeNull()
+      expect(api.get).not.toHaveBeenCalled()
+    })
+  })
+
+  // ── _saveSession clears pendingRequest ─────────────────────────────────
+
+  describe('_saveSession via login — pendingRequest cleared when restaurant present', () => {
+    it('clears a pre-existing pendingRequest when login returns an active restaurant', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse({
+        restaurant: { id: 9, name: 'Accepted Place', joinCode: 'ACC-0001' },
+      }))
+      const auth = useAuthStore()
+      auth.pendingRequest = { status: 'PENDING', restaurantName: 'Old Request' }
+
+      await auth.login('test@example.com', 'password123')
+
+      expect(auth.pendingRequest).toBeNull()
+    })
+
+    it('preserves the backend-returned pendingRequest after login with no restaurant', async () => {
+      // When login returns no restaurant, _saveSession must NOT wipe pendingRequest,
+      // and fetchPendingRequest must populate it from the backend.
+      // If _saveSession wrongly cleared it AND fetchPendingRequest wasn't called,
+      // pendingRequest would stay null — this test catches that.
+      api.post.mockResolvedValueOnce(makeAuthResponse({ restaurant: null }))
+      api.get.mockResolvedValueOnce({
+        status: 200,
+        data: { status: 'PENDING', restaurantName: 'Awaiting Approval', createdAt: '2026-04-01T00:00:00Z' },
+      })
+      const auth = useAuthStore()
+
+      await auth.login('test@example.com', 'password123')
+
+      expect(auth.pendingRequest).toMatchObject({ restaurantName: 'Awaiting Approval' })
     })
   })
 
