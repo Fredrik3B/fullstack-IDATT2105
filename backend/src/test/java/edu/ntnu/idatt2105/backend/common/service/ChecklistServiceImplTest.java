@@ -48,6 +48,7 @@ class ChecklistServiceImplTest {
   @Mock private TasksRepository tasksRepository;
   @Mock private TemperatureMeasurementRepository temperatureMeasurementRepository;
   @Mock private OrganizationRepository organizationRepository;
+  @Mock private ChecklistCacheStateService checklistCacheStateService;
 
   @InjectMocks private ChecklistServiceImpl checklistService;
 

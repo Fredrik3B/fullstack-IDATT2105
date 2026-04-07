@@ -11,7 +11,7 @@
       :manage-label="manageLabel"
       :can-manage-checklists="canManageChecklists"
       :can-manage-task-pool="canManageTaskPool"
-      :is-refreshing="isLoading"
+      :is-refreshing="isRefreshing"
       @update:activePeriod="emit('update:activePeriod', $event)"
       @open-library="emit('open-library')"
       @manage-tasks="emit('manage-tasks')"
@@ -127,6 +127,10 @@ defineProps({
     default: null,
   },
   isLoading: {
+    type: Boolean,
+    default: false,
+  },
+  isRefreshing: {
     type: Boolean,
     default: false,
   },
