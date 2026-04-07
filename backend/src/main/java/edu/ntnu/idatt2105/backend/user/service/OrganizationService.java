@@ -61,7 +61,7 @@ public class OrganizationService {
     seedDefaultDocuments(saved, user);
     userRepository.save(user);
 
-    return organizationMapper.toResponse(org);
+    return organizationMapper.toResponse(saved);
   }
 
   public void withdrawJoinRequest(UUID userId) {
