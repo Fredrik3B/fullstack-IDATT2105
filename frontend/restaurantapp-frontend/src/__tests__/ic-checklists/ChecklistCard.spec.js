@@ -87,6 +87,31 @@ describe('ChecklistCard', () => {
     expect(wrapper.find('.temp-field').element.value).toBe('')
   })
 
+  it('does not open the confirmation dialog for an invalid temperature value', async () => {
+    const wrapper = mount(ChecklistCard, {
+      props: makeProps(),
+      attachTo: document.body,
+    })
+
+    expect(wrapper.find('.temp-save').attributes('disabled')).toBeDefined()
+    await wrapper.find('.temp-save').trigger('click')
+
+    expect(wrapper.find('.confirm-overlay').exists()).toBe(false)
+    expect(wrapper.emitted('log-temperature')).toBeUndefined()
+  })
+
+  it('marks an expired prior period as overdue while still keeping submission locked', () => {
+    const wrapper = mount(ChecklistCard, {
+      props: makeProps({
+        now: '2026-04-08T10:00:00Z',
+      }),
+    })
+
+    expect(wrapper.find('.submit-bar').classes()).toContain('overdue')
+    expect(wrapper.text()).toContain('Submission is locked until the next real period starts')
+    expect(wrapper.text()).toContain('Waiting for next period')
+  })
+
   it('locks submission when the active period is no longer current', () => {
     const wrapper = mount(ChecklistCard, {
       props: makeProps({
@@ -98,6 +123,18 @@ describe('ChecklistCard', () => {
     expect(button.attributes('disabled')).toBeDefined()
     expect(wrapper.text()).toContain('Submission is locked until the next real period starts')
     expect(wrapper.text()).toContain('Waiting for 2026-04-06')
+  })
+
+  it('emits edit-checklist when management is enabled', async () => {
+    const wrapper = mount(ChecklistCard, {
+      props: makeProps({
+        canManageChecklists: true,
+      }),
+    })
+
+    await wrapper.find('.edit-button').trigger('click')
+
+    expect(wrapper.emitted('edit-checklist')).toEqual([[]])
   })
 
   it('confirms checklist submission and emits the checklist id for the current period', async () => {
@@ -112,5 +149,20 @@ describe('ChecklistCard', () => {
     await wrapper.find('.confirm-primary').trigger('click')
 
     expect(wrapper.emitted('submit-checklist')).toEqual([[{ checklistId: 'card-1' }]])
+  })
+
+  it('does not open submit confirmation while the card is already submitting', async () => {
+    const wrapper = mount(ChecklistCard, {
+      props: makeProps({
+        isSubmitting: true,
+      }),
+      attachTo: document.body,
+    })
+
+    expect(wrapper.find('.submit-button').attributes('disabled')).toBeDefined()
+    await wrapper.find('.submit-button').trigger('click')
+
+    expect(wrapper.find('.confirm-overlay').exists()).toBe(false)
+    expect(wrapper.emitted('submit-checklist')).toBeUndefined()
   })
 })

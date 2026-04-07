@@ -130,6 +130,17 @@ describe('useChecklistDashboard', () => {
     errorSpy.mockRestore()
   })
 
+  it('does not try to toggle a task when the checklist has no active period key', async () => {
+    const { cards, toggleTask } = useChecklistDashboard({
+      initialCards: [makeCard({ activePeriodKey: '' })],
+    })
+
+    await toggleTask({ cardIndex: 0, sectionIndex: 0, taskIndex: 0 })
+
+    expect(setTaskCompletion).not.toHaveBeenCalled()
+    expect(cards.value[0].sections[0].items[0].state).toBe('todo')
+  })
+
   it('flags a task as pending for the active checklist period', async () => {
     setTaskFlag.mockResolvedValue({
       state: 'pending',
@@ -210,6 +221,60 @@ describe('useChecklistDashboard', () => {
     expect(toast.success).toHaveBeenCalledWith('Temperature reading saved.')
   })
 
+  it('shows an error toast and preserves the previous reading when temperature logging fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    createTemperatureMeasurement.mockRejectedValue({
+      response: {
+        data: {
+          detail: 'Reading outside allowed range.',
+        },
+      },
+    })
+
+    const { cards, logTemperatureMeasurement } = useChecklistDashboard({
+      module: 'IC_FOOD',
+      initialCards: [
+        makeCard({
+          sections: [
+            {
+              title: 'Cooling',
+              items: [
+                {
+                  id: 'temp-1',
+                  label: 'Main fridge',
+                  type: 'temperature',
+                  latestMeasurement: {
+                    id: 'existing',
+                    valueC: 3.2,
+                    measuredAt: '2026-04-07T08:00:00Z',
+                    periodKey: '2026-04-07',
+                    deviation: false,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    })
+
+    const result = await logTemperatureMeasurement({
+      checklistId: 'card-1',
+      taskId: 'temp-1',
+      valueC: 6.4,
+    })
+
+    expect(result).toBeNull()
+    expect(cards.value[0].sections[0].items[0].latestMeasurement).toMatchObject({
+      id: 'existing',
+      valueC: 3.2,
+    })
+    expect(cards.value[0].sections[0].items[0].isTemperatureSaving).toBe(false)
+    expect(toast.error).toHaveBeenCalledWith('Reading outside allowed range.')
+    expect(errorSpy).toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
   it('submits a checklist, replaces the card with normalized ids, and shows success feedback', async () => {
     submitChecklist.mockResolvedValue({
       id: 42,
@@ -252,5 +317,29 @@ describe('useChecklistDashboard', () => {
       taskId: '77',
     })
     expect(toast.success).toHaveBeenCalledWith('Started a fresh Opening checks checklist period.')
+  })
+
+  it('shows an error toast and rethrows when checklist submission fails', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    submitChecklist.mockRejectedValue({
+      response: {
+        data: {
+          message: 'Submission failed.',
+        },
+      },
+    })
+
+    const { cards, submitCard } = useChecklistDashboard({
+      initialCards: [makeCard()],
+    })
+
+    await expect(submitCard({ cardIndex: 0 })).rejects.toMatchObject({
+      response: { data: { message: 'Submission failed.' } },
+    })
+
+    expect(cards.value[0].isSubmitting).toBe(false)
+    expect(toast.error).toHaveBeenCalledWith('Submission failed.')
+    expect(errorSpy).toHaveBeenCalled()
+    errorSpy.mockRestore()
   })
 })

@@ -77,6 +77,20 @@ describe('ChecklistDashboard', () => {
     expect(wrapper.text()).toContain('No checklists on the workbench')
   })
 
+  it('prefers the loading state over error and empty states', () => {
+    const wrapper = mount(ChecklistDashboard, {
+      props: makeProps({
+        isLoading: true,
+        loadError: 'Request failed',
+        cards: [{ id: 'visible-1', title: 'Opening' }],
+      }),
+    })
+
+    expect(wrapper.text()).toContain('Loading checklists')
+    expect(wrapper.text()).not.toContain('Could not load the workbench')
+    expect(wrapper.text()).not.toContain('No checklists on the workbench')
+  })
+
   it('re-emits checklist card actions using the source index from filtered cards', async () => {
     const wrapper = mount(ChecklistDashboard, {
       props: makeProps({
@@ -106,6 +120,21 @@ describe('ChecklistDashboard', () => {
     ])
     expect(wrapper.emitted('log-temperature')).toEqual([
       [{ checklistId: 'a', taskId: 'b', valueC: 2.5 }],
+    ])
+  })
+
+  it('falls back to the rendered card index when no source index is present', async () => {
+    const wrapper = mount(ChecklistDashboard, {
+      props: makeProps({
+        cards: [{ id: 'visible-1', title: 'Opening' }],
+      }),
+    })
+
+    const card = wrapper.find('.checklist-card-stub')
+    await card.find('.emit-toggle').trigger('click')
+
+    expect(wrapper.emitted('toggle-task')).toEqual([
+      [{ cardIndex: 0, sectionIndex: 1, taskIndex: 2 }],
     ])
   })
 })
