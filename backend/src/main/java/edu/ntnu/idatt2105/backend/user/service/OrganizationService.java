@@ -24,6 +24,7 @@ import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,21 +43,22 @@ public class OrganizationService {
   private final DocumentRepository documentRepository;
 
   public OrganizationResponse create(CreateOrganizationRequest request, UUID userId) {
+    UserModel user = userRepository.findById(userId)
+        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
     OrganizationModel org = new OrganizationModel();
     org.setName(request.getName());
     org.setJoinCode(generateJoinCode(request.getName()));
     OrganizationModel saved = organizationRepository.save(org);
 
-    UserModel user = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     user.setOrganization(saved);
-
-    seedDefaultDocuments(saved, user);
 
     RoleModel adminRole = roleRepository.findByName(RoleEnum.ADMIN)
         .orElseThrow(() ->
             new ResourceNotFoundException("ADMIN role not found, setup of tables must be wrong"));
     user.getRoles().add(adminRole);
+
+    seedDefaultDocuments(saved, user);
     userRepository.save(user);
 
     return organizationMapper.toResponse(org);
@@ -115,8 +117,7 @@ public class OrganizationService {
         new Seed("Ansvarlig vertskap – Helsedirektoratet", "Kompetansekrav og kursinfo for ansvarlig alkoholservering", DocumentCategory.TRAINING, DocumentModule.IC_ALCOHOL, "https://www.helsedirektoratet.no/forebygging-diagnose-og-behandling/forebygging-og-levevaner/alkohol/ansvarlig-alkoholhandtering"),
         new Seed("Bransjeveiviser – Arbeidstilsynet", "HMS-veiledning for serveringsbransjen: arbeidstid, ergonomi, kjemikalier", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://arbeidsmiljohjelpen.arbeidstilsynet.no/bransje/servering/#:~:text=Arbeidstid%20*%20Skift.%20*%20Uforutsigbarhet.%20*%20Arbeidsplan.")
     );
-
-    for (Seed s : defaults) {
+    List<DocumentModel> docs = defaults.stream().map(s -> {
       DocumentModel doc = new DocumentModel();
       doc.setName(s.name());
       doc.setDescription(s.description());
@@ -125,8 +126,10 @@ public class OrganizationService {
       doc.setExternalUrl(s.url());
       doc.setOrganization(org);
       doc.setUploadedBy(creator);
-      documentRepository.save(doc);
-    }
+      return doc;
+    }).toList();
+
+    documentRepository.saveAll(docs);
   }
 
   private String generateJoinCode(String name) {
@@ -174,16 +177,21 @@ public class OrganizationService {
   }
 
   public List<JoinOrganizationDto> getRequests(UUID organizationId, JoinOrgStatus status) {
-    List<JoinRequestModel> requests;
-    if (status != null) {
-      requests = joinRequestRepository.findAllByOrganizationIdAndStatus(organizationId, status);
-    } else {
-      requests = joinRequestRepository.findAllByOrganizationId(organizationId);
-    }
+    List<JoinRequestModel> requests = status != null
+        ? joinRequestRepository.findAllByOrganizationIdAndStatus(organizationId, status)
+        : joinRequestRepository.findAllByOrganizationId(organizationId);
+
+    List<UUID> userIds = requests.stream()
+        .map(JoinRequestModel::getUserId)
+        .toList();
+
+    Map<UUID, UserModel> userMap = userRepository.findAllByIdIn(userIds).stream()
+        .collect(Collectors.toMap(UserModel::getId, u -> u));
+
     return requests.stream()
         .map(request -> {
-          UserModel user = userRepository.findById(request.getUserId())
-              .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+          UserModel user = userMap.get(request.getUserId());
+          if (user == null) throw new ResourceNotFoundException("User not found");
           return organizationMapper.toJoinRequestDto(request, user);
         })
         .toList();
@@ -224,15 +232,13 @@ public class OrganizationService {
     List<RoleModel> newRoles = roleNames.stream()
         .map(name -> roleRepository.findByName(RoleEnum.valueOf(name))
             .orElseThrow(() -> new RuntimeException("Unknown role: " + name)))
-        .collect(Collectors.toList());
+        .toList();
 
     boolean wouldRemoveLastAdmin = user.getRoles().stream()
         .anyMatch(r -> r.getName() == RoleEnum.ADMIN)
         && newRoles.stream().noneMatch(r -> r.getName() == RoleEnum.ADMIN);
     if (wouldRemoveLastAdmin) {
-      long adminCount = userRepository.findAllByOrganizationId(organizationId).stream()
-          .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName() == RoleEnum.ADMIN))
-          .count();
+      long adminCount = userRepository.countAdminsByOrganizationId(organizationId);
       if (adminCount <= 1) {
         throw new RuntimeException("Cannot remove the last admin from the organization");
       }
