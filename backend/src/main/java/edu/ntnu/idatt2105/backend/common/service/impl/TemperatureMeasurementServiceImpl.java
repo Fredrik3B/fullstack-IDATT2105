@@ -10,6 +10,7 @@ import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.common.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.common.service.TemperatureMeasurementService;
 import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
@@ -36,19 +37,22 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 	private final TasksRepository tasksRepository;
 	private final OrganizationRepository organizationRepository;
 	private final UserRepository userRepository;
+	private final ChecklistCacheStateService checklistCacheStateService;
 
 	public TemperatureMeasurementServiceImpl(
 		TemperatureMeasurementRepository temperatureMeasurementRepository,
 		ChecklistRepository checklistRepository,
 		TasksRepository tasksRepository,
 		OrganizationRepository organizationRepository,
-		UserRepository userRepository
+		UserRepository userRepository,
+		ChecklistCacheStateService checklistCacheStateService
 	) {
 		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
 		this.checklistRepository = checklistRepository;
 		this.tasksRepository = tasksRepository;
 		this.organizationRepository = organizationRepository;
 		this.userRepository = userRepository;
+		this.checklistCacheStateService = checklistCacheStateService;
 	}
 
 	@Override
@@ -115,6 +119,7 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 		model.setRecordedBy(user);
 
 		TemperatureMeasurementModel saved = temperatureMeasurementRepository.save(model);
+		checklistCacheStateService.touch(orgId, area);
 		LOGGER.debug("createMeasurement: saved measurementId={}", saved.getId());
 		return toResponse(saved, module);
 	}
