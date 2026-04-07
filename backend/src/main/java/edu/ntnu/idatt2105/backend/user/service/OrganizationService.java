@@ -115,8 +115,7 @@ public class OrganizationService {
         new Seed("Ansvarlig vertskap – Helsedirektoratet", "Kompetansekrav og kursinfo for ansvarlig alkoholservering", DocumentCategory.TRAINING, DocumentModule.IC_ALCOHOL, "https://www.helsedirektoratet.no/forebygging-diagnose-og-behandling/forebygging-og-levevaner/alkohol/ansvarlig-alkoholhandtering"),
         new Seed("Bransjeveiviser – Arbeidstilsynet", "HMS-veiledning for serveringsbransjen: arbeidstid, ergonomi, kjemikalier", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://arbeidsmiljohjelpen.arbeidstilsynet.no/bransje/servering/#:~:text=Arbeidstid%20*%20Skift.%20*%20Uforutsigbarhet.%20*%20Arbeidsplan.")
     );
-
-    for (Seed s : defaults) {
+    List<DocumentModel> docs = defaults.stream().map(s -> {
       DocumentModel doc = new DocumentModel();
       doc.setName(s.name());
       doc.setDescription(s.description());
@@ -125,8 +124,10 @@ public class OrganizationService {
       doc.setExternalUrl(s.url());
       doc.setOrganization(org);
       doc.setUploadedBy(creator);
-      documentRepository.save(doc);
-    }
+      return doc;
+    }).toList();
+
+    documentRepository.saveAll(docs);
   }
 
   private String generateJoinCode(String name) {
