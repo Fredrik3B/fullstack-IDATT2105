@@ -22,7 +22,7 @@
             <span class="panel-label">Shared temperature items</span>
             <p class="panel-copy">Temperature tasks should pick one of these items instead of defining their own range.</p>
           </div>
-          <button type="button" class="primary" @click="isCreateOpen = true">New fridge item</button>
+          <button type="button" class="secondary" @click="isCreateOpen = true">New fridge item</button>
         </section>
 
         <p v-if="error" class="error" role="alert">{{ error }}</p>
