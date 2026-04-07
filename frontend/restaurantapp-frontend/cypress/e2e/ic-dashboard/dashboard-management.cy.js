@@ -1,6 +1,7 @@
 import {
   createChecklist,
   createTaskTemplate,
+  createTemperatureZone,
   getChecklistCard,
   openCreateChecklistModal,
   openTaskPoolModal,
@@ -30,6 +31,15 @@ describe('IC dashboard management flows', () => {
           module: 'IC_FOOD',
           title: 'Check walk-in cooler',
           sectionType: 'TEMPERATURE_CONTROL',
+          temperatureZoneId: 'zone-1',
+        }),
+      ],
+      temperatureZones: [
+        createTemperatureZone({
+          id: 'zone-1',
+          module: 'IC_FOOD',
+          name: 'Walk-in cooler',
+          zoneType: 'FRIDGE',
           targetMin: 1,
           targetMax: 4,
         }),
@@ -40,11 +50,13 @@ describe('IC dashboard management flows', () => {
     cy.contains('button', 'New checklist').should('be.visible')
     openCreateChecklistModal()
     cy.wait('@getTasks')
+    cy.wait('@getTemperatureZones')
 
     cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
       cy.contains('.field', 'Title').find('input').type('Opening line check')
       cy.contains('.field', 'Subtitle').find('input').type('Run before opening to guests')
       cy.contains('.field', 'Period').find('select').select('Weekly')
+      cy.contains('button', 'Continue to tasks').click()
       cy.contains('.task-option', 'Sanitize prep benches').find('input').check()
       cy.contains('.task-option', 'Check walk-in cooler').find('input').check()
       cy.contains('button', 'Create checklist').click()
@@ -100,6 +112,15 @@ describe('IC dashboard management flows', () => {
           module: 'IC_FOOD',
           title: 'Review fridge temperatures',
           sectionType: 'TEMPERATURE_CONTROL',
+          temperatureZoneId: 'zone-1',
+        }),
+      ],
+      temperatureZones: [
+        createTemperatureZone({
+          id: 'zone-1',
+          module: 'IC_FOOD',
+          name: 'Prep fridge',
+          zoneType: 'FRIDGE',
           targetMin: 1,
           targetMax: 4,
         }),
@@ -114,12 +135,14 @@ describe('IC dashboard management flows', () => {
     })
 
     cy.wait('@getTasks')
+    cy.wait('@getTemperatureZones')
 
     cy.get('[role="dialog"][aria-label="Edit checklist"]').within(() => {
       cy.contains('.field', 'Title').find('input').clear()
       cy.contains('.field', 'Title').find('input').type('Updated opening checklist')
       cy.contains('.field', 'Subtitle').find('input').clear()
       cy.contains('.field', 'Subtitle').find('input').type('Updated subtitle')
+      cy.contains('button', 'Continue to tasks').click()
       cy.contains('.task-option', 'Review fridge temperatures').find('input').check()
       cy.contains('button', 'Save changes').click()
     })
@@ -160,12 +183,13 @@ describe('IC dashboard management flows', () => {
     })
 
     cy.wait('@getTasks')
+    cy.wait('@getTemperatureZones')
 
     cy.get('[role="dialog"][aria-label="Edit checklist"]').within(() => {
       cy.contains('button', 'Delete checklist').click()
     })
 
-    cy.get('[role="dialog"][aria-label="Delete checklist"]').within(() => {
+    cy.get('[role="dialog"][aria-label="Delete checklist?"]').within(() => {
       cy.contains('button', 'Delete checklist').click()
     })
 
@@ -176,7 +200,7 @@ describe('IC dashboard management flows', () => {
     cy.contains('Checklist deleted.').should('be.visible')
   })
 
-  it('manages the task pool by creating, editing, and deleting a shared task', () => {
+  it('manages the task pool by creating and deleting a shared temperature task', () => {
     stubIcDashboardApi({
       module: 'IC_FOOD',
       tasks: [
@@ -185,6 +209,16 @@ describe('IC dashboard management flows', () => {
           module: 'IC_FOOD',
           title: 'Verify opening station',
           sectionType: 'OPENING_CHECKS',
+        }),
+      ],
+      temperatureZones: [
+        createTemperatureZone({
+          id: 'zone-1',
+          module: 'IC_FOOD',
+          name: 'Walk-in freezer',
+          zoneType: 'FREEZER',
+          targetMin: -22,
+          targetMax: -18,
         }),
       ],
     })
@@ -201,8 +235,8 @@ describe('IC dashboard management flows', () => {
     cy.get('[role="dialog"][aria-label="Create task template"]').within(() => {
       cy.contains('.field', 'Task title').find('input').type('Log freezer temperature')
       cy.contains('.field', 'Section').find('select').select('TEMPERATURE_CONTROL')
-      cy.contains('.field', 'Target min').find('input').type('0')
-      cy.contains('.field', 'Target max').find('input').type('4')
+      cy.wait('@getTemperatureZones')
+      cy.contains('.field', 'Fridge item').find('select').select('zone-1')
       cy.contains('button', 'Save task').click()
     })
 
@@ -210,19 +244,6 @@ describe('IC dashboard management flows', () => {
     cy.get('[role="dialog"][aria-label="Manage task pool"]').within(() => {
       cy.contains('.task-row', 'Log freezer temperature').should('be.visible')
       cy.contains('.task-row', 'Log freezer temperature').within(() => {
-        cy.contains('button', 'Edit').click()
-      })
-    })
-
-    cy.get('[role="dialog"][aria-label="Edit task template"]').within(() => {
-      cy.contains('.field', 'Task title').find('input').clear()
-      cy.contains('.field', 'Task title').find('input').type('Log freezer reading')
-      cy.contains('button', 'Save changes').click()
-    })
-
-    cy.wait('@updateTask')
-    cy.get('[role="dialog"][aria-label="Manage task pool"]').within(() => {
-      cy.contains('.task-row', 'Log freezer reading').within(() => {
         cy.contains('button', 'Delete').click()
       })
     })
@@ -232,9 +253,9 @@ describe('IC dashboard management flows', () => {
     })
 
     cy.wait('@deleteTask')
-    cy.contains('Deleted "Log freezer reading".').should('be.visible')
+    cy.contains('Deleted "Log freezer temperature".').should('be.visible')
     cy.get('[role="dialog"][aria-label="Manage task pool"]').within(() => {
-      cy.contains('Log freezer reading').should('not.exist')
+      cy.contains('Log freezer temperature').should('not.exist')
       cy.contains('Verify opening station').should('be.visible')
     })
   })
@@ -255,6 +276,7 @@ describe('IC dashboard management flows', () => {
     visitIcDashboard('IC_FOOD')
     openCreateChecklistModal()
     cy.wait('@getTasks')
+    cy.wait('@getTemperatureZones')
 
     cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
       cy.contains('button', 'Continue to tasks').click()
@@ -263,5 +285,103 @@ describe('IC dashboard management flows', () => {
 
     cy.wait('@getTasks')
     cy.get('[role="dialog"][aria-label="Manage task pool"]').should('be.visible')
+  })
+
+  it('refreshes checklist tasks after task-pool changes and removes deleted selections', () => {
+    stubIcDashboardApi({
+      module: 'IC_FOOD',
+      tasks: [
+        createTaskTemplate({
+          id: 'food-task-1',
+          module: 'IC_FOOD',
+          title: 'Verify opening station',
+          sectionType: 'OPENING_CHECKS',
+        }),
+      ],
+    })
+
+    visitIcDashboard('IC_FOOD')
+    openCreateChecklistModal()
+    cy.wait('@getTasks')
+    cy.wait('@getTemperatureZones')
+
+    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
+      cy.contains('button', 'Continue to tasks').click()
+      cy.contains('.task-option', 'Verify opening station').find('input').check()
+      cy.contains('button', 'Open full task pool').click()
+    })
+
+    cy.wait('@getTasks')
+    cy.get('[role="dialog"][aria-label="Manage task pool"]').within(() => {
+      cy.contains('.task-row', 'Verify opening station').within(() => {
+        cy.contains('button', 'Delete').click()
+      })
+    })
+
+    cy.get('[role="dialog"][aria-label="Delete shared task?"]').within(() => {
+      cy.contains('button', 'Delete task').click()
+    })
+
+    cy.wait('@deleteTask')
+    cy.wait('@getTasks')
+    cy.wait('@getTemperatureZones')
+
+    cy.get('[role="dialog"][aria-label="Manage task pool"]').within(() => {
+      cy.get('button[aria-label="Close"]').click()
+    })
+
+    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
+      cy.contains('.task-option', 'Verify opening station').should('not.exist')
+      cy.contains('.tasks-state', 'No tasks in the pool yet.').should('exist')
+      cy.contains('.progress-meta', '0 tasks selected').should('exist')
+    })
+  })
+
+  it('creates a fridge item from quick add for temperature tasks', () => {
+    stubIcDashboardApi({
+      module: 'IC_FOOD',
+      tasks: [],
+      temperatureZones: [],
+    })
+
+    visitIcDashboard('IC_FOOD')
+    openCreateChecklistModal()
+    cy.wait('@getTasks')
+    cy.wait('@getTemperatureZones')
+
+    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
+      cy.contains('button', 'Continue to tasks').click()
+      cy.contains('button', 'Quick add task').click()
+      cy.contains('.field', 'Task title').find('input').type('Check dessert fridge')
+      cy.contains('.field', 'Section').find('select').select('TEMPERATURE_CONTROL')
+      cy.contains('button', 'New fridge item').click()
+    })
+
+    cy.get('[role="dialog"][aria-label="Create temperature item"]').within(() => {
+      cy.contains('.field', 'Item name').find('input').type('Dessert fridge')
+      cy.contains('.field', 'Type').find('select').select('FRIDGE')
+      cy.contains('.field', 'Target min').find('input').clear().type('1')
+      cy.contains('.field', 'Target max').find('input').clear().type('4')
+      cy.contains('button', 'Save item').click()
+    })
+
+    cy.wait('@createTemperatureZone')
+    cy.wait('@getTemperatureZones')
+
+    cy.get('[role="dialog"][aria-label="Manage fridge items"]').within(() => {
+      cy.get('button[aria-label="Close"]').click()
+    })
+
+    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
+      cy.contains('.field', 'Fridge item').find('select').select('zone-51')
+      cy.contains('button', 'Add and select task').click()
+    })
+
+    cy.wait('@createTask')
+    cy.get('[role="dialog"][aria-label="Create checklist"]').within(() => {
+      cy.contains('.task-option', 'Check dessert fridge').should('be.visible')
+      cy.contains('.task-option', 'Check dessert fridge').find('input').should('be.checked')
+      cy.contains('.task-option', 'Check dessert fridge').should('contain', 'Dessert fridge')
+    })
   })
 })

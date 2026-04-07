@@ -49,6 +49,9 @@ function normalizeTaskTemplate(template) {
     meta: template.meta ?? '',
     module: template.module,
     sectionType: template.sectionType ?? 'UNSORTED',
+    temperatureZoneId: template.temperatureZoneId ?? null,
+    temperatureZoneName: template.temperatureZoneName ?? '',
+    temperatureZoneType: template.temperatureZoneType ?? null,
     targetMin: template.targetMin ?? null,
     targetMax: template.targetMax ?? null,
   }
@@ -63,6 +66,9 @@ function buildChecklistTask(template, checklistId, index) {
     state: 'todo',
     highlighted: false,
     sectionType: template.sectionType ?? 'UNSORTED',
+    temperatureZoneId: template.temperatureZoneId ?? null,
+    temperatureZoneName: template.temperatureZoneName ?? '',
+    temperatureZoneType: template.temperatureZoneType ?? null,
     targetMin: template.targetMin ?? null,
     targetMax: template.targetMax ?? null,
     latestMeasurement: null,
@@ -154,6 +160,17 @@ export function createTaskTemplate(overrides = {}) {
   })
 }
 
+export function createTemperatureZone(overrides = {}) {
+  return {
+    id: overrides.id ?? `zone-${Math.random().toString(16).slice(2, 8)}`,
+    module: overrides.module ?? 'IC_FOOD',
+    name: overrides.name ?? 'Walk-in fridge',
+    zoneType: overrides.zoneType ?? 'FRIDGE',
+    targetMin: overrides.targetMin ?? 1,
+    targetMax: overrides.targetMax ?? 4,
+  }
+}
+
 export function createChecklist(overrides = {}) {
   const module = overrides.module ?? 'IC_FOOD'
   const id = String(overrides.id ?? `checklist-${Math.random().toString(16).slice(2, 8)}`)
@@ -206,14 +223,41 @@ export function setIcDashboardAuth(overrides = {}) {
   })
 }
 
-export function stubIcDashboardApi({ module = 'IC_FOOD', checklists = [], tasks = [] } = {}) {
+export function stubIcDashboardApi({
+  module = 'IC_FOOD',
+  checklists = [],
+  tasks = [],
+  temperatureZones = [],
+} = {}) {
   const moduleConfig = MODULE_CONFIG[module]
-  const normalizedTasks = clone(tasks).map(normalizeTaskTemplate)
+  const normalizedZones = clone(temperatureZones).map((zone) => ({
+    id: String(zone.id),
+    module: zone.module ?? module,
+    name: zone.name,
+    zoneType: zone.zoneType,
+    targetMin: zone.targetMin ?? null,
+    targetMax: zone.targetMax ?? null,
+  }))
+  const decorateTaskWithZone = (task) => {
+    const zone =
+      normalizedZones.find((entry) => String(entry.id) === String(task.temperatureZoneId)) ?? null
+    return normalizeTaskTemplate({
+      ...task,
+      temperatureZoneId: task.temperatureZoneId ?? zone?.id ?? null,
+      temperatureZoneName: task.temperatureZoneName ?? zone?.name ?? '',
+      temperatureZoneType: task.temperatureZoneType ?? zone?.zoneType ?? null,
+      targetMin: task.targetMin ?? zone?.targetMin ?? null,
+      targetMax: task.targetMax ?? zone?.targetMax ?? null,
+    })
+  }
+  const normalizedTasks = clone(tasks).map(decorateTaskWithZone)
   const state = {
     taskSeq: 400,
     checklistSeq: 90,
+    temperatureZoneSeq: 50,
     measurementSeq: 900,
     submitSeq: 2,
+    temperatureZones: normalizedZones,
     tasks: normalizedTasks,
     checklists: clone(checklists).map((entry) =>
       createChecklistRecord({ ...entry, module: entry.module ?? module }, normalizedTasks),
@@ -236,6 +280,93 @@ export function stubIcDashboardApi({ module = 'IC_FOOD', checklists = [], tasks 
     req.reply({ statusCode: 200, body: clone(state.tasks) })
   }).as('getTasks')
 
+  cy.intercept('GET', '**/api/temperature-zones*', (req) => {
+    if (req.query.module !== module) {
+      req.continue()
+      return
+    }
+    req.reply({ statusCode: 200, body: clone(state.temperatureZones) })
+  }).as('getTemperatureZones')
+
+  cy.intercept('POST', '**/api/temperature-zones', (req) => {
+    if (req.body.module !== module) {
+      req.continue()
+      return
+    }
+
+    state.temperatureZoneSeq += 1
+    const created = {
+      id: `zone-${state.temperatureZoneSeq}`,
+      module,
+      name: req.body.name,
+      zoneType: req.body.zoneType,
+      targetMin: req.body.targetMin ?? null,
+      targetMax: req.body.targetMax ?? null,
+    }
+    state.temperatureZones.push(created)
+    req.reply({ statusCode: 201, body: clone(created) })
+  }).as('createTemperatureZone')
+
+  cy.intercept('PUT', '**/api/temperature-zones/*', (req) => {
+    const match = req.url.match(/\/api\/temperature-zones\/([^/]+)$/)
+    if (!match) {
+      req.continue()
+      return
+    }
+
+    const zone = state.temperatureZones.find((entry) => String(entry.id) === String(match[1]))
+    if (!zone) {
+      req.reply({ statusCode: 404, body: { message: 'Fridge item not found' } })
+      return
+    }
+
+    Object.assign(zone, {
+      module: req.body.module ?? zone.module,
+      name: req.body.name,
+      zoneType: req.body.zoneType,
+      targetMin: req.body.targetMin ?? null,
+      targetMax: req.body.targetMax ?? null,
+    })
+
+    state.tasks = state.tasks.map((task) =>
+      String(task.temperatureZoneId) === String(zone.id)
+        ? decorateTaskWithZone({
+            ...task,
+            temperatureZoneName: zone.name,
+            temperatureZoneType: zone.zoneType,
+            targetMin: zone.targetMin,
+            targetMax: zone.targetMax,
+          })
+        : task,
+    )
+    req.reply({ statusCode: 200, body: clone(zone) })
+  }).as('updateTemperatureZone')
+
+  cy.intercept('DELETE', '**/api/temperature-zones/*', (req) => {
+    const match = req.url.match(/\/api\/temperature-zones\/([^/]+)$/)
+    if (!match) {
+      req.continue()
+      return
+    }
+
+    state.temperatureZones = state.temperatureZones.filter(
+      (entry) => String(entry.id) !== String(match[1]),
+    )
+    state.tasks = state.tasks.map((task) =>
+      String(task.temperatureZoneId) === String(match[1])
+        ? normalizeTaskTemplate({
+            ...task,
+            temperatureZoneId: null,
+            temperatureZoneName: '',
+            temperatureZoneType: null,
+            targetMin: null,
+            targetMax: null,
+          })
+        : task,
+    )
+    req.reply({ statusCode: 204, body: '' })
+  }).as('deleteTemperatureZone')
+
   cy.intercept('POST', '**/api/tasks', (req) => {
     if (req.body.module !== module) {
       req.continue()
@@ -243,7 +374,7 @@ export function stubIcDashboardApi({ module = 'IC_FOOD', checklists = [], tasks 
     }
 
     state.taskSeq += 1
-    const created = normalizeTaskTemplate({
+    const created = decorateTaskWithZone({
       id: `task-${state.taskSeq}`,
       ...req.body,
     })
@@ -264,7 +395,7 @@ export function stubIcDashboardApi({ module = 'IC_FOOD', checklists = [], tasks 
       return
     }
 
-    Object.assign(task, normalizeTaskTemplate({ id: task.id, ...req.body }))
+    Object.assign(task, decorateTaskWithZone({ id: task.id, ...req.body }))
     req.reply({ statusCode: 200, body: clone(task) })
   }).as('updateTask')
 
