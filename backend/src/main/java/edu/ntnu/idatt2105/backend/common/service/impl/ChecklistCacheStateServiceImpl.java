@@ -48,7 +48,7 @@ public class ChecklistCacheStateServiceImpl implements ChecklistCacheStateServic
 
 		ChecklistModuleState state = checklistModuleStateRepository
 			.findByOrganizationIdAndComplianceArea(safeOrganizationId, safeComplianceArea)
-			.orElseGet(() -> createState(safeOrganizationId, safeComplianceArea, null));
+			.orElseGet(() -> createState(safeOrganizationId, safeComplianceArea, currentHttpSecond()));
 
 		state.setModifiedAt(nextModifiedAt(state.getModifiedAt()));
 		checklistModuleStateRepository.save(state);
