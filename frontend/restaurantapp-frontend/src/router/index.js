@@ -80,6 +80,7 @@ const router = createRouter({
   ],
 })
 
+
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
   await auth.initAuth()
