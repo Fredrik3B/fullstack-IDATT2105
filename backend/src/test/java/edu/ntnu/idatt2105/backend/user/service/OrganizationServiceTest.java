@@ -14,6 +14,8 @@ import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
+import edu.ntnu.idatt2105.backend.user.dto.JoinRequestResponse;
+import edu.ntnu.idatt2105.backend.user.dto.MemberDto;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.OrganizationMapper;
 import edu.ntnu.idatt2105.backend.user.model.JoinRequestModel;
@@ -29,6 +31,7 @@ import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -342,5 +345,121 @@ class OrganizationServiceTest {
     assertThat(results).isEmpty();
     verify(joinRequestRepository).findAllByOrganizationIdWithUser(orgId);
     verify(joinRequestRepository, never()).findAllByOrganizationIdAndStatusWithUser(any(), any());
+  }
+
+  @Test
+  void getMembers_returnsAllOrgMembers() {
+    when(userRepository.findAllByOrganizationId(orgId)).thenReturn(List.of(user));
+    when(organizationMapper.toMemberDto(user)).thenReturn(
+        MemberDto.builder().userId(userId).email("test@example.com")
+            .firstName("Test").lastName("User").roles(Set.of("STAFF")).build());
+
+    List<MemberDto> members = organizationService.getMembers(orgId);
+
+    assertThat(members).hasSize(1);
+    assertThat(members.get(0).getEmail()).isEqualTo("test@example.com");
+  }
+
+  @Test
+  void removeMember_success_clearsOrgAndReassignsStaffRole() {
+    UUID adminId = UUID.randomUUID();
+    user.setOrganization(org);
+    RoleModel staffRole = new RoleModel();
+    staffRole.setName(RoleEnum.STAFF);
+
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(staffRole));
+
+    organizationService.removeMember(orgId, userId, adminId);
+
+    assertThat(user.getOrganization()).isNull();
+    assertThat(user.getRoles()).containsOnly(staffRole);
+    verify(userRepository).save(user);
+  }
+
+  @Test
+  void removeMember_selfRemoval_throwsException() {
+    assertThatThrownBy(() -> organizationService.removeMember(orgId, userId, userId))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Cannot remove yourself from the organization");
+  }
+
+  @Test
+  void removeMember_userNotInOrg_throwsException() {
+    UUID adminId = UUID.randomUUID();
+    // user has no organization set
+
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+    assertThatThrownBy(() -> organizationService.removeMember(orgId, userId, adminId))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("User does not belong to your organization");
+  }
+
+  @Test
+  void updateMemberRoles_selfUpdate_throwsException() {
+    assertThatThrownBy(() -> organizationService.updateMemberRoles(orgId, userId, userId, List.of("STAFF")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Cannot change your own roles");
+  }
+
+  @Test
+  void updateMemberRoles_success_updatesRoles() {
+    UUID adminId = UUID.randomUUID();
+    RoleModel managerRole = new RoleModel();
+    managerRole.setName(RoleEnum.MANAGER);
+    user.setOrganization(org);
+    user.getRoles().add(managerRole);
+
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(new RoleModel()));
+    // user has MANAGER not ADMIN, so wouldRemoveLastAdmin is false → countAdmins not called
+
+    organizationService.updateMemberRoles(orgId, userId, adminId, List.of("STAFF"));
+
+    verify(userRepository).save(user);
+  }
+
+  @Test
+  void updateMemberRoles_removeLastAdmin_throwsException() {
+    UUID adminId = UUID.randomUUID();
+    RoleModel existingAdminRole = new RoleModel();
+    existingAdminRole.setName(RoleEnum.ADMIN);
+    user.setOrganization(org);
+    user.getRoles().add(existingAdminRole);
+
+    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(new RoleModel()));
+    when(userRepository.countAdminsByOrganizationId(orgId)).thenReturn(1L);
+
+    assertThatThrownBy(() -> organizationService.updateMemberRoles(orgId, userId, adminId, List.of("STAFF")))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessage("Cannot remove the last admin from the organization");
+  }
+
+  @Test
+  void seeJoinRequest_pendingExists_returnsResponse() {
+    JoinRequestModel pending = buildJoinRequest(JoinOrgStatus.PENDING);
+    JoinRequestResponse response = JoinRequestResponse.builder()
+        .requestId(pending.getId()).status(JoinOrgStatus.PENDING).build();
+
+    when(joinRequestRepository.findFirstByUser_IdAndStatus(userId, JoinOrgStatus.PENDING))
+        .thenReturn(Optional.of(pending));
+    when(organizationMapper.toJoinRequestResponse(pending)).thenReturn(response);
+
+    JoinRequestResponse result = organizationService.seeJoinRequest(userId);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getStatus()).isEqualTo(JoinOrgStatus.PENDING);
+  }
+
+  @Test
+  void seeJoinRequest_noPending_returnsNull() {
+    when(joinRequestRepository.findFirstByUser_IdAndStatus(userId, JoinOrgStatus.PENDING))
+        .thenReturn(Optional.empty());
+
+    JoinRequestResponse result = organizationService.seeJoinRequest(userId);
+
+    assertThat(result).isNull();
   }
 }
