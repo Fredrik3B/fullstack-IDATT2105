@@ -14,12 +14,18 @@ vi.mock('@/api/axiosInstance', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
+    put: vi.fn(),
     delete: vi.fn(),
   },
 }))
 
-// Import the mocked api AFTER the vi.mock declarations
+vi.mock('axios', () => ({
+  default: { post: vi.fn() },
+}))
+
+// Import the mocked modules AFTER the vi.mock declarations
 import api from '@/api/axiosInstance'
+import axios from 'axios'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -297,7 +303,7 @@ describe('useAuthStore', () => {
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         user: { id: 1, email: 'test@example.com', name: 'Test User' },
         restaurant: null,
-      })
+      }))
       api.get.mockResolvedValueOnce({
         status: 200,
         data: { status: 'PENDING', restaurantName: 'Pending Place', createdAt: '2026-04-06T12:00:00Z' },
@@ -320,6 +326,270 @@ describe('useAuthStore', () => {
       expect(auth.user).toBeNull()
       expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull()
       expect(localStorage.getItem(SESSION_KEY)).toBeNull()
+    })
+
+    it('does not run twice when called multiple times', async () => {
+      localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        user: { id: 1, email: 'test@example.com', name: 'Test User' },
+        restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+      }))
+
+      const auth = useAuthStore()
+      await auth.initAuth()
+      await auth.initAuth()
+
+      expect(api.get).not.toHaveBeenCalled()
+    })
+  })
+
+  // ── register ───────────────────────────────────────────────────────────
+
+  describe('register', () => {
+    it('calls POST /api/auth/register with split first/last name', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      const auth = useAuthStore()
+
+      await auth.register('Jane Doe', 'jane@example.com', 'pass1234')
+
+      expect(api.post).toHaveBeenCalledWith('/api/auth/register', {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@example.com',
+        password: 'pass1234',
+      })
+    })
+
+    it('handles single-word name by sending empty lastName', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      const auth = useAuthStore()
+
+      await auth.register('Admin', 'admin@example.com', 'pass1234')
+
+      expect(api.post).toHaveBeenCalledWith('/api/auth/register', expect.objectContaining({
+        firstName: 'Admin',
+        lastName: '',
+      }))
+    })
+
+    it('saves token and user after successful registration', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      const auth = useAuthStore()
+
+      await auth.register('Jane Doe', 'jane@example.com', 'pass1234')
+
+      expect(auth.accessToken).toBe('fake-access-token')
+      expect(auth.user).toMatchObject({ email: 'test@example.com' })
+    })
+
+    it('redirects to onboarding after registration', async () => {
+      api.post.mockResolvedValueOnce(makeAuthResponse())
+      const auth = useAuthStore()
+
+      await auth.register('Jane Doe', 'jane@example.com', 'pass1234')
+
+      expect(mockPush).toHaveBeenCalledWith({ name: 'onboarding' })
+    })
+
+    it('throws on registration failure', async () => {
+      api.post.mockRejectedValueOnce(new Error('Email taken'))
+      const auth = useAuthStore()
+
+      await expect(auth.register('Jane Doe', 'jane@example.com', 'pass1234')).rejects.toThrow()
+    })
+  })
+
+  // ── refreshAccessToken ─────────────────────────────────────────────────
+
+  describe('refreshAccessToken', () => {
+    it('returns the new access token on success', async () => {
+      const { data } = makeAuthResponse({ accessToken: 'new-token' })
+      axios.post = vi.fn().mockResolvedValueOnce({ data })
+
+      const auth = useAuthStore()
+      const token = await auth.refreshAccessToken()
+
+      expect(token).toBe('new-token')
+    })
+  })
+
+  // ── fetchPendingRequest ────────────────────────────────────────────────
+
+  describe('fetchPendingRequest', () => {
+    it('sets pendingRequest when backend returns 200', async () => {
+      api.get.mockResolvedValueOnce({
+        status: 200,
+        data: { status: 'PENDING', restaurantName: 'My Place', createdAt: '2026-04-01T10:00:00Z' },
+      })
+      const auth = useAuthStore()
+
+      await auth.fetchPendingRequest()
+
+      expect(auth.pendingRequest).toMatchObject({ restaurantName: 'My Place' })
+    })
+
+    it('sets pendingRequest to null when backend returns 204', async () => {
+      api.get.mockResolvedValueOnce({ status: 204, data: null })
+      const auth = useAuthStore()
+      auth.pendingRequest = { restaurantName: 'Old' }
+
+      await auth.fetchPendingRequest()
+
+      expect(auth.pendingRequest).toBeNull()
+    })
+
+    it('sets pendingRequest to null on network error', async () => {
+      api.get.mockRejectedValueOnce(new Error('Network error'))
+      const auth = useAuthStore()
+      auth.pendingRequest = { restaurantName: 'Old' }
+
+      await auth.fetchPendingRequest()
+
+      expect(auth.pendingRequest).toBeNull()
+    })
+  })
+
+  // ── joinRestaurant ─────────────────────────────────────────────────────
+
+  describe('joinRestaurant', () => {
+    it('posts to /api/organizations/join with the code', async () => {
+      api.post.mockResolvedValueOnce({})
+      api.get.mockResolvedValueOnce({ status: 204, data: null })
+      const auth = useAuthStore()
+
+      await auth.joinRestaurant('EVR-1234')
+
+      expect(api.post).toHaveBeenCalledWith('/api/organizations/join', { joinCode: 'EVR-1234' })
+    })
+
+    it('fetches the pending request after posting', async () => {
+      api.post.mockResolvedValueOnce({})
+      api.get.mockResolvedValueOnce({
+        status: 200,
+        data: { status: 'PENDING', restaurantName: 'Everest', createdAt: '2026-04-01T00:00:00Z' },
+      })
+      const auth = useAuthStore()
+
+      await auth.joinRestaurant('EVR-1234')
+
+      expect(auth.pendingRequest).toMatchObject({ restaurantName: 'Everest' })
+    })
+  })
+
+  // ── withdrawJoinRequest ────────────────────────────────────────────────
+
+  describe('withdrawJoinRequest', () => {
+    it('calls DELETE /api/organizations/join-request', async () => {
+      api.delete.mockResolvedValueOnce({})
+      const auth = useAuthStore()
+      auth.pendingRequest = { restaurantName: 'Some Place' }
+
+      await auth.withdrawJoinRequest()
+
+      expect(api.delete).toHaveBeenCalledWith('/api/organizations/join-request')
+    })
+
+    it('clears pendingRequest after withdrawal', async () => {
+      api.delete.mockResolvedValueOnce({})
+      const auth = useAuthStore()
+      auth.pendingRequest = { restaurantName: 'Some Place' }
+
+      await auth.withdrawJoinRequest()
+
+      expect(auth.pendingRequest).toBeNull()
+    })
+  })
+
+  // ── createRestaurant ───────────────────────────────────────────────────
+
+  describe('createRestaurant', () => {
+    it('posts to /api/organizations and returns the created restaurant data', async () => {
+      const createdRestaurant = { id: 'uuid-1', name: 'New Place', joinCode: 'NEW-0001' }
+      api.post.mockResolvedValueOnce({ data: createdRestaurant })
+      // refreshAccessToken uses plain axios
+      axios.post = vi.fn().mockResolvedValueOnce({ data: makeAuthResponse().data })
+
+      const auth = useAuthStore()
+      const result = await auth.createRestaurant({ name: 'New Place', orgNumber: '123456789', address: 'Gate 1', postalCode: '0150', city: 'Oslo' })
+
+      expect(result).toMatchObject({ joinCode: 'NEW-0001' })
+    })
+  })
+
+  // ── member management ──────────────────────────────────────────────────
+
+  describe('member management', () => {
+    it('fetchMembers calls GET /api/organizations/members', async () => {
+      const members = [{ id: 1, name: 'Alice' }]
+      api.get.mockResolvedValueOnce({ data: members })
+      const auth = useAuthStore()
+
+      const result = await auth.fetchMembers()
+
+      expect(api.get).toHaveBeenCalledWith('/api/organizations/members')
+      expect(result).toEqual(members)
+    })
+
+    it('removeMember calls DELETE with the user id', async () => {
+      api.delete.mockResolvedValueOnce({})
+      const auth = useAuthStore()
+
+      await auth.removeMember(42)
+
+      expect(api.delete).toHaveBeenCalledWith('/api/organizations/members/42')
+    })
+
+    it('updateMemberRoles calls PUT with the new roles', async () => {
+      api.put = vi.fn().mockResolvedValueOnce({})
+      const auth = useAuthStore()
+
+      await auth.updateMemberRoles(42, ['ROLE_ADMIN'])
+
+      expect(api.put).toHaveBeenCalledWith('/api/organizations/members/42/roles', { roles: ['ROLE_ADMIN'] })
+    })
+  })
+
+  // ── userRoles / isAdminOrManager ───────────────────────────────────────
+
+  describe('userRoles and isAdminOrManager', () => {
+    function makeJwt(payload) {
+      const encoded = btoa(JSON.stringify(payload))
+      return `header.${encoded}.sig`
+    }
+
+    it('returns empty roles when there is no token', () => {
+      const auth = useAuthStore()
+      expect(auth.userRoles).toEqual([])
+    })
+
+    it('extracts roles from the JWT payload', () => {
+      const auth = useAuthStore()
+      auth.accessToken = makeJwt({ roles: ['ROLE_STAFF'] })
+      expect(auth.userRoles).toEqual(['ROLE_STAFF'])
+    })
+
+    it('isAdminOrManager is true for ROLE_ADMIN', () => {
+      const auth = useAuthStore()
+      auth.accessToken = makeJwt({ roles: ['ROLE_ADMIN'] })
+      expect(auth.isAdminOrManager).toBe(true)
+    })
+
+    it('isAdminOrManager is true for ROLE_MANAGER', () => {
+      const auth = useAuthStore()
+      auth.accessToken = makeJwt({ roles: ['ROLE_MANAGER'] })
+      expect(auth.isAdminOrManager).toBe(true)
+    })
+
+    it('isAdminOrManager is false for ROLE_STAFF', () => {
+      const auth = useAuthStore()
+      auth.accessToken = makeJwt({ roles: ['ROLE_STAFF'] })
+      expect(auth.isAdminOrManager).toBe(false)
+    })
+
+    it('returns empty roles when JWT is malformed', () => {
+      const auth = useAuthStore()
+      auth.accessToken = 'not.a.jwt'
+      expect(auth.userRoles).toEqual([])
     })
   })
 
