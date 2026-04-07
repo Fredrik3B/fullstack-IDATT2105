@@ -1,4 +1,4 @@
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -8,8 +8,10 @@ import {
   setChecklistWorkbenchState,
   updateChecklist,
 } from '../../api/checklists'
-import { periodEnumToLabel } from './recurrence'
+import { normalizePeriodEnum, periodEnumToLabel } from './recurrence'
 import { useChecklistDashboard } from './useChecklistDashboard'
+
+const CHECKLIST_SCREEN_CACHE = new Map()
 
 function normalizeChecklistCardIds(card) {
   if (!card || typeof card !== 'object') return card
@@ -49,6 +51,54 @@ function normalizeChecklistCardIds(card) {
   }
 }
 
+function getCacheEntry(module) {
+  return CHECKLIST_SCREEN_CACHE.get(module) ?? null
+}
+
+function setCacheEntry(module, entry) {
+  CHECKLIST_SCREEN_CACHE.set(module, entry)
+}
+
+function hasUsableCachedCards(entry) {
+  return Boolean(
+    entry &&
+      Array.isArray(entry.cards) &&
+      (entry.cards.length > 0 || entry.lastModified),
+  )
+}
+
+function pickAvailablePeriod(cards, preferredLabel) {
+  const safeCards = Array.isArray(cards) ? cards : []
+  if (!safeCards.length) return preferredLabel ?? 'Daily'
+
+  const available = new Set(
+    safeCards
+      .filter((card) => card?.displayedOnWorkbench !== false)
+      .map((card) => normalizePeriodEnum(card?.period))
+      .filter(Boolean),
+  )
+
+  if (!available.size) {
+    safeCards.forEach((card) => {
+      const normalized = normalizePeriodEnum(card?.period)
+      if (normalized) available.add(normalized)
+    })
+  }
+
+  const preferred = normalizePeriodEnum(preferredLabel)
+  if (preferred && available.has(preferred)) {
+    return periodEnumToLabel(preferred)
+  }
+
+  for (const option of ['daily', 'weekly', 'monthly']) {
+    if (available.has(option)) {
+      return periodEnumToLabel(option)
+    }
+  }
+
+  return preferredLabel ?? 'Daily'
+}
+
 export function useIcModulePage({ module, moduleLabel }) {
   const auth = useAuthStore()
   const toast = useToast()
@@ -59,6 +109,7 @@ export function useIcModulePage({ module, moduleLabel }) {
   const isCreatingChecklist = ref(false)
   const isUpdatingChecklist = ref(false)
   const isLoading = ref(false)
+  const isRefreshing = ref(false)
   const loadError = ref('')
   const editingCardIndex = ref(null)
   const highlightedChecklistId = ref(null)
@@ -103,6 +154,15 @@ export function useIcModulePage({ module, moduleLabel }) {
     }).format(now.value),
   )
 
+  watch(activePeriod, (nextPeriod) => {
+    const cached = getCacheEntry(module)
+    if (!cached) return
+    setCacheEntry(module, {
+      ...cached,
+      activePeriod: nextPeriod,
+    })
+  })
+
   function isChecklistMissing(err) {
     const message = String(
       err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '',
@@ -110,27 +170,85 @@ export function useIcModulePage({ module, moduleLabel }) {
     return message.includes('Checklist not found')
   }
 
-  async function reloadChecklists() {
-    if (isLoading.value) return
-    isLoading.value = true
+  async function reloadChecklists({ background = false, force = false } = {}) {
+    const cached = getCacheEntry(module)
+    if (cached?.promise) return cached.promise
+
+    const hasCachedState = hasUsableCachedCards(cached)
+    const hasVisibleCards = Array.isArray(cards.value) && cards.value.length > 0
+    if (background && (hasVisibleCards || hasCachedState)) {
+      isRefreshing.value = true
+    } else {
+      isLoading.value = true
+    }
     loadError.value = ''
 
-    try {
-      const data = await fetchChecklists({ module })
-      cards.value = Array.isArray(data) ? data.map(normalizeChecklistCardIds) : []
-    } catch (err) {
-      console.error(`Failed to fetch ${moduleLabel} checklists`, err)
-      loadError.value =
-        err?.response?.data?.detail ??
-        err?.response?.data?.message ??
-        'Could not refresh checklists.'
-      toast.warning(loadError.value)
-    } finally {
-      isLoading.value = false
-    }
+    const request = fetchChecklists({
+      module,
+      ifModifiedSince: force ? null : cached?.lastModified,
+    })
+      .then((response) => {
+        if (response.status === 304 && cached) {
+          setCacheEntry(module, {
+            ...cached,
+            promise: null,
+          })
+          return
+        }
+
+        const nextCards = Array.isArray(response.data)
+          ? response.data.map(normalizeChecklistCardIds)
+          : []
+
+        cards.value = nextCards
+        activePeriod.value = pickAvailablePeriod(nextCards, activePeriod.value ?? cached?.activePeriod)
+        setCacheEntry(module, {
+          cards: nextCards,
+          lastModified: response.lastModified,
+          activePeriod: activePeriod.value,
+          promise: null,
+        })
+      })
+      .catch((err) => {
+        console.error(`Failed to fetch ${moduleLabel} checklists`, err)
+        loadError.value =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          'Could not refresh checklists.'
+        if (!hasVisibleCards && !hasCachedState) {
+          toast.warning(loadError.value)
+        }
+      })
+      .finally(() => {
+        isLoading.value = false
+        isRefreshing.value = false
+        const latest = getCacheEntry(module)
+        if (latest?.promise === request) {
+          setCacheEntry(module, {
+            ...latest,
+            promise: null,
+          })
+        }
+      })
+
+    setCacheEntry(module, {
+      cards: cached?.cards ?? [],
+      lastModified: cached?.lastModified ?? null,
+      activePeriod: cached?.activePeriod ?? activePeriod.value,
+      promise: request,
+    })
+
+    return request
   }
 
   onMounted(async () => {
+    const cached = getCacheEntry(module)
+    if (hasUsableCachedCards(cached)) {
+      cards.value = cached.cards
+      activePeriod.value = pickAvailablePeriod(cached.cards, cached.activePeriod)
+      await reloadChecklists({ background: true })
+      return
+    }
     await reloadChecklists()
   })
 
@@ -188,7 +306,7 @@ export function useIcModulePage({ module, moduleLabel }) {
         displayedOnWorkbench: newCard?.displayedOnWorkbench,
         taskTemplateIds: newCard?.taskTemplateIds,
       })
-      await reloadChecklists()
+      await reloadChecklists({ force: true })
       isCreateOpen.value = false
     } catch (err) {
       console.error('Failed to create checklist', err)
@@ -218,13 +336,13 @@ export function useIcModulePage({ module, moduleLabel }) {
         displayedOnWorkbench: updatedCard?.displayedOnWorkbench,
         taskTemplateIds: updatedCard?.taskTemplateIds,
       })
-      await reloadChecklists()
+      await reloadChecklists({ force: true })
       isEditOpen.value = false
       editingCardIndex.value = null
     } catch (err) {
       console.error('Failed to update checklist', err)
       if (isChecklistMissing(err)) {
-        await reloadChecklists()
+        await reloadChecklists({ force: true })
         isEditOpen.value = false
         editingCardIndex.value = null
       }
@@ -247,7 +365,7 @@ export function useIcModulePage({ module, moduleLabel }) {
 
     try {
       await deleteChecklist({ checklistId })
-      await reloadChecklists()
+      await reloadChecklists({ force: true })
       isEditOpen.value = false
       editingCardIndex.value = null
       closeDeleteDialog()
@@ -281,7 +399,7 @@ export function useIcModulePage({ module, moduleLabel }) {
         checklistId: card.id,
         displayedOnWorkbench: true,
       })
-      await reloadChecklists()
+      await reloadChecklists({ force: true })
       isLibraryOpen.value = false
       activePeriod.value = periodEnumToLabel((saved ?? card).period)
       highlightedChecklistId.value = card.id
@@ -297,7 +415,7 @@ export function useIcModulePage({ module, moduleLabel }) {
     } catch (err) {
       console.error('Failed to load checklist onto workbench', err)
       if (isChecklistMissing(err)) {
-        await reloadChecklists()
+        await reloadChecklists({ force: true })
         isLibraryOpen.value = false
       }
       toast.warning(
@@ -321,14 +439,14 @@ export function useIcModulePage({ module, moduleLabel }) {
         checklistId: card.id,
         displayedOnWorkbench: false,
       })
-      await reloadChecklists()
+      await reloadChecklists({ force: true })
       isEditOpen.value = false
       editingCardIndex.value = null
       toast.success('Checklist removed from workbench.')
     } catch (err) {
       console.error('Failed to remove checklist from workbench', err)
       if (isChecklistMissing(err)) {
-        await reloadChecklists()
+        await reloadChecklists({ force: true })
         isEditOpen.value = false
         editingCardIndex.value = null
       }
@@ -353,6 +471,7 @@ export function useIcModulePage({ module, moduleLabel }) {
     now,
     dateLabel,
     isLoading,
+    isRefreshing,
     loadError,
     isCreateOpen,
     isEditOpen,

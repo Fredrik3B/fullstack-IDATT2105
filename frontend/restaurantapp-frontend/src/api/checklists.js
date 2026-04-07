@@ -1,8 +1,17 @@
 import api from './axiosInstance'
 
-export async function fetchChecklists({ module }) {
-  const { data } = await api.get('/api/checklists', { params: { module } })
-  return data
+export async function fetchChecklists({ module, ifModifiedSince } = {}) {
+  const response = await api.get('/api/checklists', {
+    params: { module },
+    headers: ifModifiedSince ? { 'If-Modified-Since': ifModifiedSince } : undefined,
+    validateStatus: (status) => (status >= 200 && status < 300) || status === 304,
+  })
+
+  return {
+    status: response.status,
+    data: response.status === 304 ? null : response.data,
+    lastModified: response.headers?.['last-modified'] ?? null,
+  }
 }
 
 export async function setTaskCompletion({ checklistId, taskId, state, periodKey, completedAt }) {

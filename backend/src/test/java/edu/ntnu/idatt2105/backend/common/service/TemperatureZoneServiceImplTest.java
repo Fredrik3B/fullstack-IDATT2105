@@ -36,6 +36,7 @@ class TemperatureZoneServiceImplTest {
 
   @Mock private TemperatureZoneRepository temperatureZoneRepository;
   @Mock private TaskTemplateRepository taskTemplateRepository;
+  @Mock private ChecklistCacheStateService checklistCacheStateService;
 
   @InjectMocks private TemperatureZoneServiceImpl temperatureZoneService;
 

@@ -21,6 +21,7 @@ import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.common.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.common.service.ChecklistService;
 import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
@@ -50,19 +51,22 @@ public class ChecklistServiceImpl implements ChecklistService {
 	private final TasksRepository tasksRepository;
 	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
 	private final OrganizationRepository organizationRepository;
+	private final ChecklistCacheStateService checklistCacheStateService;
 
 	public ChecklistServiceImpl(
 		ChecklistRepository checklistRepository,
 		TaskTemplateRepository taskTemplateRepository,
 		TasksRepository tasksRepository,
 		TemperatureMeasurementRepository temperatureMeasurementRepository,
-		OrganizationRepository organizationRepository
+		OrganizationRepository organizationRepository,
+		ChecklistCacheStateService checklistCacheStateService
 	) {
 		this.checklistRepository = checklistRepository;
 		this.taskTemplateRepository = taskTemplateRepository;
 		this.tasksRepository = tasksRepository;
 		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
 		this.organizationRepository = organizationRepository;
+		this.checklistCacheStateService = checklistCacheStateService;
 	}
 
 	@Override
@@ -77,6 +81,13 @@ public class ChecklistServiceImpl implements ChecklistService {
 			.map(this::sortTemplates)
 			.map(this::toCardResponse)
 			.toList();
+	}
+
+	@Override
+	public Instant fetchChecklistsLastModified(IcModule module, JwtAuthenticatedPrincipal principal) {
+		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
+		ComplianceArea area = requireModule(module).toComplianceArea();
+		return checklistCacheStateService.getLastModified(safePrincipal.getOrganizationId(), area);
 	}
 
 	@Override
@@ -101,6 +112,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		checklist.setTaskTemplates(resolveSelectedTemplates(request.taskTemplateIds(), safePrincipal.getOrganizationId(), checklist.getComplianceArea()));
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		touchChecklistCache(savedChecklist.getOrganization().getId(), savedChecklist.getComplianceArea());
 		sortTemplates(savedChecklist);
 		return toCardResponse(savedChecklist);
 	}
@@ -132,6 +144,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		}
 
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		touchChecklistCache(savedChecklist.getOrganization().getId(), savedChecklist.getComplianceArea());
 		sortTemplates(savedChecklist);
 		return toCardResponse(savedChecklist);
 	}
@@ -174,6 +187,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		}
 
 		TasksModel savedTask = tasksRepository.save(task);
+		touchChecklistCache(checklist.getOrganization().getId(), checklist.getComplianceArea());
 		return toTaskItemResponse(savedTask, latestMeasurementByTaskId(savedTask.getId()));
 	}
 
@@ -214,6 +228,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 		}
 
 		TasksModel savedTask = tasksRepository.save(task);
+		touchChecklistCache(checklist.getOrganization().getId(), checklist.getComplianceArea());
 		return toTaskItemResponse(savedTask, latestMeasurementByTaskId(savedTask.getId()));
 	}
 
@@ -247,6 +262,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 
 		checklist.setActivePeriodKey(PeriodKeyUtil.nextPeriodKey(checklist.getFrequency(), activePeriodKey));
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		touchChecklistCache(savedChecklist.getOrganization().getId(), savedChecklist.getComplianceArea());
 		sortTemplates(savedChecklist);
 		return toCardResponse(savedChecklist);
 	}
@@ -266,6 +282,7 @@ public class ChecklistServiceImpl implements ChecklistService {
 			deleteAllActivatedTasks(checklist.getId());
 		}
 		ChecklistModel savedChecklist = checklistRepository.save(checklist);
+		touchChecklistCache(savedChecklist.getOrganization().getId(), savedChecklist.getComplianceArea());
 		sortTemplates(savedChecklist);
 		return toCardResponse(savedChecklist);
 	}
@@ -274,6 +291,8 @@ public class ChecklistServiceImpl implements ChecklistService {
 	@Transactional
 	public void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
 		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());
+		ComplianceArea complianceArea = checklist.getComplianceArea();
+		UUID organizationId = checklist.getOrganization().getId();
 
 		List<TasksModel> tasks = tasksRepository.findAllByChecklist_Id(checklistId);
 		if (!tasks.isEmpty()) {
@@ -282,6 +301,11 @@ public class ChecklistServiceImpl implements ChecklistService {
 		}
 
 		checklistRepository.delete(checklist);
+		touchChecklistCache(organizationId, complianceArea);
+	}
+
+	private void touchChecklistCache(UUID organizationId, ComplianceArea complianceArea) {
+		checklistCacheStateService.touch(organizationId, complianceArea);
 	}
 
 	private ChecklistModel sortTemplates(ChecklistModel checklist) {
