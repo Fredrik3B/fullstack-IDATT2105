@@ -45,4 +45,11 @@ public class GlobalExceptionHandler {
     problem.setTitle("Validation failed");
     return problem;
   }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ProblemDetail handleIllegalState(IllegalStateException e) {
+    return ProblemDetail.forStatusAndDetail(
+        HttpStatus.CONFLICT, e.getMessage()
+    );
+  }
 }
