@@ -8,6 +8,7 @@ import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureZoneRepository;
+import edu.ntnu.idatt2105.backend.common.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.common.service.TemperatureZoneService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.util.List;
@@ -19,13 +20,16 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 
 	private final TemperatureZoneRepository temperatureZoneRepository;
 	private final TaskTemplateRepository taskTemplateRepository;
+	private final ChecklistCacheStateService checklistCacheStateService;
 
 	public TemperatureZoneServiceImpl(
 		TemperatureZoneRepository temperatureZoneRepository,
-		TaskTemplateRepository taskTemplateRepository
+		TaskTemplateRepository taskTemplateRepository,
+		ChecklistCacheStateService checklistCacheStateService
 	) {
 		this.temperatureZoneRepository = temperatureZoneRepository;
 		this.taskTemplateRepository = taskTemplateRepository;
+		this.checklistCacheStateService = checklistCacheStateService;
 	}
 
 	@Override
@@ -41,7 +45,9 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 		zone.setTargetMax(request.targetMax());
 		zone.setOrganizationId(safePrincipal.getOrganizationId());
 
-		return toResponse(temperatureZoneRepository.save(zone));
+		TemperatureZoneResponse response = toResponse(temperatureZoneRepository.save(zone));
+		checklistCacheStateService.touch(safePrincipal.getOrganizationId(), zone.getComplianceArea());
+		return response;
 	}
 
 	@Override
@@ -49,6 +55,7 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
 		TemperatureZoneModel zone = getZone(zoneId, safePrincipal.getOrganizationId());
+		ComplianceArea previousComplianceArea = zone.getComplianceArea();
 
 		zone.setName(request.name().trim());
 		zone.setZoneType(request.zoneType());
@@ -65,6 +72,10 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 		}
 		if (!linkedTemplates.isEmpty()) {
 			taskTemplateRepository.saveAll(linkedTemplates);
+		}
+		checklistCacheStateService.touch(safePrincipal.getOrganizationId(), previousComplianceArea);
+		if (savedZone.getComplianceArea() != previousComplianceArea) {
+			checklistCacheStateService.touch(safePrincipal.getOrganizationId(), savedZone.getComplianceArea());
 		}
 
 		return toResponse(savedZone);
@@ -89,6 +100,7 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 			throw new IllegalArgumentException("Temperature zone is still used by one or more tasks.");
 		}
 		temperatureZoneRepository.delete(zone);
+		checklistCacheStateService.touch(safePrincipal.getOrganizationId(), zone.getComplianceArea());
 	}
 
 	private TemperatureZoneModel getZone(Long zoneId, UUID organizationId) {

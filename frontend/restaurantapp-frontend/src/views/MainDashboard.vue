@@ -509,8 +509,10 @@ async function loadChecklistData() {
   alcoholError.value = ''
 
   try {
-    const data = await fetchChecklists({ module: 'IC_FOOD' })
-    foodChecklists.value = Array.isArray(data) ? data : []
+    const response = await fetchChecklists({ module: 'IC_FOOD' })
+    if (response?.status !== 304) {
+      foodChecklists.value = Array.isArray(response?.data) ? response.data : []
+    }
   } catch (error) {
     console.error('Failed to fetch IC-Food checklists', error)
     foodError.value = 'Could not fetch IC-Food checklists.'
@@ -519,8 +521,10 @@ async function loadChecklistData() {
   }
 
   try {
-    const data = await fetchChecklists({ module: 'IC_ALCOHOL' })
-    alcoholChecklists.value = Array.isArray(data) ? data : []
+    const response = await fetchChecklists({ module: 'IC_ALCOHOL' })
+    if (response?.status !== 304) {
+      alcoholChecklists.value = Array.isArray(response?.data) ? response.data : []
+    }
   } catch (error) {
     console.error('Failed to fetch IC-Alcohol checklists', error)
     alcoholError.value = 'Could not fetch IC-Alcohol checklists.'

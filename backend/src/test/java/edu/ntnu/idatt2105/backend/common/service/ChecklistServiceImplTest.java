@@ -23,6 +23,7 @@ import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.common.service.impl.ChecklistServiceImpl;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -48,6 +49,7 @@ class ChecklistServiceImplTest {
   @Mock private TasksRepository tasksRepository;
   @Mock private TemperatureMeasurementRepository temperatureMeasurementRepository;
   @Mock private OrganizationRepository organizationRepository;
+  @Mock private ChecklistCacheStateService checklistCacheStateService;
 
   @InjectMocks private ChecklistServiceImpl checklistService;
 
@@ -160,6 +162,8 @@ class ChecklistServiceImplTest {
 
   private ChecklistModel checklist(Long id, String periodKey, boolean recurring, boolean displayed, TaskTemplate template) {
     ChecklistModel checklist = new ChecklistModel();
+    OrganizationModel organization = new OrganizationModel();
+    organization.setId(orgId);
     checklist.setId(id);
     checklist.setName("Weekly safety");
     checklist.setDescription("desc");
@@ -176,6 +180,7 @@ class ChecklistServiceImplTest {
     checklist.setRecurring(recurring);
     checklist.setDisplayedOnWorkbench(displayed);
     checklist.setActive(true);
+    checklist.setOrganization(organization);
     checklist.setTaskTemplates(new LinkedHashSet<>(List.of(template)));
     return checklist;
   }

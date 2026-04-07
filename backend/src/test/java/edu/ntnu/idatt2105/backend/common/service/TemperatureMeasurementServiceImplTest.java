@@ -47,6 +47,7 @@ class TemperatureMeasurementServiceImplTest {
   @Mock private TasksRepository tasksRepository;
   @Mock private OrganizationRepository organizationRepository;
   @Mock private UserRepository userRepository;
+  @Mock private ChecklistCacheStateService checklistCacheStateService;
 
   @InjectMocks private TemperatureMeasurementServiceImpl temperatureMeasurementService;
 

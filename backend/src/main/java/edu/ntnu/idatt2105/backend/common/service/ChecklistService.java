@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
+import java.time.Instant;
 import java.util.List;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
@@ -16,6 +17,8 @@ import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 public interface ChecklistService {
 
 	List<ChecklistCardResponse> fetchChecklists(IcModule module, JwtAuthenticatedPrincipal principal);
+
+	Instant fetchChecklistsLastModified(IcModule module, JwtAuthenticatedPrincipal principal);
 
 	ChecklistCardResponse createChecklist(CreateChecklistCardRequest request, JwtAuthenticatedPrincipal principal);
 
