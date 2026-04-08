@@ -1,3 +1,8 @@
+/**
+ * Supported backend section types for checklist task templates.
+ *
+ * @type {string[]}
+ */
 export const SECTION_TYPE_OPTIONS = [
   'CLEANING_SANITATION',
   'CLOSING_ROUTINE',
@@ -9,6 +14,12 @@ export const SECTION_TYPE_OPTIONS = [
   'TEMPERATURE_CONTROL'
 ]
 
+/**
+ * Format enum-like section type into readable UI text.
+ *
+ * @param {string|null|undefined} sectionType
+ * @returns {string}
+ */
 export function formatSectionType(sectionType) {
   if (!sectionType) return 'Tasks'
   return String(sectionType)

@@ -1,3 +1,11 @@
+/**
+ * Recalculate derived progress/status fields for a checklist card.
+ *
+ * Mutates the input card in place.
+ *
+ * @param {{sections?: Array<{items?: Array<{state?: string}>}>, progress?: number|null, statusTone?: string, statusLabel?: string}|null|undefined} card
+ * @returns {void}
+ */
 export function recalcCardProgress(card) {
   if (!card) return
 
