@@ -116,8 +116,6 @@ public class ChecklistService {
 		checklistCacheStateService.touch(orgId, cl.getComplianceArea());
 	}
 
-	// ── Task state changes ───────────────────────────────────────────────
-
 	@Transactional
 	public ChecklistTaskItemResponse setTaskCompletion(Long checklistId, Long taskId, TaskCompletionRequest request, JwtAuthenticatedPrincipal principal) {
 		UUID orgId = principal.requireOrganizationId();

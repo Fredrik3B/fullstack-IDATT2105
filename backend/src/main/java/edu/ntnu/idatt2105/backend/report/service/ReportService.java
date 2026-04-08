@@ -109,42 +109,8 @@ public class ReportService {
         .collect(Collectors.groupingBy(task -> task.getChecklist().getId()));
 
     List<ChecklistRecord> records = checklists.stream()
-        .map(cl -> {
-          List<TasksModel> checklistTasks = tasksByChecklist.getOrDefault(cl.getId(), List.of());
-          Map<String, List<TasksModel>> tasksByPeriod = checklistTasks.stream()
-              .collect(Collectors.groupingBy(TasksModel::getPeriodKey));
-          int total = checklistTasks.size();
-          int completed = (int) checklistTasks.stream().filter(TasksModel::isCompleted).count();
-          int deviated = (int) checklistTasks.stream()
-              .filter(task -> !task.isCompleted() && !task.isActive())
-              .count();
-          int completionsInPeriod = tasksByPeriod.size();
-          int expectedRuns = countExpectedRuns(cl.getFrequency(), from, to);
-          double averageCompletionRate = tasksByPeriod.isEmpty()
-              ? 0.0
-              : tasksByPeriod.values().stream()
-                  .mapToDouble(tasks -> {
-                    long completedInRun = tasks.stream().filter(TasksModel::isCompleted).count();
-                    return tasks.isEmpty() ? 0.0 : (double) completedInRun / tasks.size() * 100;
-                  })
-                  .average()
-                  .orElse(0.0);
-
-          return ChecklistRecord.builder()
-              .name(cl.getName())
-              .description(cl.getDescription())
-              .frequency(cl.getFrequency().name())
-              .complianceArea(cl.getComplianceArea())
-              .completionsInPeriod(completionsInPeriod)
-              .expectedRuns(expectedRuns)
-              .totalTasks(total)
-              .completedTasks(completed)
-              .deviatedTasks(deviated)
-              .completionRate(total > 0 ? (double) completed / total * 100 : 0.0)
-              .averageCompletionRate(averageCompletionRate)
-              .build();
-        })
-        .filter(record -> record.getCompletionsInPeriod() > 0)
+        .map(cl -> buildChecklistRecord(cl, tasksByChecklist.getOrDefault(cl.getId(), List.of()), from, to))
+        .filter(r -> r.getCompletionsInPeriod() > 0)
         .sorted(Comparator.comparing(ChecklistRecord::getName, String.CASE_INSENSITIVE_ORDER))
         .toList();
 
@@ -152,6 +118,35 @@ public class ReportService {
         .totalChecklists(checklists.size())
         .activeChecklists((int) checklists.stream().filter(ChecklistModel::isActive).count())
         .checklists(records)
+        .build();
+  }
+
+  private ChecklistRecord buildChecklistRecord(ChecklistModel cl, List<TasksModel> tasks, LocalDateTime from, LocalDateTime to) {
+    Map<String, List<TasksModel>> byPeriod = tasks.stream().collect(Collectors.groupingBy(TasksModel::getPeriodKey));
+    int total = tasks.size();
+    int completed = (int) tasks.stream().filter(TasksModel::isCompleted).count();
+    int deviated = (int) tasks.stream().filter(t -> !t.isCompleted() && !t.isActive()).count();
+
+    double avgRate = byPeriod.isEmpty() ? 0.0
+        : byPeriod.values().stream()
+            .mapToDouble(run -> {
+              long done = run.stream().filter(TasksModel::isCompleted).count();
+              return run.isEmpty() ? 0.0 : (double) done / run.size() * 100;
+            })
+            .average().orElse(0.0);
+
+    return ChecklistRecord.builder()
+        .name(cl.getName())
+        .description(cl.getDescription())
+        .frequency(cl.getFrequency().name())
+        .complianceArea(cl.getComplianceArea())
+        .completionsInPeriod(byPeriod.size())
+        .expectedRuns(countExpectedRuns(cl.getFrequency(), from, to))
+        .totalTasks(total)
+        .completedTasks(completed)
+        .deviatedTasks(deviated)
+        .completionRate(total > 0 ? (double) completed / total * 100 : 0.0)
+        .averageCompletionRate(avgRate)
         .build();
   }
 
@@ -182,7 +177,6 @@ public class ReportService {
           TemperatureZoneModel zone = template.getTemperatureZone();
           BigDecimal min = template.getTargetMin();
           BigDecimal max = template.getTargetMax();
-          BigDecimal value = m.getValueC();
 
           return TemperaturePoint.builder()
               .measuredAt(m.getMeasuredAt())
@@ -190,7 +184,7 @@ public class ReportService {
               .zoneName(zone != null ? zone.getName() : template.getTitle())
               .zoneType(zone != null ? zone.getZoneType() : null)
               .taskName(template.getTitle())
-              .valueC(value)
+              .valueC(m.getValueC())
               .targetMin(min)
               .targetMax(max)
               .withinRange((min == null || m.getValueC().compareTo(min) >= 0) &&
@@ -201,14 +195,14 @@ public class ReportService {
         .toList();
   }
 
-  private List<UnresolvedItemDto> buildDeviations(UUID orgId, LocalDateTime from, LocalDateTime to) {
-    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+  private List<UnresolvedItemDto> buildDeviations(List<TasksModel> tasks) {
+    return tasks.stream()
         .map(t -> new UnresolvedItemDto(t.getTaskTemplate().getTitle(), t.getEndedAt()))
         .toList();
   }
 
-  private List<DeviationDayPoint> buildDeviationsByDay(UUID orgId, LocalDateTime from, LocalDateTime to) {
-    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+  private List<DeviationDayPoint> buildDeviationsByDay(List<TasksModel> tasks) {
+    return tasks.stream()
         .filter(task -> task.getEndedAt() != null)
         .collect(Collectors.groupingBy(task -> task.getEndedAt().toLocalDate(), Collectors.counting()))
         .entrySet().stream()
@@ -220,12 +214,12 @@ public class ReportService {
         .toList();
   }
 
-  private List<MissedTaskRecord> buildMissedTasks(UUID orgId, LocalDateTime from, LocalDateTime to) {
-    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+  private List<MissedTaskRecord> buildMissedTasks(List<TasksModel> missedTasks) {
+    return missedTasks.stream()
         .collect(Collectors.groupingBy(
             task -> task.getChecklist().getName() + "::" + task.getTaskTemplate().getTitle(),
             Collectors.collectingAndThen(Collectors.toList(), tasks -> {
-              TasksModel sample = tasks.get(0);
+              TasksModel sample = tasks.getFirst();
               return MissedTaskRecord.builder()
                   .taskName(sample.getTaskTemplate().getTitle())
                   .checklistName(sample.getChecklist().getName())
@@ -254,42 +248,40 @@ public class ReportService {
     OrganizationModel org = organizationRepository.findById(orgId)
         .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
 
+    List<TasksModel> deviatedTasks = tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to);
+
     return InspectionReport.builder()
         .period(new ReportPeriod(from, to))
         .generatedAt(LocalDateTime.now())
         .organization(buildOrgSection(org))
         .checklists(buildChecklistSection(orgId, from, to))
         .temperatureLog(buildTemperatureLog(orgId, from, to))
-        .deviationsByDay(buildDeviationsByDay(orgId, from, to))
-        .missedTasks(buildMissedTasks(orgId, from, to))
-        .deviations(buildDeviations(orgId, from, to))
+        .deviationsByDay(buildDeviationsByDay(deviatedTasks))
+        .missedTasks(buildMissedTasks(deviatedTasks))
+        .deviations(buildDeviations(deviatedTasks))
         .foodStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
         .alcoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
         .build();
-  }
+    }
 
   public DeviationCreatedResponse createDeviationReport(
       DeviationReport request, UUID userId, UUID organizationId
   ) {
-    OrganizationModel org = organizationRepository.findById(organizationId)
-        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-    UserModel user = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-    DeviationReportModel entity = new DeviationReportModel();
-    entity.setOrganization(org);
-    entity.setReportedByUser(user);
-    entity.setDeviationName(request.getDeviationName());
-    entity.setSeverity(request.getSeverity());
-    entity.setOccurredAt(request.getOccurredAt());
-    entity.setNoticedBy(request.getNoticedBy());
-    entity.setReportedTo(request.getReportedTo());
-    entity.setProcessedBy(request.getProcessedBy());
-    entity.setDescription(request.getDescription());
-    entity.setImmediateAction(request.getImmediateAction());
-    entity.setBelievedCause(request.getBelievedCause());
-    entity.setCorrectiveMeasures(request.getCorrectiveMeasures());
-    entity.setCorrectiveMeasuresDone(request.getCorrectiveMeasuresDone());
+    DeviationReportModel entity = DeviationReportModel.builder()
+        .organization(organizationRepository.getReferenceById(organizationId))
+        .reportedByUser(userRepository.getReferenceById(userId))
+        .deviationName(request.getDeviationName())
+        .severity(request.getSeverity())
+        .occurredAt(request.getOccurredAt())
+        .noticedBy(request.getNoticedBy())
+        .reportedTo(request.getReportedTo())
+        .processedBy(request.getProcessedBy())
+        .description(request.getDescription())
+        .immediateAction(request.getImmediateAction())
+        .believedCause(request.getBelievedCause())
+        .correctiveMeasures(request.getCorrectiveMeasures())
+        .correctiveMeasuresDone(request.getCorrectiveMeasuresDone())
+        .build();
 
     DeviationReportModel saved = deviationReportRepository.save(entity);
     return new DeviationCreatedResponse(saved.getId(), saved.getCreatedAt());
