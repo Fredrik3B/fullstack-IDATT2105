@@ -12,6 +12,7 @@ import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.temperature.mapper.TemperatureMapper;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
@@ -48,6 +49,8 @@ class TemperatureMeasurementServiceImplTest {
   @Mock private OrganizationRepository organizationRepository;
   @Mock private UserRepository userRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
+  @Mock
+  private TemperatureMapper temperatureMapper;
 
   @InjectMocks private TemperatureMeasurementService temperatureMeasurementService;
 
@@ -67,6 +70,7 @@ class TemperatureMeasurementServiceImplTest {
     ChecklistModel checklist = checklist(1L, ComplianceArea.IK_MAT);
     TaskTemplate template = temperatureTemplate();
     TasksModel task = task(10L, checklist, template, "2026-04-07", true);
+
     OrganizationModel organization = new OrganizationModel();
     organization.setId(orgId);
     UserModel user = new UserModel();
@@ -76,13 +80,27 @@ class TemperatureMeasurementServiceImplTest {
 
     when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(10L, 1L)).thenReturn(Optional.of(task));
-    when(organizationRepository.findById(orgId)).thenReturn(Optional.of(organization));
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(organizationRepository.getReferenceById(orgId)).thenReturn(organization); // ✅ important
+    when(userRepository.getReferenceById(userId)).thenReturn(user); // ✅ important
+
     when(temperatureMeasurementRepository.save(any(TemperatureMeasurementModel.class))).thenAnswer(invocation -> {
       TemperatureMeasurementModel measurement = invocation.getArgument(0);
       measurement.setId(500L);
       return measurement;
     });
+
+    when(temperatureMapper.toMeasurementResponse(any(), any())).thenReturn(
+        new TemperatureMeasurementResponse(
+            500L,
+            IcModule.IC_FOOD,
+            1L,
+            10L,
+            new BigDecimal("6.5"),
+            LocalDateTime.of(2026, 4, 7, 9, 30),
+            "2026-04-07",
+            true
+        )
+    );
 
     TemperatureMeasurementResponse response = temperatureMeasurementService.createMeasurement(
         new CreateTemperatureMeasurementRequest(
@@ -91,8 +109,10 @@ class TemperatureMeasurementServiceImplTest {
             10L,
             new BigDecimal("6.5"),
             LocalDateTime.of(2026, 4, 7, 9, 30),
-            "2026-04-07"),
-        principal);
+            "2026-04-07"
+        ),
+        principal
+    );
 
     ArgumentCaptor<TemperatureMeasurementModel> captor = ArgumentCaptor.forClass(TemperatureMeasurementModel.class);
     verify(temperatureMeasurementRepository).save(captor.capture());
@@ -159,7 +179,7 @@ class TemperatureMeasurementServiceImplTest {
         LocalDateTime.of(2026, 4, 7, 0, 0),
         principal))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("to must be after from");
+        .hasMessageContaining("'to' must be after 'from'.");
   }
 
   private ChecklistModel checklist(Long id, ComplianceArea area) {

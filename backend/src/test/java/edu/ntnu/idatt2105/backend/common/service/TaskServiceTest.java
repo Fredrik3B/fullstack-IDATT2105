@@ -13,6 +13,7 @@ import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
@@ -48,6 +49,7 @@ class TaskServiceTest {
   @Mock private TemperatureMeasurementRepository temperatureMeasurementRepository;
   @Mock private TemperatureZoneRepository temperatureZoneRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
+  @Mock private TaskMapper taskMapper;
 
   @InjectMocks private TaskService taskService;
 
@@ -78,6 +80,23 @@ class TaskServiceTest {
       template.setId(77L);
       return template;
     });
+    when(taskMapper.toResponse(any(TaskTemplate.class)))
+        .thenAnswer(invocation -> {
+          TaskTemplate t = invocation.getArgument(0);
+          return new TaskResponse(
+              t.getId(),
+              IcModule.IC_FOOD,
+              t.getTitle(),
+              t.getMeta(),
+              t.getSectionType(),
+              44L,
+              "Main freezer",
+              TemperatureZone.FREEZER,
+              "C",
+              BigDecimal.valueOf(-20.00),
+              BigDecimal.valueOf(-15.00)
+          );
+        });
 
     TaskResponse response = taskService.createTask(
         new CreateTaskRequest(
@@ -166,6 +185,23 @@ class TaskServiceTest {
     when(taskTemplateRepository.findById(13L)).thenReturn(Optional.of(template));
     when(tasksRepository.findAllByTaskTemplate_Id(13L)).thenReturn(List.of(activatedTask));
     when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(taskMapper.toResponse(any(TaskTemplate.class)))
+        .thenAnswer(invocation -> {
+          TaskTemplate t = invocation.getArgument(0);
+          return new TaskResponse(
+              t.getId(),
+              IcModule.IC_FOOD,
+              t.getTitle(),
+              t.getMeta(),
+              t.getSectionType(),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+          );
+        });
 
     TaskResponse response = taskService.updateTask(
         13L,

@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
 import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
+import edu.ntnu.idatt2105.backend.document.mapper.DocumentMapper;
 import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
@@ -20,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -53,6 +55,9 @@ class DocumentServiceTest {
 
     @Mock
     private OrganizationRepository organizationRepository;
+
+    @Mock
+    private DocumentMapper documentMapper;
 
     @TempDir
     Path tempDir;
@@ -101,6 +106,23 @@ class DocumentServiceTest {
         return doc;
     }
 
+    private DocumentDto makeDto(DocumentModel doc) {
+        return new DocumentDto(
+            doc.getId(),
+            doc.getName(),
+            doc.getDescription(),
+            doc.getCategory(),
+            doc.getModule(),
+            doc.getExternalUrl(),
+            doc.getOriginalFileName(),
+            doc.getFileType(),
+            doc.getFileSize(),
+            doc.getExpiryDate(),
+            doc.getUploadedAt(),
+            "Test User"
+        );
+    }
+
     // ── uploadDocument ────────────────────────────────────────────────────────
 
     @Test
@@ -112,14 +134,15 @@ class DocumentServiceTest {
         when(file.getSize()).thenReturn(1024L);
         when(file.getInputStream()).thenReturn(new ByteArrayInputStream("content".getBytes()));
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
+        when(userRepository.getReferenceById(principal.getUserId())).thenReturn(user);
+        when(organizationRepository.getReferenceById(orgId)).thenReturn(org);
 
         DocumentModel saved = makeDoc(1L, orgId);
         saved.setOriginalFileName("test.pdf");
         saved.setFileType("application/pdf");
         saved.setFileSize(1024L);
         when(documentRepository.save(any())).thenReturn(saved);
+        when(documentMapper.toDto(any(DocumentModel.class))).thenAnswer(invocation -> makeDto(invocation.getArgument(0)));
 
         DocumentDto result = service.uploadDocument(
                 file, null, "Test Doc", "desc",
@@ -137,12 +160,17 @@ class DocumentServiceTest {
     @Test
     @DisplayName("uploadDocument - external URL: no file written to disk")
     void uploadDocument_withExternalUrl_doesNotWriteFileToDisk() {
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
+        when(userRepository.getReferenceById(principal.getUserId())).thenReturn(user);
+        when(organizationRepository.getReferenceById(orgId)).thenReturn(org);
 
         DocumentModel saved = makeDoc(1L, orgId);
         saved.setExternalUrl("https://example.com/doc.pdf");
         when(documentRepository.save(any())).thenReturn(saved);
+
+        when(documentMapper.toDto(any(DocumentModel.class))).thenAnswer(invocation -> {
+                DocumentModel doc = invocation.getArgument(0);
+                return makeDto(doc);
+            });
 
         DocumentDto result = service.uploadDocument(
                 null, "https://example.com/doc.pdf", "External Doc", null,
@@ -175,20 +203,22 @@ class DocumentServiceTest {
     @Test
     @DisplayName("uploadDocument - user not found: throws 404")
     void uploadDocument_userNotFound_throws404() {
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(userRepository.getReferenceById(principal.getUserId()))
+            .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         assertThatThrownBy(() ->
-                service.uploadDocument(null, "https://example.com", "name", null,
-                        DocumentCategory.GUIDELINES, DocumentModule.SHARED, null, principal))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("404");
+            service.uploadDocument(null, "https://example.com", "name", null,
+                DocumentCategory.GUIDELINES, DocumentModule.SHARED, null, principal))
+            .isInstanceOf(ResponseStatusException.class)
+            .hasMessageContaining("404");
     }
 
     @Test
     @DisplayName("uploadDocument - organization not found: throws 404")
     void uploadDocument_orgNotFound_throws404() {
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(organizationRepository.findById(orgId)).thenReturn(Optional.empty());
+        when(userRepository.getReferenceById(principal.getUserId())).thenReturn(user);
+        when(organizationRepository.getReferenceById(principal.getOrganizationId()))
+            .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
 
         assertThatThrownBy(() ->
                 service.uploadDocument(null, "https://example.com", "name", null,
@@ -237,9 +267,13 @@ class DocumentServiceTest {
     @Test
     @DisplayName("getDocuments - both filters: queries by category and module")
     void getDocuments_bothFilters_callsFindByCategoryAndModule() {
+        DocumentModel doc = makeDoc(1L, orgId);
         when(documentRepository.findAllByOrganizationIdAndCategoryAndModule(
-                orgId, DocumentCategory.GUIDELINES, DocumentModule.SHARED))
-                .thenReturn(List.of());
+            orgId, DocumentCategory.GUIDELINES, DocumentModule.SHARED))
+            .thenReturn(List.of(doc));
+
+        when(documentMapper.toDto(any(DocumentModel.class)))
+            .thenAnswer(invocation -> makeDto(invocation.getArgument(0)));
 
         service.getDocuments(DocumentCategory.GUIDELINES, DocumentModule.SHARED, principal);
 
@@ -253,6 +287,9 @@ class DocumentServiceTest {
     void getDocuments_mapsToDTOs() {
         DocumentModel doc = makeDoc(1L, orgId);
         when(documentRepository.findAllByOrganizationId(orgId)).thenReturn(List.of(doc));
+
+        when(documentMapper.toDto(any(DocumentModel.class)))
+            .thenAnswer(invocation -> makeDto(invocation.getArgument(0)));
 
         List<DocumentDto> result = service.getDocuments(null, null, principal);
 

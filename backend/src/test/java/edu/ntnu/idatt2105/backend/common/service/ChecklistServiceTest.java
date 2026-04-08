@@ -8,8 +8,11 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.ntnu.idatt2105.backend.checklist.dto.ChecklistCardResponse;
+import edu.ntnu.idatt2105.backend.checklist.dto.ChecklistTaskItemResponse;
 import edu.ntnu.idatt2105.backend.checklist.dto.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.TaskCompletionRequest;
+import edu.ntnu.idatt2105.backend.checklist.mapper.ChecklistMapper;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
@@ -27,10 +30,12 @@ import edu.ntnu.idatt2105.backend.checklist.service.ChecklistService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
+import edu.ntnu.idatt2105.backend.user.service.OrganizationService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +57,7 @@ class ChecklistServiceTest {
   @Mock private TemperatureMeasurementRepository temperatureMeasurementRepository;
   @Mock private OrganizationRepository organizationRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
+  @Mock private ChecklistMapper checklistMapper;
 
   @InjectMocks private ChecklistService checklistService;
 
@@ -84,6 +90,19 @@ class ChecklistServiceTest {
     when(tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(1L, currentPeriodKey))
         .thenReturn(new java.util.ArrayList<>(List.of(incompleteTask)));
     when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(checklistMapper.toCardResponse(
+        any(ChecklistModel.class),
+        any(),
+        any(),
+        any(),
+        any(Boolean.class)))
+        .thenAnswer(invocation -> {
+          return new ChecklistCardResponse(
+              3L, "2026-04-08", "2026-W16",false, false, "Test",
+              null, null,false,null, null, 0, List.of()
+          );
+        });
+
 
     var response = checklistService.submitChecklist(1L, principal);
 
@@ -104,10 +123,12 @@ class ChecklistServiceTest {
     ChecklistModel checklist = checklist(2L, nextPeriodKey, false, true, template(21L, "Opening check"));
 
     when(checklistRepository.findByIdAndOrganization_Id(2L, orgId)).thenReturn(Optional.of(checklist));
-
+    when(checklistMapper.taskTemplateComparator()).thenReturn(
+        Comparator.comparing(TaskTemplate::getTitle)
+    );
     assertThatThrownBy(() -> checklistService.submitChecklist(2L, principal))
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("already been submitted");
+        .hasMessageContaining("Already submitted");
 
     verify(tasksRepository, never()).saveAll(any());
   }
@@ -125,6 +146,18 @@ class ChecklistServiceTest {
     when(checklistRepository.findByIdAndOrganization_Id(3L, orgId)).thenReturn(Optional.of(checklist));
     when(tasksRepository.findAllByChecklist_Id(3L)).thenReturn(List.of(task));
     when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(checklistMapper.toCardResponse(
+        any(ChecklistModel.class),
+        any(),
+        any(),
+        any(),
+        any(Boolean.class)))
+        .thenAnswer(invocation -> {
+          return new ChecklistCardResponse(
+              3L, "2026-04-08", "2026-04-08",false, false, "Test",
+              null, null,false,null, null, 0, List.of()
+          );
+        });
 
     var response = checklistService.setChecklistWorkbenchState(
         3L,
@@ -150,6 +183,27 @@ class ChecklistServiceTest {
     when(tasksRepository.findByIdAndChecklist_Id(500L, 4L)).thenReturn(Optional.of(task));
     when(tasksRepository.save(any(TasksModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
     when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(500L))).thenReturn(List.of());
+    when(checklistMapper.toTaskItemResponse(any(TasksModel.class), any()))
+        .thenAnswer(invocation -> {
+          TasksModel t = invocation.getArgument(0);
+          TemperatureMeasurementModel measurement = invocation.getArgument(1);
+          return new ChecklistTaskItemResponse(
+              t.getId(),
+              t.getTaskTemplate().getId(),
+              t.getTaskTemplate().getTitle(),
+              t.getMeta(),
+              null,
+              t.getTaskTemplate().getUnit(),
+              t.getTaskTemplate().getTargetMin(),
+              t.getTaskTemplate().getTargetMax(),
+              t.isCompleted() ? "completed" : "todo",
+              t.isFlagged() ? Boolean.TRUE : Boolean.FALSE,
+              t.isCompleted() ? t.getPeriodKey() : null,
+              t.isCompleted() ? t.getEndedAt() : null,
+              t.isFlagged() ? t.getPeriodKey() : null,
+              null
+          );
+        });
 
     var response = checklistService.setTaskCompletion(
         4L,
@@ -200,6 +254,27 @@ class ChecklistServiceTest {
     when(tasksRepository.save(any(TasksModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
     when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(700L)))
         .thenReturn(List.of(measurement(700L, periodKey, task)));
+    when(checklistMapper.toTaskItemResponse(any(TasksModel.class), any()))
+        .thenAnswer(invocation -> {
+          TasksModel t = invocation.getArgument(0);
+          TemperatureMeasurementModel measurement = invocation.getArgument(1);
+          return new ChecklistTaskItemResponse(
+              t.getId(),
+              t.getTaskTemplate().getId(),
+              t.getTaskTemplate().getTitle(),
+              t.getMeta(),
+              null,
+              t.getTaskTemplate().getUnit(),
+              t.getTaskTemplate().getTargetMin(),
+              t.getTaskTemplate().getTargetMax(),
+              t.isCompleted() ? "completed" : "todo",
+              t.isFlagged() ? Boolean.TRUE : Boolean.FALSE,
+              t.isCompleted() ? t.getPeriodKey() : null,
+              t.isCompleted() ? t.getEndedAt() : null,
+              t.isFlagged() ? t.getPeriodKey() : null,
+              null
+          );
+        });
 
     var response = checklistService.setTaskCompletion(
         6L,

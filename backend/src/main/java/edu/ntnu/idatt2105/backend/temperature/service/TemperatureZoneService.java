@@ -27,6 +27,10 @@ public class TemperatureZoneService {
 
 
 	public TemperatureZoneResponse createZone(CreateTemperatureZoneRequest request, JwtAuthenticatedPrincipal principal) {
+		if (request.targetMin().compareTo(request.targetMax()) > 0) {
+			throw new IllegalArgumentException("targetMin cannot be greater than targetMax");
+		}
+
 		UUID orgId = principal.requireOrganizationId();
 		ComplianceArea area = request.module().toComplianceArea();
 
