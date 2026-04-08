@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class DocumentService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DocumentService.class);
@@ -61,39 +61,30 @@ public class DocumentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Either a file or an external URL must be provided");
         }
 
-        UUID userId = principal.getUserId();
         UUID orgId = principal.getOrganizationId();
 
-        UserModel user = userRepository.getReferenceById(userId);
-        OrganizationModel org = organizationRepository.findById(orgId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
-
-        DocumentModel doc = new DocumentModel();
-        doc.setName(name);
-        doc.setDescription(description);
-        doc.setCategory(category);
-        doc.setModule(module);
-        doc.setExpiryDate(expiryDate);
-        doc.setUploadedBy(user);
-        doc.setOrganization(org);
+        DocumentModel.DocumentModelBuilder builder = DocumentModel.builder()
+            .name(name)
+            .description(description)
+            .category(category)
+            .module(module)
+            .expiryDate(expiryDate)
+            .uploadedBy(userRepository.getReferenceById(principal.getUserId()))
+            .organization(organizationRepository.getReferenceById(orgId));
 
         if (externalUrl != null && !externalUrl.isBlank()) {
-            doc.setExternalUrl(externalUrl);
-            LOGGER.info("Document link: orgId={} userId={} name='{}' category={} url='{}'",
-                    orgId, userId, name, category, externalUrl);
+            builder.externalUrl(externalUrl);
         } else {
-            String savedPath = saveFileToDisk(file, orgId);
-            doc.setOriginalFileName(file.getOriginalFilename());
-            doc.setFileType(file.getContentType());
-            doc.setFileSize(file.getSize());
-            doc.setStoragePath(savedPath);
-            LOGGER.info("Document upload: orgId={} userId={} name='{}' category={} file='{}'",
-                    orgId, userId, name, category, file.getOriginalFilename());
+            builder
+                .storagePath(saveFileToDisk(file, orgId))
+                .originalFileName(file.getOriginalFilename())
+                .fileType(file.getContentType())
+                .fileSize(file.getSize());
         }
 
-        DocumentModel saved = documentRepository.save(doc);
-        LOGGER.info("Document saved: documentId={}", saved.getId());
-        return documentMapper.toDto(saved) ;
+        DocumentModel saved = documentRepository.save(builder.build());
+        LOGGER.info("Document saved: documentId={} orgId={} name='{}'", saved.getId(), orgId, name);
+        return documentMapper.toDto(saved);
     }
 
     public List<DocumentDto> getDocuments(
