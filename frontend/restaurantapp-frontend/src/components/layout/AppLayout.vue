@@ -15,8 +15,8 @@ import AppHeader from './AppHeader.vue'
 .app-container {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(212, 232, 53, 0.18), transparent 26%),
-    linear-gradient(180deg, #f8f8fb 0%, #f1f2f8 100%);
+    radial-gradient(circle at top left, rgba(212, 232, 53, 0.24), transparent 30%),
+    linear-gradient(180deg, #f8f8fc 0%, #ebedf6 100%);
 }
 
 .app-main {
