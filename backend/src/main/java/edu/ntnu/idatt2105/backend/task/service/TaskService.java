@@ -6,6 +6,7 @@ import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
@@ -32,92 +33,94 @@ public class TaskService {
 	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
 	private final TemperatureZoneRepository temperatureZoneRepository;
 	private final ChecklistCacheStateService checklistCacheStateService;
+	private final TaskMapper taskMapper;
 
 
 	public TaskResponse createTask(CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
-		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
-		validateRequest(request);
+		UUID orgId = principal.requireOrganizationId();
+		ComplianceArea area = request.module().toComplianceArea();
 		boolean isTemperatureControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
-		TemperatureZoneModel temperatureZone = isTemperatureControl
-			? getTemperatureZone(request.temperatureZoneId(), safePrincipal.getOrganizationId(), requireModule(request.module()).toComplianceArea())
-			: null;
 
-		TaskTemplate template = new TaskTemplate();
-		template.setTitle(request.title().trim());
-		template.setMeta(trimToNull(request.meta()));
-		template.setSectionType(request.sectionType());
-		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
-		template.setTemperatureZone(temperatureZone);
-		template.setUnit(isTemperatureControl ? "C" : null);
-		template.setTargetMin(isTemperatureControl ? temperatureZone.getTargetMin() : null);
-		template.setTargetMax(isTemperatureControl ? temperatureZone.getTargetMax() : null);
-		template.setOrganisationId(safePrincipal.getOrganizationId());
+		validateTemperatureZoneRule(request);
+		TemperatureZoneModel zone = isTemperatureControl
+				? requireTemperatureZone(request.temperatureZoneId(), orgId, area)
+				: null;
 
-		TaskResponse response = toResponse(taskTemplateRepository.save(template));
-		touchChecklistCache(safePrincipal.getOrganizationId(), template.getComplianceArea());
-		return response;
+		TaskTemplate template = TaskTemplate.builder()
+				.title(request.title().trim())
+				.meta(trimToNull(request.meta()))
+				.sectionType(request.sectionType())
+				.complianceArea(area)
+				.temperatureZone(zone)
+				.unit(isTemperatureControl ? "C" : null)
+				.targetMin(isTemperatureControl ? zone.getTargetMin() : null)
+				.targetMax(isTemperatureControl ? zone.getTargetMax() : null)
+				.organisationId(orgId)
+				.build();
+
+		TaskTemplate saved = taskTemplateRepository.save(template);
+		checklistCacheStateService.touch(orgId, area);
+		return taskMapper.toResponse(saved);
 	}
 
 	@Transactional
 	public TaskResponse updateTask(Long taskId, CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
-		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
-		validateRequest(request);
-		TaskTemplate template = getTemplate(taskId, safePrincipal);
-		ComplianceArea previousComplianceArea = template.getComplianceArea();
-		boolean isTemperatureControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
-		TemperatureZoneModel temperatureZone = isTemperatureControl
-			? getTemperatureZone(request.temperatureZoneId(), safePrincipal.getOrganizationId(), requireModule(request.module()).toComplianceArea())
-			: null;
+		UUID orgId = principal.requireOrganizationId();
+		ComplianceArea newArea = request.module().toComplianceArea();
+		boolean isTempControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
+
+		validateTemperatureZoneRule(request);
+		TaskTemplate template = requireOwnTemplate(taskId, orgId);
+		ComplianceArea previousArea = template.getComplianceArea();
+
+		TemperatureZoneModel zone = isTempControl
+				? requireTemperatureZone(request.temperatureZoneId(), orgId, newArea)
+				: null;
 
 		template.setTitle(request.title().trim());
 		template.setMeta(trimToNull(request.meta()));
 		template.setSectionType(request.sectionType());
-		template.setComplianceArea(requireModule(request.module()).toComplianceArea());
-		template.setTemperatureZone(temperatureZone);
-		template.setUnit(isTemperatureControl ? "C" : null);
-		template.setTargetMin(isTemperatureControl ? temperatureZone.getTargetMin() : null);
-		template.setTargetMax(isTemperatureControl ? temperatureZone.getTargetMax() : null);
+		template.setComplianceArea(newArea);
+		template.setTemperatureZone(zone);
+		template.setUnit(isTempControl ? "C" : null);
+		template.setTargetMin(isTempControl ? zone.getTargetMin() : null);
+		template.setTargetMax(isTempControl ? zone.getTargetMax() : null);
 
 		List<TasksModel> activatedTasks = tasksRepository.findAllByTaskTemplate_Id(taskId);
-		for (TasksModel task : activatedTasks) {
-			task.setMeta(template.getMeta());
-		}
+		activatedTasks.forEach(task -> task.setMeta(template.getMeta()));
 		if (!activatedTasks.isEmpty()) {
 			tasksRepository.saveAll(activatedTasks);
 		}
 
-		TaskResponse response = toResponse(taskTemplateRepository.save(template));
-		touchChecklistCache(safePrincipal.getOrganizationId(), previousComplianceArea);
-		if (template.getComplianceArea() != previousComplianceArea) {
-			touchChecklistCache(safePrincipal.getOrganizationId(), template.getComplianceArea());
+		TaskTemplate saved = taskTemplateRepository.save(template);
+		checklistCacheStateService.touch(orgId, previousArea);
+		if (newArea != previousArea) {
+			checklistCacheStateService.touch(orgId, newArea);
 		}
-		return response;
+		return taskMapper.toResponse(saved);
 	}
 
 	public List<TaskResponse> getAllTasks(IcModule module, JwtAuthenticatedPrincipal principal) {
-		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
-		ComplianceArea complianceArea = requireModule(module).toComplianceArea();
-
+		UUID orgId = principal.requireOrganizationId();
 		return taskTemplateRepository
-			.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(safePrincipal.getOrganizationId(), complianceArea)
-			.stream()
-			.map(this::toResponse)
-			.toList();
+				.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(orgId, module.toComplianceArea())
+				.stream()
+				.map(taskMapper::toResponse)
+				.toList();
 	}
 
 	public TaskResponse getTaskById(Long taskId, JwtAuthenticatedPrincipal principal) {
-		TaskTemplate template = getTemplate(taskId, requirePrincipal(principal));
-		return toResponse(template);
+		return taskMapper.toResponse(requireOwnTemplate(taskId, principal.requireOrganizationId()));
 	}
 
 	@Transactional
 	public void deleteTask(Long taskId, JwtAuthenticatedPrincipal principal) {
-		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
-		TaskTemplate template = getTemplate(taskId, safePrincipal);
+		UUID orgId = principal.requireOrganizationId();
+		TaskTemplate template = requireOwnTemplate(taskId, orgId);
 
-		List<ChecklistModel> checklists = checklistRepository.findAllByOrganization_IdOrderByIdAsc(safePrincipal.getOrganizationId());
+		List<ChecklistModel> checklists = checklistRepository.findAllByOrganization_IdOrderByIdAsc(orgId);
 		for (ChecklistModel checklist : checklists) {
-			if (checklist.getTaskTemplates().removeIf(task -> template.getId().equals(task.getId()))) {
+			if (checklist.getTaskTemplates().removeIf(t -> template.getId().equals(t.getId()))) {
 				checklistRepository.save(checklist);
 			}
 		}
@@ -129,84 +132,41 @@ public class TaskService {
 		}
 
 		taskTemplateRepository.delete(template);
-		touchChecklistCache(safePrincipal.getOrganizationId(), template.getComplianceArea());
+		checklistCacheStateService.touch(orgId, template.getComplianceArea());
 	}
 
-	private void touchChecklistCache(UUID organizationId, ComplianceArea complianceArea) {
-		checklistCacheStateService.touch(organizationId, complianceArea);
-	}
 
-	private TaskTemplate getTemplate(Long taskId, JwtAuthenticatedPrincipal principal) {
+	private TaskTemplate requireOwnTemplate(Long taskId, UUID orgId) {
 		TaskTemplate template = taskTemplateRepository.findById(taskId)
-			.orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + taskId));
-		if (!template.getOrganisationId().equals(principal.getOrganizationId())) {
-			throw new IllegalArgumentException("Task not found with id: " + taskId);
+				.orElseThrow(() -> new IllegalArgumentException("Task not found."));
+		if (!template.getOrganisationId().equals(orgId)) {
+			throw new IllegalArgumentException("Task not found.");
 		}
 		return template;
 	}
 
-	private TaskResponse toResponse(TaskTemplate template) {
-		return new TaskResponse(
-			template.getId(),
-			toModule(template.getComplianceArea()),
-			template.getTitle(),
-			template.getMeta(),
-			template.getSectionType(),
-			template.getTemperatureZone() != null ? template.getTemperatureZone().getId() : null,
-			template.getTemperatureZone() != null ? template.getTemperatureZone().getName() : null,
-			template.getTemperatureZone() != null ? template.getTemperatureZone().getZoneType() : null,
-			template.getUnit(),
-			template.getTargetMin(),
-			template.getTargetMax()
-		);
+	private TemperatureZoneModel requireTemperatureZone(Long zoneId, UUID orgId, ComplianceArea area) {
+		return temperatureZoneRepository.findByIdAndOrganizationIdAndComplianceArea(zoneId, orgId, area)
+				.orElseThrow(() -> new IllegalArgumentException("Temperature zone not found."));
 	}
 
-	private JwtAuthenticatedPrincipal requirePrincipal(JwtAuthenticatedPrincipal principal) {
-		if (principal == null) throw new IllegalArgumentException("Authentication required.");
-		if (principal.getOrganizationId() == null) throw new IllegalArgumentException("Organization required.");
-		return principal;
-	}
-
-	private IcModule requireModule(IcModule module) {
-		if (module == null) throw new IllegalArgumentException("module is required.");
-		return module;
-	}
-
-	private void validateRequest(CreateTaskRequest request) {
-		if (request == null) throw new IllegalArgumentException("Task request cannot be null.");
-		if (!hasText(request.title())) throw new IllegalArgumentException("Task title is required.");
-		if (request.module() == null) throw new IllegalArgumentException("module is required.");
-		if (request.sectionType() == null) throw new IllegalArgumentException("sectionType is required.");
-		boolean isTemperatureControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
-		if (!isTemperatureControl && request.temperatureZoneId() != null) {
-			throw new IllegalArgumentException("temperatureZoneId is only allowed for TEMPERATURE_CONTROL.");
-		}
-		if (isTemperatureControl && request.temperatureZoneId() == null) {
+	/**
+	 * Validates that temperatureZoneId is present for TEMPERATURE_CONTROL
+	 * and absent for all other section types.
+	 */
+	private void validateTemperatureZoneRule(CreateTaskRequest request) {
+		boolean isTempControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
+		if (isTempControl && request.temperatureZoneId() == null) {
 			throw new IllegalArgumentException("temperatureZoneId is required for TEMPERATURE_CONTROL.");
 		}
-	}
-
-	private TemperatureZoneModel getTemperatureZone(Long zoneId, UUID organizationId, ComplianceArea complianceArea) {
-		return temperatureZoneRepository.findByIdAndOrganizationIdAndComplianceArea(zoneId, organizationId, complianceArea)
-			.orElseThrow(() -> new IllegalArgumentException("Temperature zone not found."));
-	}
-
-	private boolean hasText(String value) {
-		return value != null && !value.trim().isEmpty();
+		if (!isTempControl && request.temperatureZoneId() != null) {
+			throw new IllegalArgumentException("temperatureZoneId is only allowed for TEMPERATURE_CONTROL.");
+		}
 	}
 
 	private String trimToNull(String value) {
-		if (value == null) {
-			return null;
-		}
+		if (value == null) return null;
 		String trimmed = value.trim();
 		return trimmed.isEmpty() ? null : trimmed;
-	}
-
-	private IcModule toModule(ComplianceArea complianceArea) {
-		if (complianceArea == ComplianceArea.IK_ALKOHOL) {
-			return IcModule.IC_ALCOHOL;
-		}
-		return IcModule.IC_FOOD;
 	}
 }
