@@ -237,7 +237,8 @@ watch(
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(12, 12, 24, 0.55);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,10 +247,21 @@ watch(
 }
 
 .modal-overlay > * {
-  max-width: 720px;
+  max-width: 860px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+@media (max-width: 720px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding: var(--space-3);
+  }
+
+  .modal-overlay > * {
+    max-height: calc(100vh - (var(--space-3) * 2));
+  }
 }
 
 @media print {
