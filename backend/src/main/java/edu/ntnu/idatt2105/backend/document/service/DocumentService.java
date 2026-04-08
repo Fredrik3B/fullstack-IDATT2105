@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.document.service;
 
 import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
+import edu.ntnu.idatt2105.backend.document.mapper.DocumentMapper;
 import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
@@ -11,6 +12,8 @@ import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +34,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class DocumentService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DocumentService.class);
@@ -38,19 +42,10 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final DocumentMapper documentMapper;
 
     @Value("${app.document-storage-path:./uploads/documents/}")
     private String storagePath;
-
-    public DocumentService(
-            DocumentRepository documentRepository,
-            UserRepository userRepository,
-            OrganizationRepository organizationRepository
-    ) {
-        this.documentRepository = documentRepository;
-        this.userRepository = userRepository;
-        this.organizationRepository = organizationRepository;
-    }
 
     public DocumentDto uploadDocument(
             MultipartFile file,
@@ -69,8 +64,7 @@ public class DocumentService {
         UUID userId = principal.getUserId();
         UUID orgId = principal.getOrganizationId();
 
-        UserModel user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        UserModel user = userRepository.getReferenceById(userId);
         OrganizationModel org = organizationRepository.findById(orgId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
 
@@ -99,7 +93,7 @@ public class DocumentService {
 
         DocumentModel saved = documentRepository.save(doc);
         LOGGER.info("Document saved: documentId={}", saved.getId());
-        return toDto(saved);
+        return documentMapper.toDto(saved) ;
     }
 
     public List<DocumentDto> getDocuments(
@@ -120,7 +114,7 @@ public class DocumentService {
             docs = documentRepository.findAllByOrganizationId(orgId);
         }
 
-        return docs.stream().map(this::toDto).toList();
+        return docs.stream().map(documentMapper::toDto).toList();
     }
 
     public Resource downloadDocument(Long documentId, JwtAuthenticatedPrincipal principal) {
@@ -152,7 +146,6 @@ public class DocumentService {
         LOGGER.info("Document delete: documentId={} orgId={}", documentId, principal.getOrganizationId());
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private String saveFileToDisk(MultipartFile file, UUID orgId) {
         try {
@@ -185,21 +178,4 @@ public class DocumentService {
         return doc;
     }
 
-    private DocumentDto toDto(DocumentModel doc) {
-        String uploadedByName = doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName();
-        return new DocumentDto(
-                doc.getId(),
-                doc.getName(),
-                doc.getDescription(),
-                doc.getCategory(),
-                doc.getModule(),
-                doc.getExternalUrl(),
-                doc.getOriginalFileName(),
-                doc.getFileType(),
-                doc.getFileSize(),
-                doc.getExpiryDate(),
-                doc.getUploadedAt(),
-                uploadedByName
-        );
-    }
 }
