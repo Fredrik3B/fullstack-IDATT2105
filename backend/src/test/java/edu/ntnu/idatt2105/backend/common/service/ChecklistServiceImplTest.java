@@ -12,6 +12,7 @@ import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchState
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.common.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.common.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
@@ -160,6 +161,56 @@ class ChecklistServiceImplTest {
     assertThat(response.state()).isEqualTo("todo");
   }
 
+  @Test
+  void setTaskCompletion_whenTemperatureTaskHasNoReading_rejectsCompletion() {
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    TaskTemplate template = template(60L, "Check fridge");
+    ChecklistModel checklist = checklist(5L, periodKey, true, true, template);
+
+    TasksModel task = activatedTask(600L, checklist, template, periodKey);
+
+    when(checklistRepository.findByIdAndOrganization_Id(5L, orgId)).thenReturn(Optional.of(checklist));
+    when(tasksRepository.findByIdAndChecklist_Id(600L, 5L)).thenReturn(Optional.of(task));
+    when(temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(600L, periodKey)).thenReturn(false);
+
+    assertThatThrownBy(() -> checklistService.setTaskCompletion(
+        5L,
+        600L,
+        new edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest("completed", periodKey, LocalDateTime.now()),
+        principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("require a saved reading");
+
+    verify(tasksRepository, never()).save(any(TasksModel.class));
+  }
+
+  @Test
+  void setTaskCompletion_whenTemperatureTaskHasReading_allowsCompletion() {
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    TaskTemplate template = template(70L, "Check freezer");
+    ChecklistModel checklist = checklist(6L, periodKey, true, true, template);
+
+    TasksModel task = activatedTask(700L, checklist, template, periodKey);
+    LocalDateTime completedAt = LocalDateTime.now();
+
+    when(checklistRepository.findByIdAndOrganization_Id(6L, orgId)).thenReturn(Optional.of(checklist));
+    when(tasksRepository.findByIdAndChecklist_Id(700L, 6L)).thenReturn(Optional.of(task));
+    when(temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(700L, periodKey)).thenReturn(true);
+    when(tasksRepository.save(any(TasksModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(700L)))
+        .thenReturn(List.of(measurement(700L, periodKey, task)));
+
+    var response = checklistService.setTaskCompletion(
+        6L,
+        700L,
+        new edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest("completed", periodKey, completedAt),
+        principal);
+
+    assertThat(task.isCompleted()).isTrue();
+    assertThat(task.getEndedAt()).isEqualTo(completedAt);
+    assertThat(response.state()).isEqualTo("completed");
+  }
+
   private ChecklistModel checklist(Long id, String periodKey, boolean recurring, boolean displayed, TaskTemplate template) {
     ChecklistModel checklist = new ChecklistModel();
     OrganizationModel organization = new OrganizationModel();
@@ -209,5 +260,15 @@ class ChecklistServiceImplTest {
     task.setCompleted(false);
     task.setFlagged(false);
     return task;
+  }
+
+  private TemperatureMeasurementModel measurement(Long id, String periodKey, TasksModel task) {
+    TemperatureMeasurementModel measurement = new TemperatureMeasurementModel();
+    measurement.setId(id);
+    measurement.setTask(task);
+    measurement.setPeriodKey(periodKey);
+    measurement.setValueC(new BigDecimal("3.50"));
+    measurement.setMeasuredAt(LocalDateTime.now());
+    return measurement;
   }
 }

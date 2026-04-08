@@ -177,6 +177,13 @@ public class ChecklistServiceImpl implements ChecklistService {
 			throw new IllegalArgumentException("Invalid state: " + request.state());
 		}
 
+		if (state.equals("completed") && isTemperatureTemplate(task.getTaskTemplate())) {
+			boolean hasMeasurement = temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(task.getId(), periodKey);
+			if (!hasMeasurement) {
+				throw new IllegalArgumentException("Temperature tasks require a saved reading before completion.");
+			}
+		}
+
 		if (state.equals("completed")) {
 			task.setCompleted(true);
 			task.setFlagged(false);
