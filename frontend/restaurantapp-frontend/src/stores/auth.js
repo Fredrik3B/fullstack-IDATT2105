@@ -83,6 +83,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function _decodeTokenValue(token) {
+    if (!token) return null
+    try {
+      return JSON.parse(atob(token.split('.')[1]))
+    } catch {
+      return null
+    }
+  }
+
+  function _isTokenExpired(token) {
+    const claims = _decodeTokenValue(token)
+    if (!claims?.exp) return false
+    return claims.exp * 1000 <= Date.now()
+  }
+
   /**
    * Write current session state to localStorage.
    * Called after every successful auth response (login, register, refresh).
@@ -135,20 +150,33 @@ export const useAuthStore = defineStore('auth', () => {
     if (_initDone) return
     _initDone = true
 
+    let token = null
+    let session = null
+
     try {
-      const token = localStorage.getItem(ACCESS_TOKEN_KEY)
+      token = localStorage.getItem(ACCESS_TOKEN_KEY)
       if (!token) return
 
       const raw = localStorage.getItem(SESSION_KEY)
       if (!raw) return
 
-      const session = JSON.parse(raw)
-      accessToken.value = token
-      user.value = session.user ?? null
-      restaurant.value = session.restaurant ?? null
+      session = JSON.parse(raw)
     } catch {
       _clearSession()
       return
+    }
+
+    if (_isTokenExpired(token)) {
+      try {
+        await refreshAccessToken()
+      } catch {
+        _clearSession()
+        return
+      }
+    } else {
+      accessToken.value = token
+      user.value = session.user ?? null
+      restaurant.value = session.restaurant ?? null
     }
 
     // Logged in but no restaurant, check for a pending join request

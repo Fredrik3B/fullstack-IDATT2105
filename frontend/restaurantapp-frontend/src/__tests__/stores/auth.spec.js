@@ -43,6 +43,11 @@ function makeAuthResponse(overrides = {}) {
   }
 }
 
+function makeJwt(payload) {
+  const encoded = btoa(JSON.stringify(payload))
+  return `header.${encoded}.sig`
+}
+
 // ── Setup ──────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -313,6 +318,50 @@ describe('useAuthStore', () => {
       await auth.initAuth()
 
       expect(auth.pendingRequest).toMatchObject({ restaurantName: 'Pending Place' })
+    })
+
+    it('refreshes an expired persisted token before hydrating state', async () => {
+      localStorage.setItem(
+        ACCESS_TOKEN_KEY,
+        makeJwt({ exp: Math.floor(Date.now() / 1000) - 60, roles: ['ROLE_STAFF'] }),
+      )
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        user: { id: 1, email: 'test@example.com', name: 'Test User' },
+        restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+      }))
+      axios.post = vi.fn().mockResolvedValueOnce({
+        data: makeAuthResponse({
+          accessToken: 'refreshed-token',
+          restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+        }).data,
+      })
+
+      const auth = useAuthStore()
+      await auth.initAuth()
+
+      expect(axios.post).toHaveBeenCalledOnce()
+      expect(auth.accessToken).toBe('refreshed-token')
+      expect(auth.restaurant).toMatchObject({ id: 5, name: 'Pizza Palace' })
+    })
+
+    it('clears session when persisted token is expired and refresh fails', async () => {
+      localStorage.setItem(
+        ACCESS_TOKEN_KEY,
+        makeJwt({ exp: Math.floor(Date.now() / 1000) - 60, roles: ['ROLE_STAFF'] }),
+      )
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        user: { id: 1, email: 'test@example.com', name: 'Test User' },
+        restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+      }))
+      axios.post = vi.fn().mockRejectedValueOnce(new Error('Unauthorized'))
+
+      const auth = useAuthStore()
+      await auth.initAuth()
+
+      expect(auth.accessToken).toBeNull()
+      expect(auth.user).toBeNull()
+      expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull()
+      expect(localStorage.getItem(SESSION_KEY)).toBeNull()
     })
 
     it('clears state when persisted session JSON is malformed', async () => {
@@ -811,11 +860,6 @@ describe('useAuthStore', () => {
   // ── userRoles / isAdminOrManager ───────────────────────────────────────
 
   describe('userRoles and isAdminOrManager', () => {
-    function makeJwt(payload) {
-      const encoded = btoa(JSON.stringify(payload))
-      return `header.${encoded}.sig`
-    }
-
     it('returns empty roles when there is no token', () => {
       const auth = useAuthStore()
       expect(auth.userRoles).toEqual([])
