@@ -1,17 +1,24 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
-// ── Instance ───────────────────────────────────────────────────────────────
+/**
+ * Shared Axios client for all frontend API modules.
+ *
+ * It attaches the current access token on requests and retries once after a
+ * token refresh when the backend returns 401.
+ */
 
+/** @type {import('axios').AxiosInstance} */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000, // 10 seconds — fail loudly instead of hanging forever
-  withCredentials: true, // required for HTTPOnly refresh token cookie
+  timeout: 10000,
+  withCredentials: true,
 })
 
-// ── Request interceptor — attach JWT ──────────────────────────────────────
-
+/**
+ * Attach the current bearer token to outgoing API requests.
+ */
 api.interceptors.request.use(
   (config) => {
     const auth = useAuthStore()
@@ -23,24 +30,24 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// ── Response interceptor — handle token expiry ────────────────────────────
-
 /**
- * When a 401 comes back we try once to refresh the access token, then retry
- * the original request. If the refresh itself fails, the user is logged out.
+ * Tracks whether a refresh call is already running.
  *
- * _isRetry flag on the config object prevents an infinite retry loop:
- *   request → 401 → refresh → retry → 401 again → logout  (stops here)
+ * The `_isRetry` flag on the request config prevents infinite retry loops.
  */
 let isRefreshing = false
 
 /**
- * While a refresh is already in progress, any other requests that get a 401
- * are queued here instead of each firing their own refresh call.
- * Once the refresh resolves (or fails) the queue is flushed.
+ * Queue of requests waiting for the outcome of an in-flight refresh.
  */
 let pendingQueue = []
 
+/**
+ * Resolve or reject all queued requests.
+ *
+ * @param {Error|null} error - Refresh error, if one occurred.
+ * @param {string|null} [token=null] - New access token when refresh succeeds.
+ */
 function flushQueue(error, token = null) {
   pendingQueue.forEach(({ resolve, reject }) => {
     if (error) reject(error)
@@ -50,24 +57,20 @@ function flushQueue(error, token = null) {
 }
 
 api.interceptors.response.use(
-  // 2xx — pass straight through
   (response) => response,
 
   async (error) => {
     const originalRequest = error.config
 
-    // Only attempt a refresh on 401, and only once per request.
-    // Skip refresh for auth endpoints — a 401 there means bad credentials, not an expired token.
     const isAuthEndpoint = originalRequest.url?.includes('/api/auth/')
     if (error.response?.status !== 401 || originalRequest._isRetry || isAuthEndpoint) {
       return Promise.reject(error)
     }
 
-    // Mark so we don't retry again if the retried request also 401s
+    // Mark the request so a retried 401 does not restart the refresh flow.
     originalRequest._isRetry = true
 
     if (isRefreshing) {
-      // A refresh is already running — queue this request until it finishes
       return new Promise((resolve, reject) => {
         pendingQueue.push({ resolve, reject })
       })
@@ -84,15 +87,12 @@ api.interceptors.response.use(
       const auth = useAuthStore()
       const newToken = await auth.refreshAccessToken()
 
-      // Update the header on the original request and retry it
       originalRequest.headers.Authorization = `Bearer ${newToken}`
 
-      // Unblock any requests that were queued while we were refreshing
       flushQueue(null, newToken)
 
       return api(originalRequest)
     } catch (refreshError) {
-      // Refresh failed (expired or revoked) — log the user out
       flushQueue(refreshError)
       const auth = useAuthStore()
       await auth.logout()
@@ -103,4 +103,7 @@ api.interceptors.response.use(
   }
 )
 
+/**
+ * Exported as the single HTTP client used by every API module in the app.
+ */
 export default api
