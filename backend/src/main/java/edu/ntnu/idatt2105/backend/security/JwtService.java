@@ -48,7 +48,8 @@ public class JwtService {
   @Value("${jwt.expiration-ms}")
   private long expiration;
 
-  private final int refreshExpiration = 604800000;
+  @Value("${jwt.refresh-expiration-ms:604800000}")
+  private long refreshExpiration;
 
   private Claims getClaims(String token) {
     return Jwts.parser()

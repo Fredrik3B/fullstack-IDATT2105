@@ -7,16 +7,18 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.dto.temperaturezone.CreateTemperatureZoneRequest;
-import edu.ntnu.idatt2105.backend.common.dto.temperaturezone.TemperatureZoneResponse;
-import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
-import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TemperatureZoneRepository;
-import edu.ntnu.idatt2105.backend.common.service.impl.TemperatureZoneServiceImpl;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
+import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureZoneRequest;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.temperature.mapper.TemperatureMapper;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
+import edu.ntnu.idatt2105.backend.temperature.service.TemperatureZoneService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -37,8 +39,9 @@ class TemperatureZoneServiceImplTest {
   @Mock private TemperatureZoneRepository temperatureZoneRepository;
   @Mock private TaskTemplateRepository taskTemplateRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
+  @Mock private TemperatureMapper temperatureMapper;
 
-  @InjectMocks private TemperatureZoneServiceImpl temperatureZoneService;
+  @InjectMocks private TemperatureZoneService temperatureZoneService;
 
   private UUID orgId;
   private JwtAuthenticatedPrincipal principal;
@@ -55,6 +58,18 @@ class TemperatureZoneServiceImplTest {
       TemperatureZoneModel zone = invocation.getArgument(0);
       zone.setId(7L);
       return zone;
+    });
+
+    when(temperatureMapper.toZoneResponse(any(TemperatureZoneModel.class))).thenAnswer(invocation -> {
+      TemperatureZoneModel z = invocation.getArgument(0);
+      return new TemperatureZoneResponse(
+          z.getId(),
+          IcModule.IC_ALCOHOL,
+          z.getName(),
+          z.getZoneType(),
+          z.getTargetMin(),
+          z.getTargetMax()
+      );
     });
 
     TemperatureZoneResponse response = temperatureZoneService.createZone(
@@ -94,6 +109,18 @@ class TemperatureZoneServiceImplTest {
     when(temperatureZoneRepository.findByIdAndOrganizationId(8L, orgId)).thenReturn(Optional.of(zone));
     when(temperatureZoneRepository.save(any(TemperatureZoneModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
     when(taskTemplateRepository.findAllByTemperatureZone_Id(8L)).thenReturn(List.of(template));
+    when(temperatureMapper.toZoneResponse(any(TemperatureZoneModel.class)))
+        .thenAnswer(invocation -> {
+          TemperatureZoneModel z = invocation.getArgument(0);
+          return new TemperatureZoneResponse(
+              z.getId(),
+              IcModule.IC_FOOD,
+              z.getName(),
+              z.getZoneType(),
+              z.getTargetMin(),
+              z.getTargetMax()
+          );
+        });
 
     TemperatureZoneResponse response = temperatureZoneService.updateZone(
         8L,

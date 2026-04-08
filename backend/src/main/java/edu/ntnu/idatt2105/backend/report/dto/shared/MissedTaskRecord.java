@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.report.dto.shared;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import lombok.Builder;
 import lombok.Data;
 

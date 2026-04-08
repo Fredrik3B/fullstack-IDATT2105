@@ -2,7 +2,7 @@ package edu.ntnu.idatt2105.backend.report.dto.shared;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
 import lombok.Builder;
 import lombok.Data;
 

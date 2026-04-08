@@ -19,10 +19,6 @@ public interface UserRepository extends JpaRepository<UserModel, UUID> {
 
   List<UserModel> findAllByOrganizationId(UUID organizationId);
 
-
-  @Query("SELECT j FROM JoinRequestModel j JOIN FETCH j.user WHERE j.organization.id = :orgId AND j.status = :status")
-  List<JoinRequestModel> findAllByOrganizationIdAndStatusWithUser(@Param("orgId") UUID orgId, @Param("status") JoinOrgStatus status);
-
   @Query("SELECT COUNT(u) FROM UserModel u JOIN u.roles r WHERE u.organization.id = :orgId AND r.name = 'ADMIN'")
   long countAdminsByOrganizationId(@Param("orgId") UUID orgId);
 }

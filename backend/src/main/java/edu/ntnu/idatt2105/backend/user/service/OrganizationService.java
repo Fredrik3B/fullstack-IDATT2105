@@ -1,9 +1,9 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
-import edu.ntnu.idatt2105.backend.common.model.DocumentModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.DocumentCategory;
-import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
-import edu.ntnu.idatt2105.backend.common.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
@@ -24,10 +24,8 @@ import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 

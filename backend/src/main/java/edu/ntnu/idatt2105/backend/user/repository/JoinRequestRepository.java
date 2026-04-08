@@ -13,8 +13,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface JoinRequestRepository extends JpaRepository<JoinRequestModel, UUID> {
 
-  Optional<JoinRequestModel> findFirstByUserAndStatus(UserModel user, JoinOrgStatus status);
-
   boolean existsByUserAndStatus(UserModel user, JoinOrgStatus status);
 
   List<JoinRequestModel> findAllByUserAndStatus(UserModel user, JoinOrgStatus status);

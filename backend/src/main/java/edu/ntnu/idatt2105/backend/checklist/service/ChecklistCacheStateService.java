@@ -1,0 +1,76 @@
+package edu.ntnu.idatt2105.backend.checklist.service;
+
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModuleState;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistModuleStateRepository;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.Objects;
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@AllArgsConstructor
+public class ChecklistCacheStateService {
+
+	private final ChecklistModuleStateRepository checklistModuleStateRepository;
+
+	@Transactional
+	public Instant getLastModified(UUID organizationId, ComplianceArea complianceArea) {
+		UUID safeOrganizationId = Objects.requireNonNull(organizationId, "organizationId is required.");
+		ComplianceArea safeComplianceArea = Objects.requireNonNull(complianceArea, "complianceArea is required.");
+
+		ChecklistModuleState state = checklistModuleStateRepository
+			.findByOrganizationIdAndComplianceArea(safeOrganizationId, safeComplianceArea)
+			.orElseGet(() -> createState(safeOrganizationId, safeComplianceArea, currentHttpSecond()));
+
+		if (state.getModifiedAt() == null) {
+			state.setModifiedAt(currentHttpSecond());
+			state = checklistModuleStateRepository.save(state);
+		}
+
+		return state.getModifiedAt().atZone(ZoneId.systemDefault()).toInstant();
+	}
+
+	@Transactional
+	public void touch(UUID organizationId, ComplianceArea complianceArea) {
+		UUID safeOrganizationId = Objects.requireNonNull(organizationId, "organizationId is required.");
+		ComplianceArea safeComplianceArea = Objects.requireNonNull(complianceArea, "complianceArea is required.");
+
+		ChecklistModuleState state = checklistModuleStateRepository
+			.findByOrganizationIdAndComplianceArea(safeOrganizationId, safeComplianceArea)
+			.orElseGet(() -> createState(safeOrganizationId, safeComplianceArea, currentHttpSecond()));
+
+		state.setModifiedAt(nextModifiedAt(state.getModifiedAt()));
+		checklistModuleStateRepository.save(state);
+	}
+
+	private ChecklistModuleState createState(UUID organizationId, ComplianceArea complianceArea, LocalDateTime modifiedAt) {
+		ChecklistModuleState created = new ChecklistModuleState();
+		created.setOrganizationId(organizationId);
+		created.setComplianceArea(complianceArea);
+		created.setModifiedAt(modifiedAt);
+		return checklistModuleStateRepository.save(created);
+	}
+
+	private LocalDateTime nextModifiedAt(LocalDateTime previousModifiedAt) {
+		LocalDateTime currentSecond = currentHttpSecond();
+		if (previousModifiedAt == null) {
+			return currentSecond;
+		}
+
+		LocalDateTime previousSecond = previousModifiedAt.truncatedTo(ChronoUnit.SECONDS);
+		if (currentSecond.isAfter(previousSecond)) {
+			return currentSecond;
+		}
+		return previousSecond.plusSeconds(1);
+	}
+
+	private LocalDateTime currentHttpSecond() {
+		return LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+	}
+}

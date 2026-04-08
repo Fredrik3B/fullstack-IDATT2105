@@ -1,9 +1,9 @@
 package edu.ntnu.idatt2105.backend.common.controller;
 
-import edu.ntnu.idatt2105.backend.common.dto.document.DocumentDTO;
-import edu.ntnu.idatt2105.backend.common.model.enums.DocumentCategory;
-import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
-import edu.ntnu.idatt2105.backend.common.service.DocumentService;
+import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -73,8 +73,8 @@ class DocumentControllerTest {
         return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
     }
 
-    private DocumentDTO sampleDTO() {
-        return new DocumentDTO(1L, "Test Doc", null, DocumentCategory.GUIDELINES, DocumentModule.SHARED,
+    private DocumentDto sampleDTO() {
+        return new DocumentDto(1L, "Test Doc", null, DocumentCategory.GUIDELINES, DocumentModule.SHARED,
                 null, "test.pdf", "application/pdf", 100L, null, LocalDateTime.now(), "Admin User");
     }
 

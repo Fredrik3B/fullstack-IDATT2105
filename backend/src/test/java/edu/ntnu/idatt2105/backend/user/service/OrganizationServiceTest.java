@@ -9,7 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.common.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
