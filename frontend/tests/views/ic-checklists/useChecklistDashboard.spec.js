@@ -5,14 +5,17 @@ import { useChecklistDashboard } from '@/composables/ic-checklists/useChecklistD
 const toast = {
   success: vi.fn(),
   error: vi.fn(),
+  warning: vi.fn(),
 }
 
 vi.mock('@/composables/useToast', () => ({
   useToast: () => toast,
 }))
 
+const nowRef = ref(new Date('2026-04-07T09:30:00'))
+
 vi.mock('@/composables/ic-checklists/useNowTick', () => ({
-  useNowTick: () => ref(new Date('2026-04-07T09:30:00Z')),
+  useNowTick: () => nowRef,
 }))
 
 vi.mock('@/api/checklists', () => ({
@@ -62,6 +65,7 @@ function makeCard(overrides = {}) {
 describe('useChecklistDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    nowRef.value = new Date('2026-04-07T09:30:00')
   })
 
   it('filters display cards by the selected period and preserves source indexes', async () => {
@@ -109,6 +113,87 @@ describe('useChecklistDashboard', () => {
     expect(cards.value[0].progress).toBe(100)
     expect(cards.value[0].statusLabel).toBe('Completed')
     expect(cards.value[0].statusTone).toBe('success')
+  })
+
+  it('does not complete a temperature task before a reading is saved for the active period', async () => {
+    const { cards, toggleTask } = useChecklistDashboard({
+      initialCards: [
+        makeCard({
+          sections: [
+            {
+              title: 'Cooling',
+              items: [
+                {
+                  id: 'temp-1',
+                  label: 'Main fridge',
+                  type: 'temperature',
+                  targetMax: 4,
+                  state: 'todo',
+                  highlighted: false,
+                  latestMeasurement: null,
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    })
+
+    await toggleTask({ cardIndex: 0, sectionIndex: 0, taskIndex: 0 })
+
+    expect(setTaskCompletion).not.toHaveBeenCalled()
+    expect(cards.value[0].sections[0].items[0].state).toBe('todo')
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Save a temperature reading before marking this task as complete.',
+    )
+  })
+
+  it('allows completing a temperature task after a reading is saved for the active period', async () => {
+    setTaskCompletion.mockResolvedValue({
+      state: 'completed',
+      highlighted: false,
+      completedForPeriodKey: '2026-04-07',
+      completedAt: '2026-04-07T09:30:00.000Z',
+    })
+
+    const { cards, toggleTask } = useChecklistDashboard({
+      initialCards: [
+        makeCard({
+          sections: [
+            {
+              title: 'Cooling',
+              items: [
+                {
+                  id: 'temp-1',
+                  label: 'Main fridge',
+                  type: 'temperature',
+                  targetMax: 4,
+                  state: 'todo',
+                  highlighted: false,
+                  latestMeasurement: {
+                    id: 'measurement-1',
+                    valueC: 3.2,
+                    measuredAt: '2026-04-07T09:00:00Z',
+                    periodKey: '2026-04-07',
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    })
+
+    await toggleTask({ cardIndex: 0, sectionIndex: 0, taskIndex: 0 })
+
+    expect(setTaskCompletion).toHaveBeenCalledWith({
+      checklistId: 'card-1',
+      taskId: 'temp-1',
+      state: 'completed',
+      periodKey: '2026-04-07',
+      completedAt: expect.any(String),
+    })
+    expect(cards.value[0].sections[0].items[0].state).toBe('completed')
   })
 
   it('reverts a task toggle when persistence fails', async () => {
@@ -341,5 +426,105 @@ describe('useChecklistDashboard', () => {
     expect(toast.error).toHaveBeenCalledWith('Submission failed.')
     expect(errorSpy).toHaveBeenCalled()
     errorSpy.mockRestore()
+  })
+
+  it('builds reminder summaries and auto-flags incomplete tasks within the next hour', async () => {
+    nowRef.value = new Date('2026-04-07T23:10:00')
+    setTaskFlag.mockResolvedValue({
+      state: 'pending',
+      highlighted: true,
+      pendingForPeriodKey: '2026-04-07',
+    })
+
+    const { cards, reminderSummary } = useChecklistDashboard({
+      initialCards: [
+        makeCard({
+          title: 'Closing checks',
+          sections: [
+            {
+              title: 'Kitchen',
+              items: [
+                {
+                  id: 'task-1',
+                  label: 'Sanitize counters',
+                  state: 'todo',
+                  highlighted: false,
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    })
+
+    await Promise.resolve()
+    await nextTick()
+
+    expect(reminderSummary.value.totalCount).toBe(1)
+    expect(setTaskFlag).toHaveBeenCalledWith({
+      checklistId: 'card-1',
+      taskId: 'task-1',
+      state: 'pending',
+      periodKey: '2026-04-07',
+    })
+    expect(cards.value[0].sections[0].items[0].state).toBe('pending')
+    expect(toast.warning).toHaveBeenCalledWith(
+      '1 task expires within the next hour and still needs attention.',
+    )
+  })
+
+  it('counts missing temperature logs in the reminder summary and warning toast', async () => {
+    nowRef.value = new Date('2026-04-07T23:20:00')
+    setTaskFlag.mockResolvedValue({
+      state: 'pending',
+      highlighted: true,
+      pendingForPeriodKey: '2026-04-07',
+    })
+
+    const { reminderSummary } = useChecklistDashboard({
+      module: 'IC_FOOD',
+      initialCards: [
+        makeCard({
+          title: 'Cold storage',
+          sections: [
+            {
+              title: 'Cooling',
+              items: [
+                {
+                  id: 'temp-1',
+                  label: 'Main fridge',
+                  type: 'temperature',
+                  targetMax: 4,
+                  state: 'todo',
+                  highlighted: false,
+                  latestMeasurement: null,
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    })
+
+    await Promise.resolve()
+    await nextTick()
+
+    expect(reminderSummary.value.totalCount).toBe(1)
+    expect(reminderSummary.value.temperatureCount).toBe(1)
+    expect(toast.warning).toHaveBeenCalledWith(
+      '1 task expires within the next hour and still needs attention. 1 temperature log is still missing.',
+    )
+  })
+
+  it('does not create reminders for tasks outside the one-hour window', () => {
+    nowRef.value = new Date('2026-04-07T20:30:00')
+
+    const { reminderSummary } = useChecklistDashboard({
+      initialCards: [makeCard()],
+    })
+
+    expect(reminderSummary.value.totalCount).toBe(0)
+    expect(setTaskFlag).not.toHaveBeenCalled()
+    expect(toast.warning).not.toHaveBeenCalled()
   })
 })

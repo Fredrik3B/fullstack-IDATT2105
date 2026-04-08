@@ -47,7 +47,12 @@
             class="task-marker"
             :aria-pressed="task.state === 'completed'"
             :aria-label="task.state === 'completed' ? 'Mark as incomplete' : 'Mark as complete'"
-            :disabled="task.isSaving"
+            :disabled="task.isSaving || isCompletionBlocked(task)"
+            :title="
+              isCompletionBlocked(task)
+                ? 'Save a temperature reading before completing this task.'
+                : ''
+            "
             @click="handleToggle(sectionIndex, taskIndex)"
           >
             <span v-if="task.state === 'completed'" class="task-marker__icon">&#10003;</span>
@@ -66,6 +71,9 @@
               </span>
               <span v-if="getLatestMeasurement(task)" class="task-meta">
                 Last: {{ getLatestMeasurement(task)?.valueC }} C
+              </span>
+              <span v-if="isCompletionBlocked(task)" class="task-meta task-meta--warning">
+                Save a reading to complete
               </span>
             </div>
           </div>
@@ -169,7 +177,11 @@
 import { computed, reactive } from 'vue'
 import { getPeriodEnd, getPeriodKey, isPeriodExpired, normalizePeriodEnum } from '../../composables/ic-checklists/recurrence'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
-import { formatTemperatureTarget, isTemperatureTask } from '../../composables/ic-checklists/temperature'
+import {
+  formatTemperatureTarget,
+  hasTemperatureMeasurementForPeriod,
+  isTemperatureTask,
+} from '../../composables/ic-checklists/temperature'
 
 const temperatureDraftByTaskId = reactive({})
 const confirmDialog = reactive({
@@ -334,6 +346,11 @@ function handleSubmitChecklist() {
 
 function getLatestMeasurement(task) {
   return task?.latestMeasurement ?? null
+}
+
+function isCompletionBlocked(task) {
+  if (task?.state === 'completed') return false
+  return isTemperatureTask(task) && !hasTemperatureMeasurementForPeriod(task, props.activePeriodKey)
 }
 
 function canSaveTemperature(task) {
@@ -678,6 +695,11 @@ p {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   white-space: nowrap;
+}
+
+.task-meta--warning {
+  color: var(--color-warning-text);
+  font-weight: var(--font-weight-bold);
 }
 
 .flag-button {

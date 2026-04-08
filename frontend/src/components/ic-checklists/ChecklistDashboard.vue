@@ -24,6 +24,29 @@
       <TemperatureReportCard :cards="cards" />
     </section>
 
+    <section
+      v-if="reminderSummary.totalCount > 0 && !isLoading && !loadError"
+      class="reminder-banner"
+      role="alert"
+    >
+      <div class="reminder-banner__title">
+        {{ reminderSummary.totalCount }} task{{ reminderSummary.totalCount === 1 ? '' : 's' }} expire within the next hour.
+      </div>
+      <p class="reminder-banner__copy">
+        {{
+          reminderSummary.temperatureCount > 0
+            ? `${reminderSummary.temperatureCount} temperature log${reminderSummary.temperatureCount === 1 ? ' is' : 's are'} still missing.`
+            : 'Incomplete tasks are being flagged for follow-up.'
+        }}
+      </p>
+      <p
+        v-if="reminderSummary.checklistTitles?.length"
+        class="reminder-banner__meta"
+      >
+        {{ reminderSummary.checklistTitles.join(', ') }}
+      </p>
+    </section>
+
     <div v-if="isLoading" class="state-card">
       <h2>Loading checklists</h2>
       <p>The workbench is fetching the latest checklist state for this module.</p>
@@ -126,6 +149,14 @@ defineProps({
     type: [String, Number],
     default: null,
   },
+  reminderSummary: {
+    type: Object,
+    default: () => ({
+      totalCount: 0,
+      temperatureCount: 0,
+      checklistTitles: [],
+    }),
+  },
   isLoading: {
     type: Boolean,
     default: false,
@@ -176,6 +207,32 @@ const emit = defineEmits([
   border: 1px solid var(--color-border);
   background: var(--color-bg-primary);
   box-shadow: var(--shadow-sm);
+}
+
+.reminder-banner {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-warning-border);
+  background: linear-gradient(135deg, rgba(255, 244, 208, 0.92), rgba(255, 250, 237, 0.98));
+  box-shadow: var(--shadow-sm);
+}
+
+.reminder-banner__title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-warning-text);
+}
+
+.reminder-banner__copy,
+.reminder-banner__meta {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.reminder-banner__meta {
+  color: var(--color-text-muted);
 }
 
 .state-card--error {

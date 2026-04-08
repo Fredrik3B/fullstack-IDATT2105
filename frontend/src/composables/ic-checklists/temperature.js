@@ -16,6 +16,17 @@ export function isTemperatureTask(task) {
   )
 }
 
+export function hasTemperatureMeasurementForPeriod(task, periodKey) {
+  if (!isTemperatureTask(task)) return true
+
+  const latest = task?.latestMeasurement
+  if (!latest) return false
+  if (!latest.periodKey) return true
+
+  return String(latest.periodKey) === String(periodKey ?? '')
+}
+
+
 /**
  * Format configured temperature range/threshold for UI display.
  *

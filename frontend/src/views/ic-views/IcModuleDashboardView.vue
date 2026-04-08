@@ -23,6 +23,7 @@ const {
   workbenchCards,
   canManageChecklists,
   canManageTaskPool,
+  reminderSummary,
   loadedChecklistIds,
   highlightedChecklistId,
   now,
@@ -82,6 +83,7 @@ function handleTaskPoolChanged() {
     :can-manage-task-pool="canManageTaskPool"
     v-model:activePeriod="activePeriod"
     :cards="workbenchCards"
+    :reminder-summary="reminderSummary"
     :highlighted-checklist-id="highlightedChecklistId"
     :now="now"
     :is-loading="isLoading"

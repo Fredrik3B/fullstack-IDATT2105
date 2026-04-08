@@ -46,6 +46,11 @@ function makeProps(overrides = {}) {
     title: 'Checklists',
     dateLabel: 'Tuesday 07 April 2026',
     cards: [],
+    reminderSummary: {
+      totalCount: 0,
+      temperatureCount: 0,
+      checklistTitles: [],
+    },
     ...overrides,
   }
 }
@@ -136,5 +141,21 @@ describe('ChecklistDashboard', () => {
     expect(wrapper.emitted('toggle-task')).toEqual([
       [{ cardIndex: 0, sectionIndex: 1, taskIndex: 2 }],
     ])
+  })
+
+  it('renders the reminder banner when tasks are close to expiring', () => {
+    const wrapper = mount(ChecklistDashboard, {
+      props: makeProps({
+        reminderSummary: {
+          totalCount: 3,
+          temperatureCount: 1,
+          checklistTitles: ['Opening checks', 'Cold storage'],
+        },
+      }),
+    })
+
+    expect(wrapper.text()).toContain('3 tasks expire within the next hour')
+    expect(wrapper.text()).toContain('1 temperature log is still missing')
+    expect(wrapper.text()).toContain('Opening checks, Cold storage')
   })
 })
