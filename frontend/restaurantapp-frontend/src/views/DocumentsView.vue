@@ -234,7 +234,7 @@ const filteredDocuments = computed(() => {
     if (activeModule.value && doc.module !== activeModule.value) return false
     if (searchQuery.value) {
       const q = searchQuery.value.toLowerCase()
-      if (!doc.name.toLowerCase().includes(q) && !doc.originalFileName.toLowerCase().includes(q)) return false
+      if (!doc.name.toLowerCase().includes(q) && !doc.originalFileName?.toLowerCase().includes(q)) return false
     }
     return true
   })

@@ -11,6 +11,7 @@ export async function fetchDocuments({ category, module } = {}) {
 export async function uploadDocument(formData) {
   const { data } = await api.post('/api/documents', formData, {
     headers: { 'Content-Type': undefined },
+    timeout: 120000,
   })
   return data
 }
