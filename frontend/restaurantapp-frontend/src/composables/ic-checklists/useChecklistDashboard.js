@@ -6,6 +6,12 @@ import { createTemperatureMeasurement } from '../../api/temperatureMeasurements'
 import { setTaskCompletion, setTaskFlag, submitChecklist } from '../../api/checklists'
 import { useToast } from '@/composables/useToast'
 
+/**
+ * Normalize id-like fields from backend cards into string ids for UI consistency.
+ *
+ * @param {any} card
+ * @returns {any}
+ */
 function normalizeChecklistCardIds(card) {
   if (!card || typeof card !== 'object') return card
 
@@ -44,6 +50,21 @@ function normalizeChecklistCardIds(card) {
   }
 }
 
+/**
+ * Main dashboard state/composable for checklist interactions in one module view.
+ *
+ * @param {{initialCards?: Array<any>, defaultActivePeriod?: string, module?: string|null}} [options]
+ * @returns {{
+ *   activePeriod: import('vue').Ref<string>,
+ *   cards: import('vue').Ref<Array<any>>,
+ *   displayCards: import('vue').ComputedRef<Array<any>>,
+ *   togglePending: (payload: {cardIndex: number, sectionIndex: number, taskIndex: number}) => Promise<void>,
+ *   toggleTask: (payload: {cardIndex: number, sectionIndex: number, taskIndex: number}) => Promise<void>,
+ *   submitCard: (payload: {cardIndex: number}) => Promise<any|null>,
+ *   logTemperatureMeasurement: (payload: {checklistId: string|number, taskId: string|number, valueC: number}) => Promise<any|null>,
+ *   now: import('vue').Ref<Date>
+ * }}
+ */
 export function useChecklistDashboard({
   initialCards,
   defaultActivePeriod = 'Daily',
@@ -71,6 +92,13 @@ export function useChecklistDashboard({
     return String(card?.activePeriodKey ?? '').trim()
   }
 
+  /**
+   * Apply backend task mutation response fields back onto local task object.
+   *
+   * @param {any} task
+   * @param {any} response
+   * @returns {void}
+   */
   function syncTaskWithResponse(task, response) {
     if (!task || !response || typeof response !== 'object') return
     task.state = response.state ?? task.state
@@ -81,6 +109,13 @@ export function useChecklistDashboard({
     task.latestMeasurement = response.latestMeasurement ?? task.latestMeasurement ?? null
   }
 
+  /**
+   * Locate checklist card and task references by ids.
+   *
+   * @param {string|number} checklistId
+   * @param {string|number} taskId
+   * @returns {{card: any|null, task: any|null}}
+   */
   function findTaskById(checklistId, taskId) {
     const card = cards.value.find((entry) => String(entry?.id) === String(checklistId))
     if (!card) return { card: null, task: null }
@@ -96,6 +131,12 @@ export function useChecklistDashboard({
     return { card, task: null }
   }
 
+  /**
+   * Toggle completion state for one task and persist through API.
+   *
+   * @param {{cardIndex: number, sectionIndex: number, taskIndex: number}} payload
+   * @returns {Promise<void>}
+   */
   async function toggleTask({ cardIndex, sectionIndex, taskIndex }) {
     const card = cards.value[cardIndex]
     if (!card) return
@@ -146,6 +187,12 @@ export function useChecklistDashboard({
     }
   }
 
+  /**
+   * Toggle pending/flagged state for one task and persist through API.
+   *
+   * @param {{cardIndex: number, sectionIndex: number, taskIndex: number}} payload
+   * @returns {Promise<void>}
+   */
   async function togglePending({ cardIndex, sectionIndex, taskIndex }) {
     const card = cards.value[cardIndex]
     if (!card) return
@@ -194,6 +241,12 @@ export function useChecklistDashboard({
     }
   }
 
+  /**
+   * Persist one temperature reading for a task.
+   *
+   * @param {{checklistId: string|number, taskId: string|number, valueC: number}} payload
+   * @returns {Promise<any|null>}
+   */
   async function logTemperatureMeasurement({ checklistId, taskId, valueC }) {
     if (!checklistId || !taskId) return null
 
@@ -241,6 +294,13 @@ export function useChecklistDashboard({
     }
   }
 
+  /**
+   * Submit a checklist and replace card with refreshed period card from backend.
+   *
+   * @param {{cardIndex: number}} payload
+   * @returns {Promise<any|null>}
+   * @throws {Error} Re-throws submit failures after showing UI toast.
+   */
   async function submitCard({ cardIndex }) {
     const card = cards.value[cardIndex]
     if (!card?.id) return null
