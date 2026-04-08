@@ -206,14 +206,14 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchChecklists } from '../api/checklists'
-import { fetchDocuments } from '../api/documents'
-import { fetchTemperatureMeasurements } from '../api/temperatureMeasurements'
-import { isTemperatureDeviation, isTemperatureTask } from '../composables/ic-checklists/temperature'
-import { useTemperatureLog } from '../composables/ic-checklists/useTemperatureLog'
-import { useAuthStore } from '../stores/auth'
-import ChecklistModuleCard from '../components/dashboard/ChecklistModuleCard.vue'
-import StatCard from '../components/dashboard/StatCard.vue'
+import { fetchChecklists } from '@/api/checklists'
+import { fetchDocuments } from '@/api/documents'
+import { fetchTemperatureMeasurements } from '@/api/temperatureMeasurements'
+import { isTemperatureDeviation, isTemperatureTask } from '@/composables/ic-checklists/temperature'
+import { useTemperatureLog } from '@/composables/ic-checklists/useTemperatureLog'
+import { useAuthStore } from '@/stores/auth'
+import ChecklistModuleCard from '@/components/dashboard/ChecklistModuleCard.vue'
+import StatCard from '@/components/dashboard/StatCard.vue'
 
 const router = useRouter()
 const auth = useAuthStore()

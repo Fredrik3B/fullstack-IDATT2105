@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import DocumentsView from '@/views/DocumentsView.vue'
+import DocumentsView from '@/views/documents/DocumentsView.vue'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 

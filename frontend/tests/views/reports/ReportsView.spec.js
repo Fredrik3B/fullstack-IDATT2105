@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import ReportsView from '@/views/ReportsView.vue'
+import ReportsView from '@/views/reports/ReportsView.vue'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 

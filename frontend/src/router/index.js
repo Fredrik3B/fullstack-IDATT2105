@@ -43,7 +43,7 @@ const router = createRouter({
         {
           path: '',
           name: 'dashboard',
-          component: () => import('../views/MainDashboard.vue')
+          component: () => import('../views/dashboard/MainDashboard.vue')
         },
         {
           path: 'ic-food',
@@ -74,12 +74,12 @@ const router = createRouter({
         {
           path: 'documents',
           name: 'documents',
-          component: () => import('../views/DocumentsView.vue')
+          component: () => import('../views/documents/DocumentsView.vue')
         },
         {
           path: 'reports',
           name: 'reports',
-          component: () => import('../views/ReportsView.vue')
+          component: () => import('../views/reports/ReportsView.vue')
         },
         {
           path: 'admin/requests',
