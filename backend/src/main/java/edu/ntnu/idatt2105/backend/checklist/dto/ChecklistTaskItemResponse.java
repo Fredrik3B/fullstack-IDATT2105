@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.checklist.dto.icchecklist;
+package edu.ntnu.idatt2105.backend.checklist.dto;
 
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementSummaryResponse;
 import java.math.BigDecimal;

@@ -8,8 +8,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistWorkbenchStateRequest;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskCompletionRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.ChecklistWorkbenchStateRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
