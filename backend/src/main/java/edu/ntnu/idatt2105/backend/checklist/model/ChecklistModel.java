@@ -18,8 +18,12 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 
 
+@Setter
+@Getter
 @Entity
 @Table(name = "checklists")
 public class ChecklistModel extends AuditableEntity {
@@ -62,83 +66,4 @@ public class ChecklistModel extends AuditableEntity {
 	)
 	private Set<TaskTemplate> taskTemplates = new LinkedHashSet<>();
 
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	public ChecklistFrequency getFrequency() {
-		return frequency;
-	}
-
-	public void setFrequency(ChecklistFrequency frequency) {
-		this.frequency = frequency;
-	}
-
-	public ComplianceArea getComplianceArea() {
-		return complianceArea;
-	}
-
-	public void setComplianceArea(ComplianceArea complianceArea) {
-		this.complianceArea = complianceArea;
-	}
-
-	public String getActivePeriodKey() {
-		return activePeriodKey;
-	}
-
-	public void setActivePeriodKey(String activePeriodKey) {
-		this.activePeriodKey = activePeriodKey;
-	}
-
-	public boolean isRecurring() {
-		return recurring;
-	}
-
-	public void setRecurring(boolean recurring) {
-		this.recurring = recurring;
-	}
-
-	public boolean isDisplayedOnWorkbench() {
-		return displayedOnWorkbench;
-	}
-
-	public void setDisplayedOnWorkbench(boolean displayedOnWorkbench) {
-		this.displayedOnWorkbench = displayedOnWorkbench;
-	}
-
-	public boolean isActive() {
-		return active;
-	}
-
-	public void setActive(boolean active) {
-		this.active = active;
-	}
-
-	public OrganizationModel getOrganization() {
-		return organization;
-	}
-
-	public void setOrganization(OrganizationModel organization) {
-		this.organization = organization;
-	}
-
-	public Set<TaskTemplate> getTaskTemplates() {
-		return taskTemplates;
-	}
-
-	public void setTaskTemplates(Set<TaskTemplate> taskTemplates) {
-		this.taskTemplates = taskTemplates;
-	}
 }

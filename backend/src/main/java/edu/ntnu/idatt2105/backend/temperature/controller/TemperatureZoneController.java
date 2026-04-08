@@ -27,9 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Temperature Zones", description = "Create, fetch, update, and delete reusable temperature zones")
 @RestController
-@PreAuthorize("isAuthenticated()")
-@RequestMapping("/temperature-zones")
 @AllArgsConstructor
+@RequestMapping("/temperature-zones")
 public class TemperatureZoneController {
 
 	private final TemperatureZoneService temperatureZoneService;

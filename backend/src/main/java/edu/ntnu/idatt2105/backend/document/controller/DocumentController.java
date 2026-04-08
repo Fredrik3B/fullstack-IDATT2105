@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.document.controller;
 
-import edu.ntnu.idatt2105.backend.document.dto.DocumentDTO;
+import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
 import edu.ntnu.idatt2105.backend.document.service.DocumentService;
@@ -50,7 +50,7 @@ public class DocumentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Upload a document or add a link to an external document")
     @ApiResponse(responseCode = "201", description = "Document created")
-    public DocumentDTO uploadDocument(
+    public DocumentDto uploadDocument(
             @RequestParam(value = "file", required = false) MultipartFile file,
             @RequestParam(value = "externalUrl", required = false) String externalUrl,
             @RequestParam("name") String name,
@@ -70,7 +70,7 @@ public class DocumentController {
     @GetMapping
     @Operation(summary = "List documents for the current organization")
     @ApiResponse(responseCode = "200", description = "Documents returned")
-    public List<DocumentDTO> getDocuments(
+    public List<DocumentDto> getDocuments(
             @RequestParam(value = "category", required = false) DocumentCategory category,
             @RequestParam(value = "module", required = false) DocumentModule module,
             Authentication auth

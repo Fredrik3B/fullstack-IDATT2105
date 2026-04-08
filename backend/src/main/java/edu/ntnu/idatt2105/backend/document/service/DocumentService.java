@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.document.service;
 
-import edu.ntnu.idatt2105.backend.document.dto.DocumentDTO;
+import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
 import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
@@ -52,7 +52,7 @@ public class DocumentService {
         this.organizationRepository = organizationRepository;
     }
 
-    public DocumentDTO uploadDocument(
+    public DocumentDto uploadDocument(
             MultipartFile file,
             String externalUrl,
             String name,
@@ -99,10 +99,10 @@ public class DocumentService {
 
         DocumentModel saved = documentRepository.save(doc);
         LOGGER.info("Document saved: documentId={}", saved.getId());
-        return toDTO(saved);
+        return toDto(saved);
     }
 
-    public List<DocumentDTO> getDocuments(
+    public List<DocumentDto> getDocuments(
             DocumentCategory category,
             DocumentModule module,
             JwtAuthenticatedPrincipal principal
@@ -120,10 +120,9 @@ public class DocumentService {
             docs = documentRepository.findAllByOrganizationId(orgId);
         }
 
-        return docs.stream().map(this::toDTO).toList();
+        return docs.stream().map(this::toDto).toList();
     }
 
-    @Override
     public Resource downloadDocument(Long documentId, JwtAuthenticatedPrincipal principal) {
         DocumentModel doc = requireOwnDocument(documentId, principal.getOrganizationId());
         Path filePath = Paths.get(doc.getStoragePath());
@@ -138,17 +137,14 @@ public class DocumentService {
         }
     }
 
-    @Override
     public String getDocumentContentType(Long documentId, JwtAuthenticatedPrincipal principal) {
         return requireOwnDocument(documentId, principal.getOrganizationId()).getFileType();
     }
 
-    @Override
     public String getDocumentFileName(Long documentId, JwtAuthenticatedPrincipal principal) {
         return requireOwnDocument(documentId, principal.getOrganizationId()).getOriginalFileName();
     }
 
-    @Override
     public void deleteDocument(Long documentId, JwtAuthenticatedPrincipal principal) {
         DocumentModel doc = requireOwnDocument(documentId, principal.getOrganizationId());
         deleteFileFromDisk(doc.getStoragePath());
@@ -189,9 +185,9 @@ public class DocumentService {
         return doc;
     }
 
-    private DocumentDTO toDTO(DocumentModel doc) {
+    private DocumentDto toDto(DocumentModel doc) {
         String uploadedByName = doc.getUploadedBy().getFirstName() + " " + doc.getUploadedBy().getLastName();
-        return new DocumentDTO(
+        return new DocumentDto(
                 doc.getId(),
                 doc.getName(),
                 doc.getDescription(),

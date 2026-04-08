@@ -15,8 +15,12 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 // implement correct relations
+@Setter
+@Getter
 @Entity
 @Table(name = "template_tasks")
 public class TaskTemplate extends AuditableEntity {
@@ -51,75 +55,4 @@ public class TaskTemplate extends AuditableEntity {
 	@JoinColumn(name = "temperature_zone_id")
 	private TemperatureZoneModel temperatureZone;
 
-	public String getTitle() {
-		return title;
-	}
-
-	public void setTitle(String title) {
-		this.title = title;
-	}
-
-	public SectionTypes getSectionType() {
-		return sectionType;
-	}
-
-	public void setSectionType(SectionTypes sectionType) {
-		this.sectionType = sectionType;
-	}
-
-	public ComplianceArea getComplianceArea() {
-		return complianceArea;
-	}
-
-	public void setComplianceArea(ComplianceArea complianceArea) {
-		this.complianceArea = complianceArea;
-	}
-
-	public String getUnit() {
-		return unit;
-	}
-
-	public void setUnit(String unit) {
-		this.unit = unit;
-	}
-
-	public String getMeta() {
-		return meta;
-	}
-
-	public void setMeta(String meta) {
-		this.meta = meta;
-	}
-
-	public BigDecimal getTargetMin() {
-		return targetMin;
-	}
-
-	public void setTargetMin(BigDecimal targetMin) {
-		this.targetMin = targetMin;
-	}
-
-	public BigDecimal getTargetMax() {
-		return targetMax;
-	}
-
-	public void setTargetMax(BigDecimal targetMax) {
-		this.targetMax = targetMax;
-	}
-
-	public UUID getOrganisationId() {
-		return organisationId;
-	}
-
-	public void setOrganisationId(UUID organisationId) {
-		this.organisationId = organisationId;
-	}
-
-	public TemperatureZoneModel getTemperatureZone() {
-		return temperatureZone;
-	}
-
-	public void setTemperatureZone(TemperatureZoneModel temperatureZone) {
-		this.temperatureZone = temperatureZone;
-	}
 }

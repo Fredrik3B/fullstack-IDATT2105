@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -29,17 +30,12 @@ import org.springframework.web.bind.annotation.RestController;
 	description = "Create and fetch temperature measurements"
 )
 @RestController
-@PreAuthorize("isAuthenticated()")
+@AllArgsConstructor
 @RequestMapping("/temperature-measurements")
 public class TemperatureMeasurementController {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TemperatureMeasurementController.class);
-
 	private final TemperatureMeasurementService temperatureMeasurementService;
-
-	public TemperatureMeasurementController(TemperatureMeasurementService temperatureMeasurementService) {
-		this.temperatureMeasurementService = temperatureMeasurementService;
-	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)

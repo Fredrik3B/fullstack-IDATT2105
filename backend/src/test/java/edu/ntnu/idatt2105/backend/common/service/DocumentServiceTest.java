@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
-import edu.ntnu.idatt2105.backend.document.dto.DocumentDTO;
+import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
 import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
@@ -121,7 +121,7 @@ class DocumentServiceTest {
         saved.setFileSize(1024L);
         when(documentRepository.save(any())).thenReturn(saved);
 
-        DocumentDTO result = service.uploadDocument(
+        DocumentDto result = service.uploadDocument(
                 file, null, "Test Doc", "desc",
                 DocumentCategory.GUIDELINES, DocumentModule.SHARED, null, principal);
 
@@ -144,7 +144,7 @@ class DocumentServiceTest {
         saved.setExternalUrl("https://example.com/doc.pdf");
         when(documentRepository.save(any())).thenReturn(saved);
 
-        DocumentDTO result = service.uploadDocument(
+        DocumentDto result = service.uploadDocument(
                 null, "https://example.com/doc.pdf", "External Doc", null,
                 DocumentCategory.GUIDELINES, DocumentModule.SHARED, null, principal);
 
@@ -254,7 +254,7 @@ class DocumentServiceTest {
         DocumentModel doc = makeDoc(1L, orgId);
         when(documentRepository.findAllByOrganizationId(orgId)).thenReturn(List.of(doc));
 
-        List<DocumentDTO> result = service.getDocuments(null, null, principal);
+        List<DocumentDto> result = service.getDocuments(null, null, principal);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).id()).isEqualTo(1L);

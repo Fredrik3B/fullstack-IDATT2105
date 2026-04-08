@@ -23,8 +23,8 @@ import org.springframework.beans.factory.annotation.Value;
 
 @Tag(name = "Authentication", description = "Register, login, refresh token, and logout")
 @RestController
-@RequestMapping("/auth")
 @RequiredArgsConstructor
+@RequestMapping("/auth")
 public class UserController {
 
   @Value("${app.cookie-secure:true}")

@@ -19,20 +19,9 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 
 	List<TasksModel> findAllByChecklist_Id(Long checklistId);
 
-	List<TasksModel> findAllByTaskTemplate_IdInAndActiveTrue(Collection<Long> taskTemplateIds);
-
 	Optional<TasksModel> findByIdAndChecklist_Id(Long activatedTaskId, Long checklistId);
 
-	Optional<TasksModel> findByChecklist_IdAndTaskTemplate_IdAndPeriodKey(
-		Long checklistId,
-		Long taskTemplateId,
-		String periodKey
-	);
-
 	List<TasksModel> findAllByChecklist_IdAndPeriodKeyAndActiveTrue(Long checklistId, String periodKey);
-
-
-// Use joins??
 
 	@Query("SELECT COUNT(t) FROM TasksModel t " +
 			"WHERE t.checklist.organization.id = :orgId " +
@@ -68,27 +57,6 @@ public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 			"AND t.active = false " +
 			"AND t.endedAt BETWEEN :from AND :to ")
 	List<TasksModel> findDeviatedTaskByOrgIdInPeriod(@Param("orgId") UUID orgId,
-			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
-
-	@Query("SELECT COUNT(t) FROM TasksModel t " +
-			"WHERE t.checklist.id = :checklistId " +
-			"AND t.endedAt BETWEEN :from AND :to")
-	int countByChecklistInPeriod(@Param("checklistId") Long checklistId,
-			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
-
-
-	@Query("SELECT COUNT(t) FROM TasksModel t " +
-			"WHERE t.checklist.id = :checklistId " +
-			"AND t.completed = true " +
-			"AND t.endedAt BETWEEN :from AND :to")
-	int countCompletedByChecklistInPeriod(@Param("checklistId") Long checklistId,
-			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
-
-	@Query("SELECT COUNT(t) FROM TasksModel t " +
-			"WHERE t.checklist.id = :checklistId " +
-			"AND t.completed = false AND t.active = false " +
-			"AND t.endedAt BETWEEN :from AND :to")
-	int countDeviatedByChecklistInPeriod(@Param("checklistId") Long checklistId,
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
 	@Query("SELECT DISTINCT t FROM TasksModel t " +

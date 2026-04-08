@@ -170,7 +170,6 @@ public class ChecklistService {
 		return toTaskItemResponse(savedTask, latestMeasurementByTaskId(savedTask.getId()));
 	}
 
-	@Override
 	public ChecklistTaskItemResponse setTaskFlag(
 		Long checklistId,
 		Long taskId,
@@ -211,7 +210,6 @@ public class ChecklistService {
 		return toTaskItemResponse(savedTask, latestMeasurementByTaskId(savedTask.getId()));
 	}
 
-	@Override
 	@Transactional
 	public ChecklistCardResponse submitChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
 		ChecklistModel checklist = synchronizeChecklistPeriodState(
@@ -246,7 +244,6 @@ public class ChecklistService {
 		return toCardResponse(savedChecklist);
 	}
 
-	@Override
 	@Transactional
 	public ChecklistCardResponse setChecklistWorkbenchState(
 		Long checklistId,
@@ -266,7 +263,6 @@ public class ChecklistService {
 		return toCardResponse(savedChecklist);
 	}
 
-	@Override
 	@Transactional
 	public void deleteChecklist(Long checklistId, JwtAuthenticatedPrincipal principal) {
 		ChecklistModel checklist = getChecklist(checklistId, requirePrincipal(principal).getOrganizationId());

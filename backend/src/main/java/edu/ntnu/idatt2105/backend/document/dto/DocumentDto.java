@@ -6,7 +6,7 @@ import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-public record DocumentDTO(
+public record DocumentDto(
         Long id,
         String name,
         String description,

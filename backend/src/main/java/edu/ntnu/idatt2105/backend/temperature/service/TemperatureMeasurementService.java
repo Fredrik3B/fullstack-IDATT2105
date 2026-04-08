@@ -39,8 +39,6 @@ public class TemperatureMeasurementService {
 	private final UserRepository userRepository;
 	private final ChecklistCacheStateService checklistCacheStateService;
 
-
-
 	public TemperatureMeasurementResponse createMeasurement(
 		CreateTemperatureMeasurementRequest request,
 		JwtAuthenticatedPrincipal principal

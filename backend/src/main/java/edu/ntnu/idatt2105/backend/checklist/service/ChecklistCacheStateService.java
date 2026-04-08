@@ -9,17 +9,15 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@AllArgsConstructor
 public class ChecklistCacheStateService {
 
 	private final ChecklistModuleStateRepository checklistModuleStateRepository;
-
-	public ChecklistCacheStateService(ChecklistModuleStateRepository checklistModuleStateRepository) {
-		this.checklistModuleStateRepository = checklistModuleStateRepository;
-	}
 
 	@Transactional
 	public Instant getLastModified(UUID organizationId, ComplianceArea complianceArea) {
