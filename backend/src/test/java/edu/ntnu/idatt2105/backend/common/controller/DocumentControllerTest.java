@@ -3,7 +3,7 @@ package edu.ntnu.idatt2105.backend.common.controller;
 import edu.ntnu.idatt2105.backend.document.dto.DocumentDTO;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
-import edu.ntnu.idatt2105.backend.common.service.DocumentService;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,8 +1,10 @@
 package edu.ntnu.idatt2105.backend.checklist.controller;
 
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistService;
 import java.time.Instant;
 import java.util.List;
 
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -30,7 +32,6 @@ import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskFlagRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.UpdateChecklistCardRequest;
-import edu.ntnu.idatt2105.backend.common.service.ChecklistService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -39,17 +40,13 @@ import jakarta.validation.Valid;
 
 @Tag(name = "Checklists", description = "Create, fetch, update, and manage checklists")
 @RestController
-@PreAuthorize("isAuthenticated()")
+@AllArgsConstructor
 @RequestMapping("/checklists")
 public class ChecklistController {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ChecklistController.class);
 
 	private final ChecklistService checklistService;
-
-	public ChecklistController(ChecklistService checklistService) {
-		this.checklistService = checklistService;
-	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)

@@ -5,7 +5,6 @@ import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
 import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
-import edu.ntnu.idatt2105.backend.common.service.DocumentService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
@@ -32,9 +31,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class DocumentServiceImpl implements DocumentService {
+public class DocumentService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DocumentServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DocumentService.class);
 
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
@@ -43,7 +42,7 @@ public class DocumentServiceImpl implements DocumentService {
     @Value("${app.document-storage-path:./uploads/documents/}")
     private String storagePath;
 
-    public DocumentServiceImpl(
+    public DocumentService(
             DocumentRepository documentRepository,
             UserRepository userRepository,
             OrganizationRepository organizationRepository
@@ -53,7 +52,6 @@ public class DocumentServiceImpl implements DocumentService {
         this.organizationRepository = organizationRepository;
     }
 
-    @Override
     public DocumentDTO uploadDocument(
             MultipartFile file,
             String externalUrl,
@@ -104,7 +102,6 @@ public class DocumentServiceImpl implements DocumentService {
         return toDTO(saved);
     }
 
-    @Override
     public List<DocumentDTO> getDocuments(
             DocumentCategory category,
             DocumentModule module,

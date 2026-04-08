@@ -17,7 +17,7 @@ import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
 import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
-import edu.ntnu.idatt2105.backend.temperature.service.TemperatureZoneServiceImpl;
+import edu.ntnu.idatt2105.backend.temperature.service.TemperatureZoneService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -39,7 +39,7 @@ class TemperatureZoneServiceImplTest {
   @Mock private TaskTemplateRepository taskTemplateRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
 
-  @InjectMocks private TemperatureZoneServiceImpl temperatureZoneService;
+  @InjectMocks private TemperatureZoneService temperatureZoneService;
 
   private UUID orgId;
   private JwtAuthenticatedPrincipal principal;

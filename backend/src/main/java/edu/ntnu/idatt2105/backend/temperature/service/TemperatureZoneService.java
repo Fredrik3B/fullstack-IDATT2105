@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.temperature.service;
 
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureZoneRequest;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
@@ -8,31 +9,21 @@ import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
-import edu.ntnu.idatt2105.backend.common.service.TemperatureZoneService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.util.List;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
-public class TemperatureZoneServiceImpl implements TemperatureZoneService {
+@AllArgsConstructor
+public class TemperatureZoneService {
 
 	private final TemperatureZoneRepository temperatureZoneRepository;
 	private final TaskTemplateRepository taskTemplateRepository;
 	private final ChecklistCacheStateService checklistCacheStateService;
 
-	public TemperatureZoneServiceImpl(
-		TemperatureZoneRepository temperatureZoneRepository,
-		TaskTemplateRepository taskTemplateRepository,
-		ChecklistCacheStateService checklistCacheStateService
-	) {
-		this.temperatureZoneRepository = temperatureZoneRepository;
-		this.taskTemplateRepository = taskTemplateRepository;
-		this.checklistCacheStateService = checklistCacheStateService;
-	}
 
-	@Override
 	public TemperatureZoneResponse createZone(CreateTemperatureZoneRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
@@ -50,7 +41,6 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 		return response;
 	}
 
-	@Override
 	public TemperatureZoneResponse updateZone(Long zoneId, CreateTemperatureZoneRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
@@ -81,7 +71,6 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 		return toResponse(savedZone);
 	}
 
-	@Override
 	public List<TemperatureZoneResponse> getAllZones(IcModule module, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		ComplianceArea complianceArea = requireModule(module).toComplianceArea();
@@ -92,7 +81,6 @@ public class TemperatureZoneServiceImpl implements TemperatureZoneService {
 			.toList();
 	}
 
-	@Override
 	public void deleteZone(Long zoneId, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		TemperatureZoneModel zone = getZone(zoneId, safePrincipal.getOrganizationId());

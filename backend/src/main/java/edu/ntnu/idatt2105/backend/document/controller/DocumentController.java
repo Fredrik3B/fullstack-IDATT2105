@@ -3,13 +3,14 @@ package edu.ntnu.idatt2105.backend.document.controller;
 import edu.ntnu.idatt2105.backend.document.dto.DocumentDTO;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
-import edu.ntnu.idatt2105.backend.common.service.DocumentService;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -35,7 +36,7 @@ import java.util.List;
 
 @Tag(name = "Documents", description = "Upload, list, download, and delete compliance documents")
 @RestController
-@PreAuthorize("isAuthenticated()")
+@AllArgsConstructor
 @RequestMapping("/documents")
 public class DocumentController {
 
@@ -43,9 +44,6 @@ public class DocumentController {
 
     private final DocumentService documentService;
 
-    public DocumentController(DocumentService documentService) {
-        this.documentService = documentService;
-    }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

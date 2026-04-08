@@ -20,7 +20,7 @@ import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.temperature.service.TemperatureMeasurementServiceImpl;
+import edu.ntnu.idatt2105.backend.temperature.service.TemperatureMeasurementService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
@@ -49,7 +49,7 @@ class TemperatureMeasurementServiceImplTest {
   @Mock private UserRepository userRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
 
-  @InjectMocks private TemperatureMeasurementServiceImpl temperatureMeasurementService;
+  @InjectMocks private TemperatureMeasurementService temperatureMeasurementService;
 
   private UUID orgId;
   private UUID userId;

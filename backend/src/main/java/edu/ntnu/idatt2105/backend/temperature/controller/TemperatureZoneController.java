@@ -3,13 +3,14 @@ package edu.ntnu.idatt2105.backend.temperature.controller;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureZoneRequest;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
-import edu.ntnu.idatt2105.backend.common.service.TemperatureZoneService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.temperature.service.TemperatureZoneService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -28,13 +29,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @PreAuthorize("isAuthenticated()")
 @RequestMapping("/temperature-zones")
+@AllArgsConstructor
 public class TemperatureZoneController {
 
 	private final TemperatureZoneService temperatureZoneService;
-
-	public TemperatureZoneController(TemperatureZoneService temperatureZoneService) {
-		this.temperatureZoneService = temperatureZoneService;
-	}
 
 	@PostMapping
 	@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")

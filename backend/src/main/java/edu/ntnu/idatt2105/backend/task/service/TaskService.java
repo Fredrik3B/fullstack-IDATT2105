@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.task.service;
 
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
@@ -14,16 +15,16 @@ import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
-import edu.ntnu.idatt2105.backend.common.service.TaskService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.util.List;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class TaskServiceImpl implements TaskService {
+@AllArgsConstructor
+public class TaskService {
 
 	private final TaskTemplateRepository taskTemplateRepository;
 	private final ChecklistRepository checklistRepository;
@@ -32,23 +33,7 @@ public class TaskServiceImpl implements TaskService {
 	private final TemperatureZoneRepository temperatureZoneRepository;
 	private final ChecklistCacheStateService checklistCacheStateService;
 
-	public TaskServiceImpl(
-		TaskTemplateRepository taskTemplateRepository,
-		ChecklistRepository checklistRepository,
-		TasksRepository tasksRepository,
-		TemperatureMeasurementRepository temperatureMeasurementRepository,
-		TemperatureZoneRepository temperatureZoneRepository,
-		ChecklistCacheStateService checklistCacheStateService
-	) {
-		this.taskTemplateRepository = taskTemplateRepository;
-		this.checklistRepository = checklistRepository;
-		this.tasksRepository = tasksRepository;
-		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
-		this.temperatureZoneRepository = temperatureZoneRepository;
-		this.checklistCacheStateService = checklistCacheStateService;
-	}
 
-	@Override
 	public TaskResponse createTask(CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
@@ -73,7 +58,6 @@ public class TaskServiceImpl implements TaskService {
 		return response;
 	}
 
-	@Override
 	@Transactional
 	public TaskResponse updateTask(Long taskId, CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
@@ -110,7 +94,6 @@ public class TaskServiceImpl implements TaskService {
 		return response;
 	}
 
-	@Override
 	public List<TaskResponse> getAllTasks(IcModule module, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		ComplianceArea complianceArea = requireModule(module).toComplianceArea();
@@ -122,13 +105,11 @@ public class TaskServiceImpl implements TaskService {
 			.toList();
 	}
 
-	@Override
 	public TaskResponse getTaskById(Long taskId, JwtAuthenticatedPrincipal principal) {
 		TaskTemplate template = getTemplate(taskId, requirePrincipal(principal));
 		return toResponse(template);
 	}
 
-	@Override
 	@Transactional
 	public void deleteTask(Long taskId, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);

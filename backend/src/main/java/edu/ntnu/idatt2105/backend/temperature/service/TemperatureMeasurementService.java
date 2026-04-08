@@ -4,14 +4,13 @@ import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.CreateTemperatureMea
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
-import edu.ntnu.idatt2105.backend.common.service.TemperatureMeasurementService;
 import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
@@ -22,14 +21,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
-public class TemperatureMeasurementServiceImpl implements TemperatureMeasurementService {
+@AllArgsConstructor
+public class TemperatureMeasurementService {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(TemperatureMeasurementServiceImpl.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TemperatureMeasurementService.class);
 
 	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
 	private final ChecklistRepository checklistRepository;
@@ -38,23 +39,8 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 	private final UserRepository userRepository;
 	private final ChecklistCacheStateService checklistCacheStateService;
 
-	public TemperatureMeasurementServiceImpl(
-		TemperatureMeasurementRepository temperatureMeasurementRepository,
-		ChecklistRepository checklistRepository,
-		TasksRepository tasksRepository,
-		OrganizationRepository organizationRepository,
-		UserRepository userRepository,
-		ChecklistCacheStateService checklistCacheStateService
-	) {
-		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
-		this.checklistRepository = checklistRepository;
-		this.tasksRepository = tasksRepository;
-		this.organizationRepository = organizationRepository;
-		this.userRepository = userRepository;
-		this.checklistCacheStateService = checklistCacheStateService;
-	}
 
-	@Override
+
 	public TemperatureMeasurementResponse createMeasurement(
 		CreateTemperatureMeasurementRequest request,
 		JwtAuthenticatedPrincipal principal
@@ -123,7 +109,6 @@ public class TemperatureMeasurementServiceImpl implements TemperatureMeasurement
 		return toResponse(saved, module);
 	}
 
-	@Override
 	public List<TemperatureMeasurementResponse> fetchMeasurements(
 		IcModule module,
 		LocalDateTime from,

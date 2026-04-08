@@ -24,7 +24,7 @@ import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.task.service.TaskServiceImpl;
+import edu.ntnu.idatt2105.backend.task.service.TaskService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -40,7 +40,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TaskServiceImplTest {
+class TaskServiceTest {
 
   @Mock private TaskTemplateRepository taskTemplateRepository;
   @Mock private ChecklistRepository checklistRepository;
@@ -49,7 +49,7 @@ class TaskServiceImplTest {
   @Mock private TemperatureZoneRepository temperatureZoneRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
 
-  @InjectMocks private TaskServiceImpl taskService;
+  @InjectMocks private TaskService taskService;
 
   private UUID orgId;
   private JwtAuthenticatedPrincipal principal;

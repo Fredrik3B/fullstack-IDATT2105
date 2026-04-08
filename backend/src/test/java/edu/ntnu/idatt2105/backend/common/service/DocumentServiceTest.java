@@ -5,7 +5,7 @@ import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
 import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
-import edu.ntnu.idatt2105.backend.document.service.DocumentServiceImpl;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
@@ -40,10 +40,10 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Document Service")
-class DocumentServiceImplTest {
+class DocumentServiceTest {
 
     @InjectMocks
-    private DocumentServiceImpl service;
+    private DocumentService service;
 
     @Mock
     private DocumentRepository documentRepository;

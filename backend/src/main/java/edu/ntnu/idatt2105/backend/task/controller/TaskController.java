@@ -3,14 +3,15 @@ package edu.ntnu.idatt2105.backend.task.controller;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.service.TaskService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.task.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -27,15 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Tasks", description = "Create, fetch, and delete tasks")
 @RestController
-@PreAuthorize("isAuthenticated()")
+@AllArgsConstructor
 @RequestMapping("/tasks")
 public class TaskController {
 
 	private final TaskService taskService;
-
-	public TaskController(TaskService taskService) {
-		this.taskService = taskService;
-	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)

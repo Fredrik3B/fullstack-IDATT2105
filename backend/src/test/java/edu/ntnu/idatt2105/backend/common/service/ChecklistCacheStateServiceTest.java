@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModuleState;
 import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistModuleStateRepository;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateServiceImpl;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -21,11 +21,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ChecklistCacheStateServiceImplTest {
+class ChecklistCacheStateServiceTest {
 
   @Mock private ChecklistModuleStateRepository checklistModuleStateRepository;
 
-  @InjectMocks private ChecklistCacheStateServiceImpl checklistCacheStateService;
+  @InjectMocks private ChecklistCacheStateService checklistCacheStateService;
 
   @Test
   void getLastModified_bootstrapsStateWhenModuleHasNoExistingCacheRow() {

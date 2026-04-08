@@ -21,7 +21,6 @@ import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.common.service.ChecklistService;
 import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
@@ -39,11 +38,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class ChecklistServiceImpl implements ChecklistService {
+@AllArgsConstructor
+public class ChecklistService {
 
 	private final ChecklistRepository checklistRepository;
 	private final TaskTemplateRepository taskTemplateRepository;
@@ -52,23 +53,6 @@ public class ChecklistServiceImpl implements ChecklistService {
 	private final OrganizationRepository organizationRepository;
 	private final ChecklistCacheStateService checklistCacheStateService;
 
-	public ChecklistServiceImpl(
-		ChecklistRepository checklistRepository,
-		TaskTemplateRepository taskTemplateRepository,
-		TasksRepository tasksRepository,
-		TemperatureMeasurementRepository temperatureMeasurementRepository,
-		OrganizationRepository organizationRepository,
-		ChecklistCacheStateService checklistCacheStateService
-	) {
-		this.checklistRepository = checklistRepository;
-		this.taskTemplateRepository = taskTemplateRepository;
-		this.tasksRepository = tasksRepository;
-		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
-		this.organizationRepository = organizationRepository;
-		this.checklistCacheStateService = checklistCacheStateService;
-	}
-
-	@Override
 	public List<ChecklistCardResponse> fetchChecklists(IcModule module, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		ComplianceArea area = requireModule(module).toComplianceArea();
@@ -82,14 +66,12 @@ public class ChecklistServiceImpl implements ChecklistService {
 			.toList();
 	}
 
-	@Override
 	public Instant fetchChecklistsLastModified(IcModule module, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		ComplianceArea area = requireModule(module).toComplianceArea();
 		return checklistCacheStateService.getLastModified(safePrincipal.getOrganizationId(), area);
 	}
 
-	@Override
 	@Transactional
 	public ChecklistCardResponse createChecklist(CreateChecklistCardRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
@@ -116,7 +98,6 @@ public class ChecklistServiceImpl implements ChecklistService {
 		return toCardResponse(savedChecklist);
 	}
 
-	@Override
 	@Transactional
 	public ChecklistCardResponse updateChecklist(
 		Long checklistId,
@@ -148,7 +129,6 @@ public class ChecklistServiceImpl implements ChecklistService {
 		return toCardResponse(savedChecklist);
 	}
 
-	@Override
 	public ChecklistTaskItemResponse setTaskCompletion(
 		Long checklistId,
 		Long taskId,

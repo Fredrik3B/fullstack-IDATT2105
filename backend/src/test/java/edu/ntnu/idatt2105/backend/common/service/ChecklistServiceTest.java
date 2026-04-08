@@ -22,7 +22,7 @@ import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistServiceImpl;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
@@ -43,7 +43,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ChecklistServiceImplTest {
+class ChecklistServiceTest {
 
   @Mock private ChecklistRepository checklistRepository;
   @Mock private TaskTemplateRepository taskTemplateRepository;
@@ -52,7 +52,7 @@ class ChecklistServiceImplTest {
   @Mock private OrganizationRepository organizationRepository;
   @Mock private ChecklistCacheStateService checklistCacheStateService;
 
-  @InjectMocks private ChecklistServiceImpl checklistService;
+  @InjectMocks private ChecklistService checklistService;
 
   private UUID orgId;
   private JwtAuthenticatedPrincipal principal;
