@@ -28,6 +28,7 @@ const {
   now,
   dateLabel,
   isLoading,
+  isRefreshing,
   loadError,
   isCreateOpen,
   isEditOpen,
@@ -84,6 +85,7 @@ function handleTaskPoolChanged() {
     :highlighted-checklist-id="highlightedChecklistId"
     :now="now"
     :is-loading="isLoading"
+    :is-refreshing="isRefreshing"
     :load-error="loadError"
     @open-library="openLibraryModal"
     @manage-tasks="openTaskPoolModal"

@@ -1,10 +1,13 @@
 package edu.ntnu.idatt2105.backend.common.controller;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
 import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
@@ -56,7 +60,7 @@ public class ChecklistController {
 		@Valid @RequestBody CreateChecklistCardRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
 			"IC create checklist: orgId={} userId={} module={} period={} title='{}' taskTemplates={}",
@@ -76,11 +80,25 @@ public class ChecklistController {
 	@GetMapping
 	@Operation(summary = "Fetch checklists by module")
 	@ApiResponse(responseCode = "200", description = "Checklists returned")
-	public List<ChecklistCardResponse> getChecklists(
+	public ResponseEntity<List<ChecklistCardResponse>> getChecklists(
 		@RequestParam IcModule module,
+		WebRequest webRequest,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
+		Instant lastModified = checklistService.fetchChecklistsLastModified(module, principal);
+		long lastModifiedMillis = toHttpLastModifiedMillis(lastModified);
+		if (webRequest.checkNotModified(lastModifiedMillis)) {
+			LOGGER.info(
+				"IC fetch checklists: orgId={} userId={} module={} not modified",
+				principal.getOrganizationId(),
+				principal.getUserId(),
+				module
+			);
+			return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
+				.lastModified(lastModifiedMillis)
+				.build();
+		}
 		LOGGER.info(
 			"IC fetch checklists: orgId={} userId={} module={}",
 			principal.getOrganizationId(),
@@ -89,7 +107,10 @@ public class ChecklistController {
 		);
 		List<ChecklistCardResponse> cards = checklistService.fetchChecklists(module, principal);
 		LOGGER.info("IC fetch checklists: returned {} cards", cards.size());
-		return cards;
+		return ResponseEntity.ok()
+			.header(HttpHeaders.CACHE_CONTROL, "private, max-age=0, must-revalidate")
+			.lastModified(lastModifiedMillis)
+			.body(cards);
 	}
 
 	@PutMapping("/{checklistId}")
@@ -101,7 +122,7 @@ public class ChecklistController {
 		@Valid @RequestBody UpdateChecklistCardRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		int taskCount = request.taskTemplateIds() != null ? request.taskTemplateIds().size() : 0;
 		LOGGER.info(
 			"IC update checklist: orgId={} userId={} checklistId={} period={} title='{}' taskTemplates={}",
@@ -126,7 +147,7 @@ public class ChecklistController {
 		@Valid @RequestBody TaskCompletionRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC set completion: orgId={} userId={} checklistId={} taskId={} state={} periodKey={} completedAt={}",
 			principal.getOrganizationId(),
@@ -149,7 +170,7 @@ public class ChecklistController {
 		@Valid @RequestBody TaskFlagRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC set flag: orgId={} userId={} checklistId={} taskId={} state={} periodKey={} flaggedAt={}",
 			principal.getOrganizationId(),
@@ -167,7 +188,7 @@ public class ChecklistController {
 	@Operation(summary = "Submit the current checklist period and start a new one")
 	@ApiResponse(responseCode = "200", description = "Checklist submitted")
 	public ChecklistCardResponse submitChecklist(@PathVariable Long checklistId, Authentication auth) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC submit checklist: orgId={} userId={} checklistId={}",
 			principal.getOrganizationId(),
@@ -186,7 +207,7 @@ public class ChecklistController {
 		@Valid @RequestBody ChecklistWorkbenchStateRequest request,
 		Authentication auth
 	) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC set workbench state: orgId={} userId={} checklistId={} displayedOnWorkbench={}",
 			principal.getOrganizationId(),
@@ -203,7 +224,7 @@ public class ChecklistController {
 	@Operation(summary = "Delete a checklist")
 	@ApiResponse(responseCode = "204", description = "Checklist deleted")
 	public void deleteChecklist(@PathVariable Long checklistId, Authentication auth) {
-		JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
 		LOGGER.info(
 			"IC delete checklist: orgId={} userId={} checklistId={}",
 			principal.getOrganizationId(),
@@ -211,5 +232,10 @@ public class ChecklistController {
 			checklistId
 		);
 		checklistService.deleteChecklist(checklistId, principal);
+	}
+
+	private long toHttpLastModifiedMillis(Instant lastModified) {
+		long millis = (lastModified != null ? lastModified : Instant.EPOCH).toEpochMilli();
+		return millis - Math.floorMod(millis, 1000L);
 	}
 }

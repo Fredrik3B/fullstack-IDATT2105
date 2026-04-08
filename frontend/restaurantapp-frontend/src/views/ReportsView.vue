@@ -1,35 +1,32 @@
 <template>
   <div class="page-root">
-    <section class="page-banner">
-      <!-- ... same banner ... -->
-    </section>
-
     <main class="page-main">
       <div class="page-content">
-        <div class="filter-bar">
-          <div class="filter-group">
-            <label class="filter-label">Report type</label>
-            <select class="filter-select" v-model="reportType">
-              <option value="inspection">Full inspection report</option>
-              <option value="summary">Internal summary</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label class="filter-label">From</label>
-            <input class="filter-input" type="date" v-model="fromDate" />
-          </div>
-          <div class="filter-group">
-            <label class="filter-label">To</label>
-            <input class="filter-input" type="date" v-model="toDate" />
-          </div>
-          <button class="btn-generate" @click="loadReport" :disabled="loading">
-            {{ loading ? 'Generating...' : 'Generate report' }}
-          </button>
-          <button v-if="report" class="btn-export" @click="printReport">Export PDF</button>
-          <button class="btn-deviation" type="button" @click="showDeviationForm = true">
-            Report deviation
-          </button>
-        </div>
+
+        <PageHeader
+          eyebrow="Reports"
+          title="Reports &amp; Deviations"
+          description="Generate inspection reports and log food safety deviations"
+        >
+          <template #actions>
+            <div class="insight-card">
+              <span class="insight-label">Date range</span>
+              <span class="insight-value">{{ fromDate }} – {{ toDate }}</span>
+              <span class="insight-text">Adjust the filters below to generate a report</span>
+            </div>
+          </template>
+        </PageHeader>
+
+        <ReportFilterBar
+          v-model:reportType="reportType"
+          v-model:fromDate="fromDate"
+          v-model:toDate="toDate"
+          :loading="loading"
+          :has-report="!!report"
+          @generate="loadReport"
+          @export="printReport"
+          @deviation="showDeviationForm = true"
+        />
 
         <div v-if="loading" class="empty-state">
           <p class="empty-title">Generating report...</p>
@@ -55,6 +52,7 @@
             @submitted="onDeviationSubmitted"
           />
         </div>
+
       </div>
     </main>
   </div>
@@ -64,6 +62,8 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchInspectionReport, fetchSummaryReport } from '@/api/reports'
+import PageHeader from '@/components/layout/PageHeader.vue'
+import ReportFilterBar from '@/components/reports/ReportFilterBar.vue'
 import InspectionReport from '@/components/reports/InspectionReport.vue'
 import SummaryReport from '@/components/reports/SummaryReport.vue'
 import DeviationReportForm from '@/components/reports/DeviationReportForm.vue'
@@ -162,121 +162,51 @@ watch(
 <style scoped>
 .page-root {
   min-height: 100vh;
-  background: var(--color-bg-secondary);
+  background: transparent;
 }
 
-.page-banner {
-  background: var(--color-dark-primary);
-  border-bottom: 1px solid var(--color-dark-secondary);
-  padding: var(--space-10) var(--space-6);
-}
-.page-banner-inner {
-  max-width: 960px;
+.page-main { padding: var(--space-8) var(--space-6); }
+
+.page-content {
+  max-width: var(--max-width);
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ── Insight card (inside PageHeader slot) ── */
+.insight-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(200, 200, 216, 0.18);
 }
-.page-tag {
-  display: inline-block;
+
+.insight-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-full);
-  padding: 3px var(--space-3);
-  align-self: flex-start;
-}
-.page-heading {
-  margin: 0;
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  color: #ffffff;
-  line-height: var(--line-height-tight);
-}
-.page-accent { color: var(--color-accent); }
-.page-sub {
-  margin: 0;
-  font-size: var(--font-size-md);
   color: var(--color-dark-border);
 }
 
-.page-main { padding: var(--space-10) var(--space-6); }
-.page-content {
-  max-width: 960px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+.insight-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: #ffffff;
 }
 
-.filter-bar {
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  box-shadow: var(--shadow-sm);
-}
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.filter-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-muted);
-}
-.filter-select,
-.filter-input {
-  height: 36px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
+.insight-text {
   font-size: var(--font-size-sm);
-  color: var(--color-text-primary);
-  background: var(--color-bg-primary);
-  font-family: inherit;
-  outline: none;
+  line-height: var(--line-height-normal);
+  color: rgba(255, 255, 255, 0.76);
 }
-.filter-select:focus,
-.filter-input:focus { border-color: var(--color-dark-secondary); }
-.btn-generate {
-  margin-left: auto;
-  height: 36px;
-  padding: 0 var(--space-5);
-  background: var(--color-accent);
-  color: var(--color-dark-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-}
-.btn-generate:hover { opacity: 0.85; }
-.btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-export {
-  height: 36px;
-  padding: 0 var(--space-5);
-  background: var(--color-bg-primary);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-family: inherit;
-}
-.btn-export:hover { border-color: var(--color-dark-primary); }
 
+/* ── Empty / error states ── */
 .empty-state {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -285,13 +215,16 @@ watch(
   text-align: center;
   box-shadow: var(--shadow-sm);
 }
+
 .empty-icon { font-size: 40px; margin-bottom: var(--space-4); }
+
 .empty-title {
   margin: 0 0 var(--space-2);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
 }
+
 .empty-sub {
   margin: 0;
   font-size: var(--font-size-sm);
@@ -299,24 +232,8 @@ watch(
   max-width: 400px;
   margin-inline: auto;
 }
-.btn-deviation {
-  height: 36px;
-  padding: 0 var(--space-5);
-  background: var(--color-bg-primary);
-  color: var(--color-danger, #dc2626);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  border: 1px solid var(--color-danger, #dc2626);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-}
-.btn-deviation:hover {
-  background: var(--color-danger, #dc2626);
-  color: white;
-}
 
+/* ── Deviation modal ── */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -327,6 +244,7 @@ watch(
   z-index: 100;
   padding: var(--space-6);
 }
+
 .modal-overlay > * {
   max-width: 720px;
   width: 100%;
@@ -335,13 +253,7 @@ watch(
 }
 
 @media print {
-  .page-banner, .filter-bar { display: none; }
-  .page-root { background: white; }
   .page-main { padding: 0; }
-}
-
-@media (max-width: 900px) {
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .btn-generate { margin-left: 0; }
+  .page-root { background: white; }
 }
 </style>

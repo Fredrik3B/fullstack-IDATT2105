@@ -88,6 +88,15 @@ function makeChecklist(overrides = {}) {
   }
 }
 
+function makeChecklistResponse(data = [], overrides = {}) {
+  return {
+    status: 200,
+    data,
+    lastModified: null,
+    ...overrides,
+  }
+}
+
 function mountView(storeOverrides = {}) {
   const pinia = createPinia()
   setActivePinia(pinia)
@@ -104,7 +113,7 @@ function mountView(storeOverrides = {}) {
 beforeEach(() => {
   vi.clearAllMocks()
   mockRouterPush.mockClear()
-  fetchChecklists.mockResolvedValue([])
+  fetchChecklists.mockResolvedValue(makeChecklistResponse())
   fetchDocuments.mockResolvedValue([])
   fetchTemperatureMeasurements.mockResolvedValue([])
 })
@@ -228,7 +237,7 @@ describe('MainDashboard', () => {
 
   describe('task counts from checklists', () => {
     it('shows 0 remaining tasks when no checklists', async () => {
-      fetchChecklists.mockResolvedValue([])
+      fetchChecklists.mockResolvedValue(makeChecklistResponse())
       const wrapper = mountView()
       await flushPromises()
 
@@ -239,8 +248,8 @@ describe('MainDashboard', () => {
     it('counts remaining and completed tasks from daily checklists', async () => {
       // IC_FOOD returns checklist with 1 todo + 1 completed; IC_ALCOHOL returns empty
       fetchChecklists
-        .mockResolvedValueOnce([makeChecklist()])
-        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(makeChecklistResponse([makeChecklist()]))
+        .mockResolvedValueOnce(makeChecklistResponse())
       const wrapper = mountView()
       await flushPromises()
 
@@ -253,11 +262,11 @@ describe('MainDashboard', () => {
 
     it('ignores non-daily checklists in task count', async () => {
       fetchChecklists
-        .mockResolvedValueOnce([
+        .mockResolvedValueOnce(makeChecklistResponse([
           makeChecklist({ period: 'WEEKLY' }),
           makeChecklist({ id: 'cl2', period: 'DAILY', sections: [{ id: 's2', items: [{ id: 't3', state: 'todo', type: 'CHECK' }] }] }),
-        ])
-        .mockResolvedValueOnce([])
+        ]))
+        .mockResolvedValueOnce(makeChecklistResponse())
       const wrapper = mountView()
       await flushPromises()
 
@@ -320,7 +329,9 @@ describe('MainDashboard', () => {
     })
 
     it('shows remaining tasks alert when tasks remain', async () => {
-      fetchChecklists.mockResolvedValueOnce([makeChecklist()]).mockResolvedValueOnce([])
+      fetchChecklists
+        .mockResolvedValueOnce(makeChecklistResponse([makeChecklist()]))
+        .mockResolvedValueOnce(makeChecklistResponse())
       const wrapper = mountView()
       await flushPromises()
 
@@ -333,8 +344,8 @@ describe('MainDashboard', () => {
   describe('operational health label', () => {
     it('shows all tasks complete when no tasks remain', async () => {
       fetchChecklists
-        .mockResolvedValueOnce([makeChecklist({ sections: [{ id: 's1', items: [{ id: 't1', state: 'completed', type: 'CHECK' }] }] })])
-        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(makeChecklistResponse([makeChecklist({ sections: [{ id: 's1', items: [{ id: 't1', state: 'completed', type: 'CHECK' }] }] })]))
+        .mockResolvedValueOnce(makeChecklistResponse())
       const wrapper = mountView()
       await flushPromises()
 
@@ -343,8 +354,8 @@ describe('MainDashboard', () => {
 
     it('shows continue checklists message when tasks remain', async () => {
       fetchChecklists
-        .mockResolvedValueOnce([makeChecklist()])
-        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(makeChecklistResponse([makeChecklist()]))
+        .mockResolvedValueOnce(makeChecklistResponse())
       const wrapper = mountView()
       await flushPromises()
 

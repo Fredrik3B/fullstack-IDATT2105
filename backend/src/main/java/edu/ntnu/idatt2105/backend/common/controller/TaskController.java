@@ -43,7 +43,7 @@ public class TaskController {
 	@Operation(summary = "Create a task")
 	@ApiResponse(responseCode = "201", description = "Task created")
 	public TaskResponse createTask(@Valid @RequestBody CreateTaskRequest request, Authentication auth) {
-		return taskService.createTask(request, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		return taskService.createTask(request, JwtAuthenticatedPrincipal.from(auth));
 	}
 
 	@PutMapping("/{taskId}")
@@ -55,21 +55,21 @@ public class TaskController {
 		@Valid @RequestBody CreateTaskRequest request,
 		Authentication auth
 	) {
-		return taskService.updateTask(taskId, request, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		return taskService.updateTask(taskId, request, JwtAuthenticatedPrincipal.from(auth));
 	}
 
 	@GetMapping
 	@Operation(summary = "Fetch all tasks")
 	@ApiResponse(responseCode = "200", description = "Tasks returned")
 	public List<TaskResponse> getAllTasks(@RequestParam IcModule module, Authentication auth) {
-		return taskService.getAllTasks(module, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		return taskService.getAllTasks(module, JwtAuthenticatedPrincipal.from(auth));
 	}
 
 	@GetMapping("/{taskId}")
 	@Operation(summary = "Fetch a task by id")
 	@ApiResponse(responseCode = "200", description = "Task returned")
 	public TaskResponse getTaskById(@PathVariable Long taskId, Authentication auth) {
-		return taskService.getTaskById(taskId, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		return taskService.getTaskById(taskId, JwtAuthenticatedPrincipal.from(auth));
 	}
 
 	@DeleteMapping("/{taskId}")
@@ -78,6 +78,6 @@ public class TaskController {
 	@Operation(summary = "Delete a task")
 	@ApiResponse(responseCode = "204", description = "Task deleted")
 	public void deleteTask(@PathVariable Long taskId, Authentication auth) {
-		taskService.deleteTask(taskId, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		taskService.deleteTask(taskId, JwtAuthenticatedPrincipal.from(auth));
 	}
 }

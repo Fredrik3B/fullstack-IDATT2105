@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,8 @@ public class LoginResponse {
   private String accessToken;
   private UserInfo user;
   private RestaurantInfo restaurant;
+  @JsonIgnore
+  private String refreshToken;
 
   @Data
   @AllArgsConstructor

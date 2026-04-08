@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.exception;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -9,6 +10,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  @ExceptionHandler(ResourceNotFoundException.class)
+  public ProblemDetail handleResourceNotFound(ResourceNotFoundException e) {
+    return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+  }
+
+  @ExceptionHandler(ExpiredJwtException.class)
+  public ProblemDetail handleExpiredJwt(ExpiredJwtException e) {
+    return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Token expired");
+  }
 
   @ExceptionHandler(UserAlreadyExistsException.class)
   public ProblemDetail handleUserAlreadyExists(UserAlreadyExistsException e) {
@@ -44,5 +55,12 @@ public class GlobalExceptionHandler {
     ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
     problem.setTitle("Validation failed");
     return problem;
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ProblemDetail handleIllegalState(IllegalStateException e) {
+    return ProblemDetail.forStatusAndDetail(
+        HttpStatus.CONFLICT, e.getMessage()
+    );
   }
 }

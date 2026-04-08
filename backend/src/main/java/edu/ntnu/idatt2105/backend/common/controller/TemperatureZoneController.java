@@ -42,7 +42,7 @@ public class TemperatureZoneController {
 	@Operation(summary = "Create a temperature zone")
 	@ApiResponse(responseCode = "201", description = "Temperature zone created")
 	public TemperatureZoneResponse createZone(@Valid @RequestBody CreateTemperatureZoneRequest request, Authentication auth) {
-		return temperatureZoneService.createZone(request, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		return temperatureZoneService.createZone(request, JwtAuthenticatedPrincipal.from(auth));
 	}
 
 	@PutMapping("/{zoneId}")
@@ -54,7 +54,7 @@ public class TemperatureZoneController {
 		@Valid @RequestBody CreateTemperatureZoneRequest request,
 		Authentication auth
 	) {
-		return temperatureZoneService.updateZone(zoneId, request, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		return temperatureZoneService.updateZone(zoneId, request, JwtAuthenticatedPrincipal.from(auth));
 	}
 
 	@GetMapping
@@ -62,7 +62,7 @@ public class TemperatureZoneController {
 	@Operation(summary = "Fetch all temperature zones")
 	@ApiResponse(responseCode = "200", description = "Temperature zones returned")
 	public List<TemperatureZoneResponse> getAllZones(@RequestParam IcModule module, Authentication auth) {
-		return temperatureZoneService.getAllZones(module, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		return temperatureZoneService.getAllZones(module, JwtAuthenticatedPrincipal.from(auth));
 	}
 
 	@DeleteMapping("/{zoneId}")
@@ -71,6 +71,6 @@ public class TemperatureZoneController {
 	@Operation(summary = "Delete a temperature zone")
 	@ApiResponse(responseCode = "204", description = "Temperature zone deleted")
 	public void deleteZone(@PathVariable Long zoneId, Authentication auth) {
-		temperatureZoneService.deleteZone(zoneId, (JwtAuthenticatedPrincipal) auth.getPrincipal());
+		temperatureZoneService.deleteZone(zoneId, JwtAuthenticatedPrincipal.from(auth));
 	}
 }

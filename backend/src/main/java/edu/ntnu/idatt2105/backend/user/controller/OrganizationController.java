@@ -1,6 +1,5 @@
 package edu.ntnu.idatt2105.backend.user.controller;
 
-import edu.ntnu.idatt2105.backend.security.AuthenticationUtils;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
@@ -28,41 +27,42 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Organizations", description = "Create, join, and manage organizations")
 @RestController
 @AllArgsConstructor
+@RequestMapping("/organizations")
 public class OrganizationController {
   private final OrganizationService organizationService;
 
   @Operation(summary = "Create a new organization",
       description = "Creator becomes ADMIN of the organization. Generates a join code.")
-  @PostMapping("/organizations")
+  @PostMapping
   public ResponseEntity<OrganizationResponse> createOrganization(
       @RequestBody @Valid CreateOrganizationRequest request, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
-
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     OrganizationResponse resp =  organizationService.create(request, principal.getUserId());
     return ResponseEntity.ok(resp);
   }
 
   @Operation(summary = "Withdraw a pending join request")
-  @DeleteMapping("/organizations/join-request")
+  @DeleteMapping("/join-request")
   public ResponseEntity<Void> withdrawJoinRequest(Authentication auth) {
-    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.withdrawJoinRequest(principal.getUserId());
     return ResponseEntity.ok().build();
   }
 
   @Operation(summary = "See current join request")
-  @GetMapping("/organizations/join-request")
+  @GetMapping("/join-request")
   @ApiResponse(responseCode = "200", description = "Returned join organization request for user")
   @ApiResponse(responseCode = "204", description = "No join organization request for user")
   public ResponseEntity<JoinRequestResponse> seeJoinRequest(Authentication auth) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     JoinRequestResponse response = organizationService.seeJoinRequest(principal.getUserId());
     if (response == null) {
       return ResponseEntity.noContent().build();
@@ -72,29 +72,28 @@ public class OrganizationController {
 
   @Operation(summary = "Look up an organization by join code",
       description = "Returns the organization name for a given join code. Used to preview before joining.")
-  @GetMapping("/organizations/lookup")
+  @GetMapping("/lookup")
   public ResponseEntity<OrganizationResponse> lookupOrganization(@RequestParam String code) {
     return ResponseEntity.ok(organizationService.lookupByCode(code));
   }
 
   @Operation(summary = "Request to join an organization",
       description = "Creates a pending request. An admin must accept before the user is added.")
-  @PostMapping("/organizations/join")
+  @PostMapping("/join")
   public ResponseEntity<OrganizationResponse> joinOrganization(
       @RequestBody @Valid JoinOrganizationRequest request,
       Authentication auth) {
-    JwtAuthenticatedPrincipal principal = AuthenticationUtils.requirePrincipal(auth);
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     return ResponseEntity.ok(organizationService.requestToJoin(request, principal.getUserId()));
   }
 
-  // TODO: Dobbelsjekk sikkerhet her
   @Operation(summary = "Accept or decline a join request")
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-  @PostMapping("/organizations/requests/{id}")
+  @PostMapping("/requests/{id}")
   public ResponseEntity<Void> acceptRequest(
       @PathVariable UUID id, @RequestBody @Valid ResolveJoinRequest request, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.resolveRequest(
         id, principal.getUserId(), principal.getOrganizationId(), request.getAction()
     );
@@ -104,11 +103,11 @@ public class OrganizationController {
 
   @Operation(summary = "List join requests for your organization")
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-  @GetMapping("/organizations/requests")
+  @GetMapping("/requests")
   public ResponseEntity<List<JoinOrganizationDto>> getOrganizationRequests(
       @RequestParam(required = false) JoinOrgStatus status, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     List<JoinOrganizationDto> requests = organizationService.getRequests(
         principal.getOrganizationId(), status);
     return ResponseEntity.ok(requests);
@@ -116,28 +115,28 @@ public class OrganizationController {
 
   @Operation(summary = "List all members of your organization")
   @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-  @GetMapping("/organizations/members")
+  @GetMapping("/members")
   public ResponseEntity<List<MemberDto>> getMembers(Authentication auth) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     return ResponseEntity.ok(organizationService.getMembers(principal.getOrganizationId()));
   }
 
   @Operation(summary = "Remove a member from your organization")
   @PreAuthorize("hasRole('ADMIN')")
-  @DeleteMapping("/organizations/members/{userId}")
+  @DeleteMapping("/members/{userId}")
   public ResponseEntity<Void> removeMember(@PathVariable UUID userId, Authentication auth) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.removeMember(principal.getOrganizationId(), userId, principal.getUserId());
     return ResponseEntity.ok().build();
   }
 
   @Operation(summary = "Update roles of a member in your organization")
   @PreAuthorize("hasRole('ADMIN')")
-  @PutMapping("/organizations/members/{userId}/roles")
+  @PutMapping("/members/{userId}/roles")
   public ResponseEntity<Void> updateMemberRoles(
       @PathVariable UUID userId, @RequestBody @Valid UpdateMemberRolesRequest request, Authentication auth
   ) {
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) auth.getPrincipal();
+    JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.updateMemberRoles(
         principal.getOrganizationId(), userId, principal.getUserId(), request.getRoles());
     return ResponseEntity.ok().build();

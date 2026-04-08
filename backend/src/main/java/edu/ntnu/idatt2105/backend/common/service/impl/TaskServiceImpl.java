@@ -13,6 +13,7 @@ import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TemperatureZoneRepository;
 import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.common.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.common.service.TaskService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.util.List;
@@ -28,19 +29,22 @@ public class TaskServiceImpl implements TaskService {
 	private final TasksRepository tasksRepository;
 	private final TemperatureMeasurementRepository temperatureMeasurementRepository;
 	private final TemperatureZoneRepository temperatureZoneRepository;
+	private final ChecklistCacheStateService checklistCacheStateService;
 
 	public TaskServiceImpl(
 		TaskTemplateRepository taskTemplateRepository,
 		ChecklistRepository checklistRepository,
 		TasksRepository tasksRepository,
 		TemperatureMeasurementRepository temperatureMeasurementRepository,
-		TemperatureZoneRepository temperatureZoneRepository
+		TemperatureZoneRepository temperatureZoneRepository,
+		ChecklistCacheStateService checklistCacheStateService
 	) {
 		this.taskTemplateRepository = taskTemplateRepository;
 		this.checklistRepository = checklistRepository;
 		this.tasksRepository = tasksRepository;
 		this.temperatureMeasurementRepository = temperatureMeasurementRepository;
 		this.temperatureZoneRepository = temperatureZoneRepository;
+		this.checklistCacheStateService = checklistCacheStateService;
 	}
 
 	@Override
@@ -63,7 +67,9 @@ public class TaskServiceImpl implements TaskService {
 		template.setTargetMax(isTemperatureControl ? temperatureZone.getTargetMax() : null);
 		template.setOrganisationId(safePrincipal.getOrganizationId());
 
-		return toResponse(taskTemplateRepository.save(template));
+		TaskResponse response = toResponse(taskTemplateRepository.save(template));
+		touchChecklistCache(safePrincipal.getOrganizationId(), template.getComplianceArea());
+		return response;
 	}
 
 	@Override
@@ -72,6 +78,7 @@ public class TaskServiceImpl implements TaskService {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
 		TaskTemplate template = getTemplate(taskId, safePrincipal);
+		ComplianceArea previousComplianceArea = template.getComplianceArea();
 		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
 		TemperatureZoneModel temperatureZone = isTemperatureControl
 			? getTemperatureZone(request.temperatureZoneId(), safePrincipal.getOrganizationId(), requireModule(request.module()).toComplianceArea())
@@ -94,7 +101,12 @@ public class TaskServiceImpl implements TaskService {
 			tasksRepository.saveAll(activatedTasks);
 		}
 
-		return toResponse(taskTemplateRepository.save(template));
+		TaskResponse response = toResponse(taskTemplateRepository.save(template));
+		touchChecklistCache(safePrincipal.getOrganizationId(), previousComplianceArea);
+		if (template.getComplianceArea() != previousComplianceArea) {
+			touchChecklistCache(safePrincipal.getOrganizationId(), template.getComplianceArea());
+		}
+		return response;
 	}
 
 	@Override
@@ -135,6 +147,11 @@ public class TaskServiceImpl implements TaskService {
 		}
 
 		taskTemplateRepository.delete(template);
+		touchChecklistCache(safePrincipal.getOrganizationId(), template.getComplianceArea());
+	}
+
+	private void touchChecklistCache(UUID organizationId, ComplianceArea complianceArea) {
+		checklistCacheStateService.touch(organizationId, complianceArea);
 	}
 
 	private TaskTemplate getTemplate(Long taskId, JwtAuthenticatedPrincipal principal) {
