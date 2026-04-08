@@ -13,6 +13,12 @@ import { useChecklistDashboard } from './useChecklistDashboard'
 
 const CHECKLIST_SCREEN_CACHE = new Map()
 
+/**
+ * Normalize card id fields and nested task ids to string values.
+ *
+ * @param {any} card
+ * @returns {any}
+ */
 function normalizeChecklistCardIds(card) {
   if (!card || typeof card !== 'object') return card
 
@@ -51,14 +57,33 @@ function normalizeChecklistCardIds(card) {
   }
 }
 
+/**
+ * Read cached module entry.
+ *
+ * @param {string} module
+ * @returns {any|null}
+ */
 function getCacheEntry(module) {
   return CHECKLIST_SCREEN_CACHE.get(module) ?? null
 }
 
+/**
+ * Write cached module entry.
+ *
+ * @param {string} module
+ * @param {any} entry
+ * @returns {void}
+ */
 function setCacheEntry(module, entry) {
   CHECKLIST_SCREEN_CACHE.set(module, entry)
 }
 
+/**
+ * Determine whether cached checklist payload can be reused for immediate render.
+ *
+ * @param {any} entry
+ * @returns {boolean}
+ */
 function hasUsableCachedCards(entry) {
   return Boolean(
     entry &&
@@ -67,6 +92,13 @@ function hasUsableCachedCards(entry) {
   )
 }
 
+/**
+ * Choose the best active period label from current card set.
+ *
+ * @param {Array<any>} cards
+ * @param {string|null|undefined} preferredLabel
+ * @returns {string}
+ */
 function pickAvailablePeriod(cards, preferredLabel) {
   const safeCards = Array.isArray(cards) ? cards : []
   if (!safeCards.length) return preferredLabel ?? 'Daily'
@@ -99,6 +131,14 @@ function pickAvailablePeriod(cards, preferredLabel) {
   return preferredLabel ?? 'Daily'
 }
 
+/**
+ * Page-level composable for IC module checklist screens.
+ *
+ * Coordinates checklist loading, modal state, and workbench interactions.
+ *
+ * @param {{module: string, moduleLabel: string}} params
+ * @returns {Record<string, any>}
+ */
 export function useIcModulePage({ module, moduleLabel }) {
   const auth = useAuthStore()
   const toast = useToast()
@@ -170,6 +210,12 @@ export function useIcModulePage({ module, moduleLabel }) {
     return message.includes('Checklist not found')
   }
 
+  /**
+   * Reload checklists for current module, with cache/304-aware behavior.
+   *
+   * @param {{background?: boolean, force?: boolean}} [options]
+   * @returns {Promise<void>|Promise<any>}
+   */
   async function reloadChecklists({ background = false, force = false } = {}) {
     const cached = getCacheEntry(module)
     if (cached?.promise) return cached.promise
@@ -292,6 +338,12 @@ export function useIcModulePage({ module, moduleLabel }) {
     }
   }
 
+  /**
+   * Persist newly created checklist, then refresh list.
+   *
+   * @param {any} newCard
+   * @returns {Promise<void>}
+   */
   async function handleCreatedChecklist(newCard) {
     if (isCreatingChecklist.value) return
 
@@ -320,6 +372,12 @@ export function useIcModulePage({ module, moduleLabel }) {
     }
   }
 
+  /**
+   * Persist checklist updates, then refresh list.
+   *
+   * @param {any} updatedCard
+   * @returns {Promise<void>}
+   */
   async function handleUpdatedChecklist(updatedCard) {
     if (!Number.isInteger(editingCardIndex.value)) return
     if (isUpdatingChecklist.value) return
@@ -356,6 +414,12 @@ export function useIcModulePage({ module, moduleLabel }) {
     }
   }
 
+  /**
+   * Delete a checklist and refresh screen state.
+   *
+   * @param {any} checklist
+   * @returns {Promise<void>}
+   */
   async function handleDeleteChecklist(checklist) {
     const checklistId = checklist?.id
     if (!checklistId) return
@@ -388,6 +452,12 @@ export function useIcModulePage({ module, moduleLabel }) {
     }
   }
 
+  /**
+   * Move a library checklist onto workbench and highlight it on screen.
+   *
+   * @param {any} card
+   * @returns {Promise<void>}
+   */
   async function openChecklistOnWorkbench(card) {
     if (!card?.id) return
     if (String(openingChecklistId.value ?? '') === String(card.id)) return
@@ -428,6 +498,12 @@ export function useIcModulePage({ module, moduleLabel }) {
     }
   }
 
+  /**
+   * Remove a checklist from workbench view.
+   *
+   * @param {any} card
+   * @returns {Promise<void>}
+   */
   async function removeChecklistFromWorkbench(card) {
     if (!card?.id) return
     if (String(removingChecklistId.value ?? '') === String(card.id)) return

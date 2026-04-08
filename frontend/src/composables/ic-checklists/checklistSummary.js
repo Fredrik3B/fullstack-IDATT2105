@@ -1,3 +1,20 @@
+/**
+ * @typedef {Object} ChecklistSummaryTotals
+ * @property {number} completed
+ * @property {number} pending
+ * @property {number} todo
+ * @property {number} total
+ * @property {number} completedPct
+ * @property {number} pendingPct
+ * @property {number} todoPct
+ */
+
+/**
+ * Count task states across checklist cards and compute percentages.
+ *
+ * @param {Array<{sections?: Array<{items?: Array<{state?: string}>}>}>} cards
+ * @returns {ChecklistSummaryTotals}
+ */
 export function countTaskStates(cards) {
   const safeCards = Array.isArray(cards) ? cards : []
   let completed = 0
@@ -31,6 +48,12 @@ export function countTaskStates(cards) {
   }
 }
 
+/**
+ * Build an accessible text summary of checklist totals.
+ *
+ * @param {{completed?: number, pending?: number, todo?: number}|null|undefined} totals
+ * @returns {string}
+ */
 export function getSummaryAriaLabel(totals) {
   const safe = totals ?? { completed: 0, pending: 0, todo: 0 }
   return `Completed ${safe.completed}, flagged ${safe.pending}, not started ${safe.todo}`

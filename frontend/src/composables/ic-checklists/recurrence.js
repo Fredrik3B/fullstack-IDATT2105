@@ -4,6 +4,12 @@ const PERIOD_ENUM_BY_LABEL = {
   Monthly: 'monthly'
 }
 
+/**
+ * Normalize any period-like input to a supported enum.
+ *
+ * @param {string|null|undefined} periodLike
+ * @returns {'daily'|'weekly'|'monthly'|null}
+ */
 export function normalizePeriodEnum(periodLike) {
   const raw = String(periodLike ?? '').trim()
   if (!raw) return null
@@ -19,6 +25,12 @@ export function normalizePeriodEnum(periodLike) {
   return null
 }
 
+/**
+ * Convert a normalized period enum to a display label.
+ *
+ * @param {string|null|undefined} periodEnum
+ * @returns {'Daily'|'Weekly'|'Monthly'}
+ */
 export function periodEnumToLabel(periodEnum) {
   const normalized = normalizePeriodEnum(periodEnum)
   if (normalized === 'weekly') return 'Weekly'
@@ -48,6 +60,13 @@ function getISOWeekYearAndNumber(date) {
   return { isoYear, week }
 }
 
+/**
+ * Build a period key for daily/weekly/monthly recurrence.
+ *
+ * @param {string|null|undefined} periodEnumLike
+ * @param {Date} [date=new Date()]
+ * @returns {string}
+ */
 export function getPeriodKey(periodEnumLike, date = new Date()) {
   const periodEnum = normalizePeriodEnum(periodEnumLike) ?? 'daily'
 
@@ -103,6 +122,13 @@ function getPeriodStart(periodEnumLike, periodKey) {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+/**
+ * Get exclusive period end for a given period key.
+ *
+ * @param {string|null|undefined} periodEnumLike
+ * @param {string|null|undefined} periodKey
+ * @returns {Date|null}
+ */
 export function getPeriodEnd(periodEnumLike, periodKey) {
   const periodEnum = normalizePeriodEnum(periodEnumLike) ?? 'daily'
   const start = getPeriodStart(periodEnum, periodKey)
@@ -119,6 +145,14 @@ export function getPeriodEnd(periodEnumLike, periodKey) {
   return end
 }
 
+/**
+ * Check whether a period is expired at the provided time.
+ *
+ * @param {string|null|undefined} periodEnumLike
+ * @param {string|null|undefined} periodKey
+ * @param {Date} [now=new Date()]
+ * @returns {boolean}
+ */
 export function isPeriodExpired(periodEnumLike, periodKey, now = new Date()) {
   const end = getPeriodEnd(periodEnumLike, periodKey)
   if (!end) return false
@@ -139,6 +173,13 @@ export function getCardPeriodEnum(card) {
   return null
 }
 
+/**
+ * Backfill completion metadata for already-completed tasks in current period.
+ *
+ * @param {Array<any>} cards
+ * @param {Date} [now=new Date()]
+ * @returns {void}
+ */
 export function seedCompletionMetaForCurrentPeriod(cards, now = new Date()) {
   if (!Array.isArray(cards)) return
 
@@ -176,6 +217,13 @@ function getEffectiveTaskState(task, currentPeriodKey) {
   return task
 }
 
+/**
+ * Create period-aware display cards and optionally filter by active period.
+ *
+ * @param {Array<any>} cards
+ * @param {{activePeriodLabel?: string, now?: Date}} [options]
+ * @returns {Array<any>}
+ */
 export function deriveDisplayCards(cards, { activePeriodLabel, now = new Date() } = {}) {
   const sourceCards = Array.isArray(cards) ? cards : []
   const activeEnum = normalizePeriodEnum(activePeriodLabel)

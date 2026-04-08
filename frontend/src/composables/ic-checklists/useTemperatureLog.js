@@ -8,14 +8,31 @@ const USE_BACKEND = true
 
 import { createTemperatureMeasurement, fetchTemperatureMeasurements } from '../../api/temperatureMeasurements'
 
+/**
+ * Build storage key for offline/local fallback measurements.
+ *
+ * @param {string|null|undefined} module
+ * @returns {string}
+ */
 function storageKey(module) {
   return `ic.temperatureMeasurements.v1.${String(module ?? 'UNKNOWN')}`
 }
 
+/**
+ * Detect localStorage availability in current runtime.
+ *
+ * @returns {boolean}
+ */
 function hasLocalStorage() {
   return typeof globalThis !== 'undefined' && typeof globalThis.localStorage !== 'undefined'
 }
 
+/**
+ * Safely parse JSON and return null on failure.
+ *
+ * @param {string} json
+ * @returns {any|null}
+ */
 function safeParse(json) {
   try {
     return JSON.parse(json)
@@ -24,6 +41,12 @@ function safeParse(json) {
   }
 }
 
+/**
+ * Normalize raw backend/local measurement payload into UI-safe shape.
+ *
+ * @param {any} raw
+ * @returns {{id: string, module: string|null, checklistId: string|null, taskId: string|null, valueC: number, measuredAt: string, periodKey: string|null}|null}
+ */
 function normalizeMeasurement(raw) {
   if (!raw || typeof raw !== 'object') return null
   const valueC = Number(raw.valueC)
@@ -40,6 +63,12 @@ function normalizeMeasurement(raw) {
   }
 }
 
+/**
+ * Convert date input to backend LocalDateTime-like string.
+ *
+ * @param {Date|string|number} value
+ * @returns {string}
+ */
 function toBackendDateTime(value) {
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 19)
@@ -47,6 +76,16 @@ function toBackendDateTime(value) {
   return date.toISOString().slice(0, 19)
 }
 
+/**
+ * Composable for reading and writing temperature measurements for one module.
+ *
+ * @param {{module: string|null|undefined}} params
+ * @returns {{
+ *   measurements: import('vue').Ref<Array<any>>,
+ *   latestByTaskId: import('vue').ComputedRef<Map<string, any>>,
+ *   logTemperature: (payload: {checklistId: string|number, taskId: string|number, valueC: number, measuredAt?: string, periodKey?: string}) => Promise<any|null>
+ * }}
+ */
 export function useTemperatureLog({ module }) {
   const toast = useToast()
   const measurements = ref([])
@@ -84,6 +123,12 @@ export function useTemperatureLog({ module }) {
     return map
   })
 
+  /**
+   * Optimistically log a temperature and persist it to backend/local fallback.
+   *
+   * @param {{checklistId: string|number, taskId: string|number, valueC: number, measuredAt?: string, periodKey?: string}} payload
+   * @returns {Promise<any|null>}
+   */
   async function logTemperature({ checklistId, taskId, valueC, measuredAt, periodKey }) {
     const entry = normalizeMeasurement({
       module,

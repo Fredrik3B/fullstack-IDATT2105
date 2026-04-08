@@ -8,14 +8,18 @@ import { useAuthStore } from './stores/auth'
 import './assets/styles/variables.css'
 import './assets/styles/auth.css'
 
+/**
+ * Application bootstrap entry.
+ *
+ * Registers Pinia + router, restores auth state, and mounts the app only
+ * after auth init has completed so first-route guards read consistent state.
+ */
 const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
 
-// Restore auth state from localStorage before the first route is resolved.
-// This means the router guards can read isAuthenticated immediately.
 const authStore = useAuthStore()
 authStore.initAuth().finally(() => {
   app.mount('#app')

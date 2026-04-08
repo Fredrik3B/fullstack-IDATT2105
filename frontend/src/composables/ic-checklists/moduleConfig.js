@@ -1,3 +1,15 @@
+/**
+ * Static config per IC module used by routing and dashboard UI.
+ *
+ * @type {Record<string, {
+ *   module: string,
+ *   moduleLabel: string,
+ *   routeName: string,
+ *   routePath: string,
+ *   moduleDescription: string,
+ *   summaryHint: string
+ * }>}
+ */
 export const IC_MODULE_CONFIG = {
   IC_FOOD: {
     module: 'IC_FOOD',
@@ -21,6 +33,12 @@ export const IC_MODULE_CONFIG = {
   },
 }
 
+/**
+ * Resolve module config, falling back to IC_FOOD.
+ *
+ * @param {string|null|undefined} module
+ * @returns {typeof IC_MODULE_CONFIG[keyof typeof IC_MODULE_CONFIG]}
+ */
 export function getIcModuleConfig(module) {
   return IC_MODULE_CONFIG[module] ?? IC_MODULE_CONFIG.IC_FOOD
 }

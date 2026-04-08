@@ -1,3 +1,8 @@
+/**
+ * Supported backend zone types for temperature tasks.
+ *
+ * @type {string[]}
+ */
 export const TEMPERATURE_ZONE_OPTIONS = [
   'FRIDGE',
   'FREEZER',
@@ -6,6 +11,12 @@ export const TEMPERATURE_ZONE_OPTIONS = [
   'RECEIVING',
 ]
 
+/**
+ * Format enum-like zone type into readable UI text.
+ *
+ * @param {string|null|undefined} zoneType
+ * @returns {string}
+ */
 export function formatTemperatureZoneType(zoneType) {
   if (!zoneType) return 'Temperature item'
   return String(zoneType)
