@@ -388,12 +388,12 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
-import { createTask, fetchTasks } from '../../api/tasks'
-import { fetchTemperatureZones } from '../../api/temperatureZones'
+import { createTask, fetchTasks } from '@/api/tasks'
+import { fetchTemperatureZones } from '@/api/temperatureZones'
 import ManageTemperatureZonesModal from './ManageTemperatureZonesModal.vue'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
-import { SECTION_TYPE_OPTIONS, formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
-import { formatTemperatureZoneType } from '../../composables/ic-checklists/temperatureZoneOptions'
+import { SECTION_TYPE_OPTIONS, formatSectionType } from '@/composables/ic-checklists/taskTemplateOptions'
+import { formatTemperatureZoneType } from '@/composables/ic-checklists/temperatureZoneOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },

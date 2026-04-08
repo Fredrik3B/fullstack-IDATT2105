@@ -166,7 +166,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { createDeviationReport } from '../../api/reports'
+import { createDeviationReport } from '@/api/reports'
 
 const emit = defineEmits(['cancel', 'submitted'])
 

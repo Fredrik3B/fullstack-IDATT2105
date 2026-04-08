@@ -1,12 +1,12 @@
 <script setup>
 import { computed, ref } from 'vue'
-import ChecklistDashboard from '../../components/ic-checklists/ChecklistDashboard.vue'
-import ChecklistLibraryModal from '../../components/ic-checklists/ChecklistLibraryModal.vue'
-import CreateChecklistModal from '../../components/ic-checklists/CreateChecklistModal.vue'
-import ManageTaskTemplatesModal from '../../components/ic-checklists/ManageTaskTemplatesModal.vue'
-import SharedConfirmDialog from '../../components/ic-checklists/SharedConfirmDialog.vue'
-import { getIcModuleConfig } from '../../composables/ic-checklists/moduleConfig'
-import { useIcModulePage } from '../../composables/ic-checklists/useIcModulePage'
+import ChecklistDashboard from '@/components/ic-checklists/ChecklistDashboard.vue'
+import ChecklistLibraryModal from '@/components/ic-checklists/ChecklistLibraryModal.vue'
+import CreateChecklistModal from '@/components/ic-checklists/CreateChecklistModal.vue'
+import ManageTaskTemplatesModal from '@/components/ic-checklists/ManageTaskTemplatesModal.vue'
+import SharedConfirmDialog from '@/components/ic-checklists/SharedConfirmDialog.vue'
+import { getIcModuleConfig } from '@/composables/ic-checklists/moduleConfig'
+import { useIcModulePage } from '@/composables/ic-checklists/useIcModulePage'
 
 const props = defineProps({
   module: {

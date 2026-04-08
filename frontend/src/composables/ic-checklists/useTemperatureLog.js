@@ -6,7 +6,7 @@ import { useToast } from '@/composables/useToast'
 // - When backend is ready, set to `true` and replace the localStorage writes with API reads/writes.
 const USE_BACKEND = true
 
-import { createTemperatureMeasurement, fetchTemperatureMeasurements } from '../../api/temperatureMeasurements'
+import { createTemperatureMeasurement, fetchTemperatureMeasurements } from '@/api/temperatureMeasurements'
 
 /**
  * Build storage key for offline/local fallback measurements.

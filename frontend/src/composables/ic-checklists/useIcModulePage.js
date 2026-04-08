@@ -7,7 +7,7 @@ import {
   fetchChecklists,
   setChecklistWorkbenchState,
   updateChecklist,
-} from '../../api/checklists'
+} from '@/api/checklists'
 import { normalizePeriodEnum, periodEnumToLabel } from './recurrence'
 import { useChecklistDashboard } from './useChecklistDashboard'
 

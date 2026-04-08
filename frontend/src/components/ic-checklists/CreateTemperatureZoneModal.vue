@@ -71,7 +71,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { TEMPERATURE_ZONE_OPTIONS, formatTemperatureZoneType } from './temperatureZoneOptions'
+import { TEMPERATURE_ZONE_OPTIONS, formatTemperatureZoneType } from '@/composables/ic-checklists/temperatureZoneOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
