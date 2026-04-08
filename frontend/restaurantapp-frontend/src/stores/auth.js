@@ -4,14 +4,44 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import api from '@/api/axiosInstance'
 
-// Keys used for localStorage persistence
+/** LocalStorage key for the current JWT access token. */
 const ACCESS_TOKEN_KEY = 'iksystem_access_token'
+/** LocalStorage key for serialized session metadata. */
 const SESSION_KEY = 'iksystem_session'
 
+/**
+ * @typedef {Object} AuthUser
+ * @property {string|number} [id]
+ * @property {string} [name]
+ * @property {string} [email]
+ */
+
+/**
+ * @typedef {Object} Restaurant
+ * @property {string|number} id
+ * @property {string} name
+ * @property {string} [joinCode]
+ */
+
+/**
+ * @typedef {Object} JoinRequest
+ * @property {string} status
+ * @property {string} [restaurantName]
+ * @property {string} [createdAt]
+ */
+
+/**
+ * @typedef {Object} AuthSessionResponse
+ * @property {string} accessToken
+ * @property {AuthUser|null} [user]
+ * @property {Restaurant|null} [restaurant]
+ */
+
+/**
+ * Authentication store handling session state, membership flow, and role-based auth helpers.
+ */
 export const useAuthStore = defineStore('auth', () => {
   const router = useRouter()
-
-  // ── State ──────────────────────────────────────────────────────────────────
 
   /**
    * The logged-in user's basic info.
@@ -38,8 +68,6 @@ export const useAuthStore = defineStore('auth', () => {
    * Null when no pending request exists.
    */
   const pendingRequest = ref(null)
-
-  // ── Computed ───────────────────────────────────────────────────────────────
 
   /** True when a valid access token exists in state. */
   const isAuthenticated = computed(() => !!accessToken.value)
@@ -70,8 +98,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (user.value?.email) return user.value.email.slice(0, 2).toUpperCase()
     return '?'
   })
-
-  // ── Internal helpers ───────────────────────────────────────────────────────
 
   /** Decode JWT payload without verification. */
   function _decodeToken() {
@@ -111,15 +137,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Populate state from a LoginResponse.
-   * Shape: { accessToken, user: { email, name }, restaurant: { id, name, joinCode } | null }
+   * Persist auth state from backend auth responses (login/register/refresh).
+   *
+   * @param {AuthSessionResponse} data - Backend auth response payload.
    */
   function _saveSession(data) {
-      accessToken.value = data.accessToken
+    accessToken.value = data.accessToken
     user.value = data.user ?? null
     restaurant.value = data.restaurant ?? null
 
-    // Backend returned a restaurant, request was accepted
     if (data.restaurant) {
       pendingRequest.value = null
     }
@@ -127,22 +153,25 @@ export const useAuthStore = defineStore('auth', () => {
     _persist()
   }
 
+  /**
+   * Reset all auth state and clear persisted session data.
+   */
   function _clearSession() {
-      user.value = null
-      restaurant.value = null
-      accessToken.value = null
-      pendingRequest.value = null
-      _initDone = false
-      localStorage.removeItem(ACCESS_TOKEN_KEY)
-      localStorage.removeItem(SESSION_KEY)
+    user.value = null
+    restaurant.value = null
+    accessToken.value = null
+    pendingRequest.value = null
+    _initDone = false
+    localStorage.removeItem(ACCESS_TOKEN_KEY)
+    localStorage.removeItem(SESSION_KEY)
   }
-
-  // ── Actions ────────────────────────────────────────────────────────────────
 
   /**
    * Called once on app boot by the router guard.
    * Restores what we can from the JWT claims (email, orgId).
    * Display values (name, restaurant name) are only available after login.
+    *
+    * @returns {Promise<void>}
    */
   let _initDone = false
 
@@ -179,17 +208,16 @@ export const useAuthStore = defineStore('auth', () => {
       restaurant.value = session.restaurant ?? null
     }
 
-    // Logged in but no restaurant, check for a pending join request
     if (isAuthenticated.value && !hasActiveRestaurant.value) {
       await fetchPendingRequest()
     }
   }
 
-    /**
+  /**
    * Fetch the user's current join request from the backend.
-   * GET /api/organizations/join-request returns:
-   *   200 + body   pending request exists
-   *   204          no pending request
+   * Returns null in state when no request exists or the call fails.
+    *
+    * @returns {Promise<void>}
    */
   async function fetchPendingRequest() {
     try {
@@ -209,7 +237,10 @@ export const useAuthStore = defineStore('auth', () => {
    *   pending → onboarding (pending view)
    *   null    → onboarding (choose view)
    *
-   * Throws on failure so the calling component can show an error message.
+  * @param {string} email - User email.
+  * @param {string} password - User password.
+  * @returns {Promise<void>}
+  * @throws {Error} Propagates backend/auth request failures.
    */
   async function login(email, password) {
     const { data } = await api.post('/api/auth/login', { email, password })
@@ -222,6 +253,12 @@ export const useAuthStore = defineStore('auth', () => {
    * Register a new user account.
    * On success the account is immediately active, but has no restaurant yet.
    * Redirects to /onboarding so the user can join or create a restaurant.
+    *
+    * @param {string} name - Full name entered by the user.
+    * @param {string} email - User email.
+    * @param {string} password - User password.
+    * @returns {Promise<void>}
+    * @throws {Error} Propagates backend/auth request failures.
    */
   async function register(name, email, password) {
     const [firstName, ...rest] = name.trim().split(/\s+/)
@@ -236,13 +273,13 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Called by the Axios response interceptor when a request returns 401.
    * Attempts to exchange the refresh token for a new access token.
-   * Returns the new access token string on success, or throws on failure.
+    *
+    * @returns {Promise<string>} New access token.
+    * @throws {Error} Propagates refresh failures.
    */
   async function refreshAccessToken() {
-    // Uses plain axios — NOT the intercepted api instance.
-    // If we used api here, a failed refresh would trigger the interceptor
-    // again, which would call refreshAccessToken() again → infinite loop.
-    // The HTTPOnly refresh token cookie is sent automatically by the browser.
+    // Use plain axios instead of the intercepted `api` client to avoid
+    // recursive interceptor calls if refresh itself fails.
     const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
     const { data } = await axios.post(`${baseURL}/api/auth/refresh`, null, {
       withCredentials: true,
@@ -254,17 +291,23 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Send a join request for a restaurant by its join code.
+    *
+    * @param {string} code - Restaurant join code.
+    * @returns {Promise<any>} Lookup payload from backend.
+    * @throws {Error} Propagates lookup request failures.
    */
   async function lookupRestaurant(code) {
     const { data } = await api.get(`/api/organizations/lookup?code=${code}`)
-    return data // { name: String }
+    return data
   }
 
-    /**
+  /**
    * Send a join request for a restaurant.
-   * After the request is submitted, fetches the pending request from the
-   * backend so the UI has the real data (name, timestamp, status).
-   * @param {string} joinCode - The restaurant's join code
+   * Refreshes pending request state so onboarding reflects backend truth.
+  *
+  * @param {string} joinCode - The restaurant's join code.
+  * @returns {Promise<void>}
+  * @throws {Error} Propagates join request failures.
    */
   async function joinRestaurant(joinCode) {
     await api.post('/api/organizations/join', { joinCode })
@@ -274,6 +317,9 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * Withdraw a pending join request.
    * Clears pendingRequest so the onboarding page returns to the choose view.
+    *
+    * @returns {Promise<void>}
+    * @throws {Error} Propagates withdraw request failures.
    */
   async function withdrawJoinRequest() {
     await api.delete('/api/organizations/join-request')
@@ -285,8 +331,15 @@ export const useAuthStore = defineStore('auth', () => {
    * Create a new restaurant. The current user becomes its admin.
    * After creation, refreshes the access token so the JWT includes
    * the new organization ID and admin role.
-   * @param {Object} payload { name, orgNumber, address, postalCode, city }
-   * @returns {Object} Created restaurant data (includes joinCode)
+  *
+  * @param {Object} payload - Restaurant create payload.
+  * @param {string} payload.name - Restaurant name.
+  * @param {string} payload.orgNumber - Organization number.
+  * @param {string} payload.address - Street address.
+  * @param {string} payload.postalCode - Postal code.
+  * @param {string} payload.city - City name.
+  * @returns {Promise<any>} Created restaurant payload.
+  * @throws {Error} Propagates create/refresh request failures.
    */
   async function createRestaurant(payload) {
     const { data } = await api.post('/api/organizations', payload)
@@ -296,7 +349,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Fetch join requests for the current user's organization.
-   * @param {string|null} status - 'PENDING', 'ACCEPTED', 'DECLINED', or null for all
+    *
+    * @param {'PENDING'|'ACCEPTED'|'DECLINED'|null} [status=null] - Optional status filter.
+    * @returns {Promise<any[]>} Matching join requests.
+    * @throws {Error} Propagates request failures.
    */
   async function fetchJoinRequests(status = null) {
     const params = status ? `?status=${status}` : ''
@@ -306,8 +362,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Accept or decline a join request.
-   * @param {string} requestId - UUID of the JoinRequestModel
-   * @param {'ACCEPTED'|'DECLINED'} action
+    *
+    * @param {string} requestId - UUID of the join request.
+    * @param {'ACCEPTED'|'DECLINED'} action - Resolution action.
+    * @returns {Promise<void>}
+    * @throws {Error} Propagates request failures.
    */
   async function resolveJoinRequest(requestId, action) {
     await api.post(`/api/organizations/requests/${requestId}`, { action })
@@ -318,6 +377,8 @@ export const useAuthStore = defineStore('auth', () => {
    * Log out the current user.
    * Notifies the backend to invalidate the refresh token (fire-and-forget),
    * then clears all local state and redirects to /login.
+    *
+    * @returns {Promise<void>}
    */
   async function logout() {
     try {
@@ -330,8 +391,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
 
-  // ── Private routing helper ─────────────────────────────────────────────────
-
+  /**
+   * Route users after login/register refresh based on restaurant membership.
+   *
+   * @param {AuthSessionResponse} data - Latest auth/session payload.
+   */
   async function _redirectAfterAuth(data) {
     if (data.restaurant) {
       router.push({ name: 'dashboard' })
@@ -341,22 +405,36 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // ── Member management ──────────────────────────────────────────────────────
-
+  /**
+   * Fetch organization members for admin/manager views.
+   *
+   * @returns {Promise<any[]>}
+   */
   async function fetchMembers() {
     const { data } = await api.get('/api/organizations/members')
     return data
   }
 
+  /**
+   * Remove a member from the current organization.
+   *
+   * @param {string|number} userId - Member identifier.
+   * @returns {Promise<void>}
+   */
   async function removeMember(userId) {
     await api.delete(`/api/organizations/members/${userId}`)
   }
 
+  /**
+   * Replace role assignments for a member.
+   *
+   * @param {string|number} userId - Member identifier.
+   * @param {string[]} roles - Role values accepted by the backend.
+   * @returns {Promise<void>}
+   */
   async function updateMemberRoles(userId, roles) {
     await api.put(`/api/organizations/members/${userId}/roles`, { roles })
   }
-
-  // ── Public API ─────────────────────────────────────────────────────────────
 
   return {
     // State
