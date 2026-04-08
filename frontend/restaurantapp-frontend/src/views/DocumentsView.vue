@@ -3,22 +3,19 @@
     <main class="page-main">
       <div class="page-content">
 
-        <!-- Page Header -->
-        <section class="page-header">
-          <div class="page-header__main">
-            <div class="eyebrow">Documents</div>
-            <h1>Document storage and certificates</h1>
-            <p class="page-description">Centralized storage of guidelines, training material, and certificates</p>
-          </div>
-
-          <div class="actions">
+        <PageHeader
+          eyebrow="Documents"
+          title="Document storage and certificates"
+          description="Centralized storage of guidelines, training material, and certificates"
+        >
+          <template #actions>
             <div class="insight-card">
               <span class="insight-label">Document Library</span>
               <span class="insight-value">{{ filteredDocuments.length }}</span>
               <span class="insight-text">{{ filteredDocuments.length === 1 ? 'document' : 'documents' }} available</span>
             </div>
-          </div>
-        </section>
+          </template>
+        </PageHeader>
 
         <!-- Action bar -->
         <div class="action-bar">
@@ -148,6 +145,7 @@ import { Search, AlertTriangle, ChevronDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { fetchDocuments, downloadDocument, deleteDocument } from '@/api/documents'
 import { useToast } from '@/composables/useToast'
+import PageHeader from '@/components/layout/PageHeader.vue'
 import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
 import DocumentCard from '@/components/documents/DocumentCard.vue'
 import DocumentPreviewModal from '@/components/documents/DocumentPreviewModal.vue'
@@ -343,81 +341,7 @@ async function handleDelete(doc) {
 <style scoped>
 .page-root {
   min-height: 100vh;
-  background: var(--color-bg-secondary);
-  position: relative;
-}
-
-.page-root::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    radial-gradient(circle at 20% 20%, rgba(212, 232, 53, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(75, 74, 114, 0.02) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.page-root > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── Page Header (IC-style) ── */
-.page-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.9fr);
-  gap: var(--space-6);
-  padding: var(--space-8);
-  border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, var(--color-dark-primary) 0%, #232248 100%);
-  box-shadow: var(--shadow-md);
-}
-
-.page-header__main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-full);
-  border: 1px solid rgba(212, 232, 53, 0.32);
-  background: rgba(212, 232, 53, 0.08);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-accent);
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: clamp(32px, 4vw, 42px);
-  line-height: var(--line-height-tight);
-  color: #ffffff;
-}
-
-.page-description {
-  margin: 0;
-  max-width: 60ch;
-  font-size: var(--font-size-md);
-  line-height: var(--line-height-normal);
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.actions {
-  display: grid;
-  gap: var(--space-4);
-  align-content: start;
+  background: transparent;
 }
 
 .insight-card {
@@ -972,15 +896,6 @@ async function handleDelete(doc) {
     padding: var(--space-6) var(--space-4);
   }
 
-  .page-header {
-    grid-template-columns: 1fr;
-    padding: var(--space-6);
-  }
-
-  .actions {
-    width: 100%;
-  }
-
   .action-bar {
     flex-direction: column;
     align-items: stretch;
@@ -1009,10 +924,6 @@ async function handleDelete(doc) {
 @media (max-width: 640px) {
   .page-main {
     padding: var(--space-5) var(--space-3);
-  }
-
-  .page-header {
-    padding: var(--space-5) var(--space-4);
   }
 
   .category-header {

@@ -162,13 +162,13 @@ watch(
 <style scoped>
 .page-root {
   min-height: 100vh;
-  background: var(--color-bg-secondary);
+  background: transparent;
 }
 
 .page-main { padding: var(--space-8) var(--space-6); }
 
 .page-content {
-  max-width: 960px;
+  max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
