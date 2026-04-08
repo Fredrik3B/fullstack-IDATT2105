@@ -8,20 +8,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.model.TasksModel;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistWorkbenchStateRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskCompletionRequest;
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
-import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
-import edu.ntnu.idatt2105.backend.common.service.impl.ChecklistServiceImpl;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistServiceImpl;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
@@ -152,7 +153,7 @@ class ChecklistServiceImplTest {
     var response = checklistService.setTaskCompletion(
         4L,
         500L,
-        new edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest("todo", periodKey, null),
+        new TaskCompletionRequest("todo", periodKey, null),
         principal);
 
     assertThat(task.isCompleted()).isFalse();

@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
-import edu.ntnu.idatt2105.backend.common.dto.document.DocumentDTO;
+import edu.ntnu.idatt2105.backend.document.dto.DocumentDTO;
 import edu.ntnu.idatt2105.backend.common.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;

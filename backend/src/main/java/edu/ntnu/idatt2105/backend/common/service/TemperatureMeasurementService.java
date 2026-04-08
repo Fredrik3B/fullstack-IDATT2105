@@ -1,10 +1,9 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateTemperatureMeasurementRequest;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TemperatureMeasurementResponse;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.CreateTemperatureMeasurementRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 

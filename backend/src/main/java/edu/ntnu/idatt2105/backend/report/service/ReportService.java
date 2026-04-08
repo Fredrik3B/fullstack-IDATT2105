@@ -1,17 +1,17 @@
 package edu.ntnu.idatt2105.backend.report.service;
 
 
-import edu.ntnu.idatt2105.backend.common.mapper.TaskMapper;
-import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.model.TasksModel;
-import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;

@@ -5,10 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.common.model.ChecklistModuleState;
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModuleState;
 import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.repository.ChecklistModuleStateRepository;
-import edu.ntnu.idatt2105.backend.common.service.impl.ChecklistCacheStateServiceImpl;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistModuleStateRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateServiceImpl;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;

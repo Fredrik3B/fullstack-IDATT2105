@@ -1,8 +1,8 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.dto.temperaturezone.CreateTemperatureZoneRequest;
-import edu.ntnu.idatt2105.backend.common.dto.temperaturezone.TemperatureZoneResponse;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureZoneRequest;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import java.util.List;
 

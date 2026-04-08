@@ -1,11 +1,11 @@
 package edu.ntnu.idatt2105.backend.common.service;
 
-import edu.ntnu.idatt2105.backend.common.dto.document.DocumentDTO;
-import edu.ntnu.idatt2105.backend.common.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.document.dto.DocumentDTO;
+import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.common.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
-import edu.ntnu.idatt2105.backend.common.repository.DocumentRepository;
-import edu.ntnu.idatt2105.backend.common.service.impl.DocumentServiceImpl;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.service.DocumentServiceImpl;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;

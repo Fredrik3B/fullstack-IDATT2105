@@ -3,14 +3,14 @@ package edu.ntnu.idatt2105.backend.common.service;
 import java.time.Instant;
 import java.util.List;
 
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistCardResponse;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistTaskItemResponse;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.CreateChecklistCardRequest;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.ChecklistWorkbenchStateRequest;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskCompletionRequest;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.TaskFlagRequest;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.UpdateChecklistCardRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistCardResponse;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistTaskItemResponse;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.CreateChecklistCardRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistWorkbenchStateRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskCompletionRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskFlagRequest;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.UpdateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 
 

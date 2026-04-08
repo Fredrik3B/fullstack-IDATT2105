@@ -2,9 +2,9 @@ package edu.ntnu.idatt2105.backend.common.service;
 
 import java.util.List;
 
-import edu.ntnu.idatt2105.backend.common.dto.task.CreateTaskRequest;
-import edu.ntnu.idatt2105.backend.common.dto.task.TaskResponse;
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
+import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
+import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 
 
