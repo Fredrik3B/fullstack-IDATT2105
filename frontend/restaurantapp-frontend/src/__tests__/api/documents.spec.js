@@ -85,7 +85,10 @@ describe('documents API', () => {
       expect(api.post).toHaveBeenCalledWith(
         '/api/documents',
         formData,
-        { headers: { 'Content-Type': undefined } },
+        {
+          headers: { 'Content-Type': undefined },
+          timeout: 120000,
+        },
       )
     })
 
