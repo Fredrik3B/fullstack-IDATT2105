@@ -5,19 +5,12 @@ import { useNowTick } from './useNowTick'
 import { createTemperatureMeasurement } from '../../api/temperatureMeasurements'
 import { setTaskCompletion, setTaskFlag, submitChecklist } from '../../api/checklists'
 import { useToast } from '@/composables/useToast'
-import { isTemperatureTask } from './temperature'
+import { hasTemperatureMeasurementForPeriod, isTemperatureTask } from './temperature'
 
 const REMINDER_WINDOW_MS = 60 * 60 * 1000
 
 function getTaskReminderKey(checklistId, taskId, periodKey) {
   return [String(checklistId ?? ''), String(taskId ?? ''), String(periodKey ?? '')].join(':')
-}
-
-function hasMeasurementForPeriod(task, periodKey) {
-  const latest = task?.latestMeasurement
-  if (!latest) return false
-  if (!latest.periodKey) return true
-  return String(latest.periodKey) === String(periodKey)
 }
 
 function buildReminderSummary(sourceCards, nowDate) {
@@ -40,7 +33,8 @@ function buildReminderSummary(sourceCards, nowDate) {
         if (!task || task.state === 'completed') return
 
         const isTempTask = isTemperatureTask(task)
-        const missingTemperatureLog = isTempTask && !hasMeasurementForPeriod(task, periodKey)
+        const missingTemperatureLog =
+          isTempTask && !hasTemperatureMeasurementForPeriod(task, periodKey)
 
         reminders.push({
           checklistId: card.id,
@@ -179,6 +173,15 @@ export function useChecklistDashboard({
     if (!currentPeriodKey) return
     const checklistId = card.id
     const taskId = task.id
+
+    if (
+      task.state !== 'completed' &&
+      isTemperatureTask(task) &&
+      !hasTemperatureMeasurementForPeriod(task, currentPeriodKey)
+    ) {
+      toast.warning('Save a temperature reading before marking this task as complete.')
+      return
+    }
 
     const previous = { ...task }
     task.isSaving = true
