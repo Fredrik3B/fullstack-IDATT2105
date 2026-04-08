@@ -63,4 +63,9 @@ public class GlobalExceptionHandler {
         HttpStatus.CONFLICT, e.getMessage()
     );
   }
+
+  @ExceptionHandler(OrganizationRequiredException.class)
+  public ProblemDetail handleOrganizationRequired(OrganizationRequiredException e) {
+    return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
+  }
 }
