@@ -70,7 +70,7 @@
               :hint="activeDeviationHint"
               :value-variant="activeDeviationCount > 0 ? 'danger' : ''"
               interactive
-              @click="openDeviationReport"
+              @click="openDeviationsList"
             />
             <StatCard
               label="Expiring certificates"
@@ -143,7 +143,7 @@
           <article class="insight-card">
             <div class="insight-card__header">
               <h2 class="section-heading section-heading--compact">Recent activity</h2>
-              <span class="section-kicker">Latest signals</span>
+              <span class="section-kicker">Refreshed {{ lastRefreshLabel }}</span>
             </div>
             <ul class="insight-list insight-list--activity">
               <li class="insight-list__item">
@@ -153,10 +153,6 @@
               <li class="insight-list__item">
                 <span class="insight-list__dot"></span>
                 <span>{{ latestDocumentLabel }}</span>
-              </li>
-              <li class="insight-list__item">
-                <span class="insight-list__dot"></span>
-                <span>{{ latestChecklistLabel }} - Last refresh {{ lastRefreshLabel }}</span>
               </li>
             </ul>
           </article>
@@ -347,11 +343,6 @@ const operationalHealthLabel = computed(() => {
   return 'Operational status: all tracked daily tasks are currently complete.'
 })
 
-const latestChecklistLabel = computed(() => {
-  const candidate = dailyChecklists.value.find((card) => typeof card?.title === 'string' && card.title.trim().length > 0)
-  if (!candidate) return 'No daily checklist opened yet'
-  return `Checklist focus: ${candidate.title}`
-})
 
 const latestDocumentLabel = computed(() => {
   if (isLoadingDocuments.value) return 'Loading recent document activity...'
@@ -421,7 +412,9 @@ function countTemperatureDeviations(cards, latestByTaskId) {
   cards.forEach((card) => {
     getAllTasks(card).forEach((task) => {
       if (!isTemperatureTask(task)) return
-      const latest = latestMap.get(task?.id)
+      // Prefer the measurement embedded on the task (available even for unsubmitted checklists),
+      // fall back to the temperature log map (use String key to match normalized IDs).
+      const latest = task?.latestMeasurement ?? latestMap.get(String(task?.id ?? ''))
       const valueC = Number(latest?.valueC)
       if (isTemperatureDeviation(task, valueC)) count += 1
     })
@@ -474,6 +467,10 @@ function openDeviationReport() {
   goToRoute('reports', { action: 'deviation' })
 }
 
+function openDeviationsList() {
+  goToRoute('reports')
+}
+
 function openCertificateDocuments() {
   goToRoute('documents', { category: 'CERTIFICATE' })
 }
@@ -492,7 +489,7 @@ function openNextChecklistModule() {
 
 function handleAlertAction(alert) {
   if (alert?.action === 'deviation') {
-    openDeviationReport()
+    openDeviationsList()
     return
   }
   if (alert?.action === 'certificates') {
@@ -943,7 +940,12 @@ onMounted(async () => {
 }
 
 .insight-list--activity .insight-list__item {
-  padding-top: var(--space-1);
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.insight-list--activity .insight-list__dot {
+  margin-top: 0;
 }
 
 .insight-link {
