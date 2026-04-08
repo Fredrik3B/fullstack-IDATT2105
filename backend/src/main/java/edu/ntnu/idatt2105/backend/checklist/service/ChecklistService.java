@@ -127,6 +127,13 @@ public class ChecklistService {
 			throw new IllegalArgumentException("Invalid state: " + request.state());
 		}
 
+		if (state.equals("completed") && isTemperatureTemplate(task.getTaskTemplate())) {
+			boolean hasMeasurement = temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(task.getId(), task.getPeriodKey());
+			if (!hasMeasurement) {
+				throw new IllegalArgumentException("Temperature tasks require a saved reading before completion.");
+			}
+		}
+
 		task.setCompleted(state.equals("completed"));
 		task.setFlagged(false);
 		task.setEndedAt(state.equals("completed") ? request.completedAt() : null);
@@ -326,5 +333,9 @@ public class ChecklistService {
 		if (v == null) return null;
 		String t = v.trim();
 		return t.isEmpty() ? null : t;
+	}
+
+	private boolean isTemperatureTemplate(TaskTemplate template) {
+		return template.getUnit() != null || template.getTargetMin() != null || template.getTargetMax() != null;
 	}
 }

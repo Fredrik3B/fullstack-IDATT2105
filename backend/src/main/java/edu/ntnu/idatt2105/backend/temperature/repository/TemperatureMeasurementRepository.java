@@ -22,6 +22,8 @@ public interface TemperatureMeasurementRepository extends JpaRepository<Temperat
 
 	List<TemperatureMeasurementModel> findAllByTask_IdInOrderByMeasuredAtDesc(Collection<Long> taskIds);
 
+	boolean existsByTask_IdAndPeriodKey(Long taskId, String periodKey);
+
 	void deleteAllByTaskIn(Collection<TasksModel> tasks);
 
 
