@@ -82,9 +82,9 @@ import {
   deleteTemperatureZone,
   fetchTemperatureZones,
   updateTemperatureZone,
-} from '../../api/temperatureZones'
+} from '@/api/temperatureZones'
 import CreateTemperatureZoneModal from './CreateTemperatureZoneModal.vue'
-import { formatTemperatureZoneType } from './temperatureZoneOptions'
+import { formatTemperatureZoneType } from '@/composables/ic-checklists/temperatureZoneOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },

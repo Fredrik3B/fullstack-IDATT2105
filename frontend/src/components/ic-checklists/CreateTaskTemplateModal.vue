@@ -104,9 +104,9 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { fetchTemperatureZones } from '../../api/temperatureZones'
-import { SECTION_TYPE_OPTIONS, formatSectionType } from '../../composables/ic-checklists/taskTemplateOptions'
-import { formatTemperatureZoneType } from '../../composables/ic-checklists/temperatureZoneOptions'
+import { fetchTemperatureZones } from '@/api/temperatureZones'
+import { SECTION_TYPE_OPTIONS, formatSectionType } from '@/composables/ic-checklists/taskTemplateOptions'
+import { formatTemperatureZoneType } from '@/composables/ic-checklists/temperatureZoneOptions'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
