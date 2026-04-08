@@ -68,6 +68,62 @@ describe('ChecklistCard', () => {
     expect(wrapper.emitted('toggle-pending')).toEqual([[{ sectionIndex: 0, taskIndex: 1 }]])
   })
 
+  it('disables completion for temperature tasks without a reading in the active period', () => {
+    const wrapper = mount(ChecklistCard, {
+      props: makeProps({
+        sections: [
+          {
+            title: 'Fridges',
+            items: [
+              {
+                id: 'temp-1',
+                label: 'Main fridge',
+                type: 'temperature',
+                targetMin: 0,
+                targetMax: 4,
+                latestMeasurement: null,
+                state: 'todo',
+              },
+            ],
+          },
+        ],
+      }),
+    })
+
+    expect(wrapper.find('.task-marker').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Save a reading to complete')
+  })
+
+  it('allows completion for temperature tasks with a reading in the active period', async () => {
+    const wrapper = mount(ChecklistCard, {
+      props: makeProps({
+        sections: [
+          {
+            title: 'Fridges',
+            items: [
+              {
+                id: 'temp-1',
+                label: 'Main fridge',
+                type: 'temperature',
+                targetMin: 0,
+                targetMax: 4,
+                latestMeasurement: {
+                  valueC: 3.1,
+                  periodKey: '2026-04-07',
+                },
+                state: 'todo',
+              },
+            ],
+          },
+        ],
+      }),
+    })
+
+    await wrapper.find('.task-marker').trigger('click')
+
+    expect(wrapper.emitted('toggle-task')).toEqual([[{ sectionIndex: 0, taskIndex: 0 }]])
+  })
+
   it('confirms and emits temperature logging, then clears the draft input', async () => {
     const wrapper = mount(ChecklistCard, {
       props: makeProps(),

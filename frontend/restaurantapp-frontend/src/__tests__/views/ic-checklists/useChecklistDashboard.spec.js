@@ -115,6 +115,87 @@ describe('useChecklistDashboard', () => {
     expect(cards.value[0].statusTone).toBe('success')
   })
 
+  it('does not complete a temperature task before a reading is saved for the active period', async () => {
+    const { cards, toggleTask } = useChecklistDashboard({
+      initialCards: [
+        makeCard({
+          sections: [
+            {
+              title: 'Cooling',
+              items: [
+                {
+                  id: 'temp-1',
+                  label: 'Main fridge',
+                  type: 'temperature',
+                  targetMax: 4,
+                  state: 'todo',
+                  highlighted: false,
+                  latestMeasurement: null,
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    })
+
+    await toggleTask({ cardIndex: 0, sectionIndex: 0, taskIndex: 0 })
+
+    expect(setTaskCompletion).not.toHaveBeenCalled()
+    expect(cards.value[0].sections[0].items[0].state).toBe('todo')
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Save a temperature reading before marking this task as complete.',
+    )
+  })
+
+  it('allows completing a temperature task after a reading is saved for the active period', async () => {
+    setTaskCompletion.mockResolvedValue({
+      state: 'completed',
+      highlighted: false,
+      completedForPeriodKey: '2026-04-07',
+      completedAt: '2026-04-07T09:30:00.000Z',
+    })
+
+    const { cards, toggleTask } = useChecklistDashboard({
+      initialCards: [
+        makeCard({
+          sections: [
+            {
+              title: 'Cooling',
+              items: [
+                {
+                  id: 'temp-1',
+                  label: 'Main fridge',
+                  type: 'temperature',
+                  targetMax: 4,
+                  state: 'todo',
+                  highlighted: false,
+                  latestMeasurement: {
+                    id: 'measurement-1',
+                    valueC: 3.2,
+                    measuredAt: '2026-04-07T09:00:00Z',
+                    periodKey: '2026-04-07',
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    })
+
+    await toggleTask({ cardIndex: 0, sectionIndex: 0, taskIndex: 0 })
+
+    expect(setTaskCompletion).toHaveBeenCalledWith({
+      checklistId: 'card-1',
+      taskId: 'temp-1',
+      state: 'completed',
+      periodKey: '2026-04-07',
+      completedAt: expect.any(String),
+    })
+    expect(cards.value[0].sections[0].items[0].state).toBe('completed')
+  })
+
   it('reverts a task toggle when persistence fails', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     setTaskCompletion.mockRejectedValue(new Error('save failed'))
