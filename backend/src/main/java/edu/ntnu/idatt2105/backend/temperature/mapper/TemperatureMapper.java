@@ -1,8 +1,9 @@
 package edu.ntnu.idatt2105.backend.temperature.mapper;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TemperatureMeasurementResponse;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementSummaryResponse;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
@@ -26,6 +27,16 @@ public class TemperatureMapper {
         module,
         model.getChecklist().getId(),
         model.getTask().getId(),
+        model.getValueC(),
+        model.getMeasuredAt(),
+        model.getPeriodKey(),
+        isDeviation(model)
+    );
+  }
+
+  public TemperatureMeasurementSummaryResponse toSummaryResponse(TemperatureMeasurementModel model) {
+    return new TemperatureMeasurementSummaryResponse(
+        model.getId(),
         model.getValueC(),
         model.getMeasuredAt(),
         model.getPeriodKey(),

@@ -1,12 +1,13 @@
-package edu.ntnu.idatt2105.backend.checklist.dto.icchecklist;
+package edu.ntnu.idatt2105.backend.temperature.dto;
 
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record CreateTemperatureMeasurementRequest(
 	@NotNull
-	IcModule module,
+  IcModule module,
 
 	@NotNull
 	Long checklistId,

@@ -1,5 +1,6 @@
 package edu.ntnu.idatt2105.backend.checklist.dto.icchecklist;
 
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementSummaryResponse;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

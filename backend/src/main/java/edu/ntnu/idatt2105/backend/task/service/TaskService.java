@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.task.service;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;

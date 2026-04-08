@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;

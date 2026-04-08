@@ -2,7 +2,7 @@ package edu.ntnu.idatt2105.backend.task.controller;
 
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.task.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;

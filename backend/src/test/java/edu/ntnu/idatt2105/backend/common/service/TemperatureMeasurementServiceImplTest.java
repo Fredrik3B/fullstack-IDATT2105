@@ -6,9 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.CreateTemperatureMeasurementRequest;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TemperatureMeasurementResponse;
+import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureMeasurementRequest;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;

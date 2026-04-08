@@ -1,10 +1,11 @@
 package edu.ntnu.idatt2105.backend.temperature.service;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.CreateTemperatureMeasurementRequest;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TemperatureMeasurementResponse;
+import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureMeasurementRequest;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
+import edu.ntnu.idatt2105.backend.temperature.mapper.TemperatureMapper;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
@@ -38,16 +39,15 @@ public class TemperatureMeasurementService {
 	private final OrganizationRepository organizationRepository;
 	private final UserRepository userRepository;
 	private final ChecklistCacheStateService checklistCacheStateService;
+	private final TemperatureMapper temperatureMapper;
 
 	public TemperatureMeasurementResponse createMeasurement(
 		CreateTemperatureMeasurementRequest request,
 		JwtAuthenticatedPrincipal principal
 	) {
-		requirePrincipal(principal);
-		Objects.requireNonNull(request, "Request cannot be null.");
-
-		UUID orgId = principal.getOrganizationId();
-		LOGGER.debug(
+		UUID orgId = principal.requireOrganizationId();
+		ComplianceArea area = request.module().toComplianceArea();
+		LOGGER.info(
 			"createMeasurement(orgId={}, userId={}, module={}, checklistId={}, taskId={}, valueC={}, periodKey={})",
 			orgId,
 			principal.getUserId(),
@@ -57,14 +57,11 @@ public class TemperatureMeasurementService {
 			request.valueC(),
 			request.periodKey()
 		);
-		IcModule module = Objects.requireNonNull(request.module(), "module is required.");
-		ComplianceArea area = module.toComplianceArea();
 
 		ChecklistModel checklist = checklistRepository.findByIdAndOrganization_Id(request.checklistId(), orgId)
-			.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
-
+				.orElseThrow(() -> new IllegalArgumentException("Checklist not found."));
 		if (checklist.getComplianceArea() != area) {
-			throw new IllegalArgumentException("module does not match checklist.");
+			throw new IllegalArgumentException("Module does not match checklist.");
 		}
 
 		TasksModel task = tasksRepository.findByIdAndChecklist_Id(request.taskId(), checklist.getId())
@@ -86,25 +83,21 @@ public class TemperatureMeasurementService {
 			resolvedPeriodKey = requestedPeriodKey;
 		}
 
-		TemperatureMeasurementModel model = new TemperatureMeasurementModel();
-		model.setComplianceArea(area);
-		model.setChecklist(checklist);
-		model.setTask(task);
-		model.setPeriodKey(resolvedPeriodKey);
-		model.setValueC(request.valueC());
-		model.setMeasuredAt(request.measuredAt() != null ? request.measuredAt() : LocalDateTime.now());
-
-		OrganizationModel org = organizationRepository.findById(orgId)
-			.orElseThrow(() -> new IllegalArgumentException("Organization not found."));
-		UserModel user = userRepository.findById(principal.getUserId())
-			.orElseThrow(() -> new IllegalArgumentException("User not found."));
-		model.setOrganization(org);
-		model.setRecordedBy(user);
+		TemperatureMeasurementModel model = TemperatureMeasurementModel.builder()
+				.complianceArea(area)
+				.checklist(checklist)
+				.task(task)
+				.periodKey(resolvedPeriodKey)
+				.valueC(request.valueC())
+				.measuredAt(request.measuredAt() != null ? request.measuredAt() : LocalDateTime.now())
+				.organization(organizationRepository.getReferenceById(orgId))
+				.recordedBy(userRepository.getReferenceById(principal.getUserId()))
+				.build();
 
 		TemperatureMeasurementModel saved = temperatureMeasurementRepository.save(model);
 		checklistCacheStateService.touch(orgId, area);
-		LOGGER.debug("createMeasurement: saved measurementId={}", saved.getId());
-		return toResponse(saved, module);
+		LOGGER.info("Measurement saved: id={} orgId={} taskId={}", saved.getId(), orgId, request.taskId());
+		return temperatureMapper.toMeasurementResponse(saved, request.module());
 	}
 
 	public List<TemperatureMeasurementResponse> fetchMeasurements(
@@ -113,38 +106,20 @@ public class TemperatureMeasurementService {
 		LocalDateTime to,
 		JwtAuthenticatedPrincipal principal
 	) {
-		requirePrincipal(principal);
-		IcModule safeModule = Objects.requireNonNull(module, "module is required.");
+		UUID orgId = principal.requireOrganizationId();
 
-		LocalDateTime fromInstant = from != null ? from : LocalDateTime.MIN;
-		LocalDateTime toInstant = to != null ? to : LocalDateTime.now();
-		if (toInstant.isBefore(fromInstant)) {
-			throw new IllegalArgumentException("to must be after from.");
+		LocalDateTime safeFrom = from != null ? from : LocalDateTime.MIN;
+		LocalDateTime safeTo = to != null ? to : LocalDateTime.now();
+		if (safeTo.isBefore(safeFrom)) {
+			throw new IllegalArgumentException("'to' must be after 'from'.");
 		}
 
-		List<TemperatureMeasurementModel> rows = temperatureMeasurementRepository
-			.findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(
-				principal.getOrganizationId(),
-				safeModule.toComplianceArea(),
-				fromInstant,
-				toInstant
-			);
-
-		LOGGER.debug("fetchMeasurements(orgId={}, userId={}, module={}): returned {}", principal.getOrganizationId(), principal.getUserId(), safeModule, rows.size());
-		return rows.stream().map(row -> toResponse(row, safeModule)).toList();
-	}
-
-	private TemperatureMeasurementResponse toResponse(TemperatureMeasurementModel model, IcModule module) {
-		return new TemperatureMeasurementResponse(
-			model.getId(),
-			module,
-			model.getChecklist().getId(),
-			model.getTask().getId(),
-			model.getValueC(),
-			model.getMeasuredAt(),
-			model.getPeriodKey(),
-			isTemperatureDeviation(model)
-		);
+		return temperatureMeasurementRepository
+				.findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(
+						orgId, module.toComplianceArea(), safeFrom, safeTo)
+				.stream()
+				.map(row -> temperatureMapper.toMeasurementResponse(row, module))
+				.toList();
 	}
 
 	private boolean isTemperatureTask(TasksModel task) {
@@ -153,28 +128,5 @@ public class TemperatureMeasurementService {
 			task.getTaskTemplate().getTargetMin() != null ||
 			task.getTaskTemplate().getTargetMax() != null
 		);
-	}
-
-	private boolean isTemperatureDeviation(TemperatureMeasurementModel measurement) {
-		if (measurement == null || measurement.getTask() == null || measurement.getTask().getTaskTemplate() == null) {
-			return false;
-		}
-
-		if (measurement.getTask().getTaskTemplate().getTargetMin() != null
-			&& measurement.getValueC().compareTo(measurement.getTask().getTaskTemplate().getTargetMin()) < 0) {
-			return true;
-		}
-		if (measurement.getTask().getTaskTemplate().getTargetMax() != null
-			&& measurement.getValueC().compareTo(measurement.getTask().getTaskTemplate().getTargetMax()) > 0) {
-			return true;
-		}
-		return false;
-	}
-
-	private JwtAuthenticatedPrincipal requirePrincipal(JwtAuthenticatedPrincipal principal) {
-		if (principal == null) throw new IllegalArgumentException("Authentication required.");
-		if (principal.getOrganizationId() == null) throw new IllegalArgumentException("Organization required.");
-		if (principal.getUserId() == null) throw new IllegalArgumentException("User required.");
-		return principal;
 	}
 }

@@ -1,8 +1,8 @@
 package edu.ntnu.idatt2105.backend.temperature.controller;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.CreateTemperatureMeasurementRequest;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TemperatureMeasurementResponse;
+import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureMeasurementRequest;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.temperature.service.TemperatureMeasurementService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +15,6 @@ import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,7 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/temperature-measurements")
 public class TemperatureMeasurementController {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(TemperatureMeasurementController.class);
 	private final TemperatureMeasurementService temperatureMeasurementService;
 
 	@PostMapping
@@ -46,20 +44,7 @@ public class TemperatureMeasurementController {
 		Authentication auth
 	) {
 		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
-		LOGGER.info(
-			"IC create temperature measurement: orgId={} userId={} module={} checklistId={} taskId={} valueC={} measuredAt={} periodKey={}",
-			principal.getOrganizationId(),
-			principal.getUserId(),
-			request.module(),
-			request.checklistId(),
-			request.taskId(),
-			request.valueC(),
-			request.measuredAt(),
-			request.periodKey()
-		);
-		TemperatureMeasurementResponse created = temperatureMeasurementService.createMeasurement(request, principal);
-		LOGGER.info("IC create temperature measurement: created measurementId={}", created.id());
-		return created;
+    return temperatureMeasurementService.createMeasurement(request, principal);
 	}
 
 	@GetMapping
@@ -72,16 +57,6 @@ public class TemperatureMeasurementController {
 		Authentication auth
 	) {
 		JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
-		LOGGER.info(
-			"IC fetch temperature measurements: orgId={} userId={} module={} from={} to={}",
-			principal.getOrganizationId(),
-			principal.getUserId(),
-			module,
-			from,
-			to
-		);
-		List<TemperatureMeasurementResponse> rows = temperatureMeasurementService.fetchMeasurements(module, from, to, principal);
-		LOGGER.info("IC fetch temperature measurements: returned {} rows", rows.size());
-		return rows;
+    return temperatureMeasurementService.fetchMeasurements(module, from, to, principal);
 	}
 }

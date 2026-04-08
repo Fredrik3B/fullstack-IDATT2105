@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.temperature.controller;
 
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureZoneRequest;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;

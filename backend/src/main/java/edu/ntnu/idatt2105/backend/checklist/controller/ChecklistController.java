@@ -28,7 +28,7 @@ import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistCardRespons
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistTaskItemResponse;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.ChecklistWorkbenchStateRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.CreateChecklistCardRequest;
-import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.TaskFlagRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.UpdateChecklistCardRequest;
