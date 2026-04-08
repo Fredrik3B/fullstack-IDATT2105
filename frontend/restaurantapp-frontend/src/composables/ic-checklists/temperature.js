@@ -1,3 +1,9 @@
+/**
+ * Determine whether a task uses temperature semantics.
+ *
+ * @param {any} task
+ * @returns {boolean}
+ */
 export function isTemperatureTask(task) {
   if (!task || typeof task !== 'object') return false
 
@@ -10,6 +16,12 @@ export function isTemperatureTask(task) {
   )
 }
 
+/**
+ * Format configured temperature range/threshold for UI display.
+ *
+ * @param {any} task
+ * @returns {string}
+ */
 export function formatTemperatureTarget(task) {
   if (!isTemperatureTask(task)) return ''
 
@@ -23,6 +35,13 @@ export function formatTemperatureTarget(task) {
   return ''
 }
 
+/**
+ * Check whether a measured value is outside configured task bounds.
+ *
+ * @param {any} task
+ * @param {number} valueC
+ * @returns {boolean}
+ */
 export function isTemperatureDeviation(task, valueC) {
   if (!isTemperatureTask(task)) return false
   if (!Number.isFinite(valueC)) return false
