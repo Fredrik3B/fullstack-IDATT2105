@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.checklist.service;
 
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModuleState;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistModuleStateRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;

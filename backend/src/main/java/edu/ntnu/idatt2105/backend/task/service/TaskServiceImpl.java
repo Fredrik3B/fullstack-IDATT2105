@@ -1,13 +1,14 @@
 package edu.ntnu.idatt2105.backend.task.service;
 
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
@@ -51,7 +52,7 @@ public class TaskServiceImpl implements TaskService {
 	public TaskResponse createTask(CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
 		JwtAuthenticatedPrincipal safePrincipal = requirePrincipal(principal);
 		validateRequest(request);
-		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
+		boolean isTemperatureControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
 		TemperatureZoneModel temperatureZone = isTemperatureControl
 			? getTemperatureZone(request.temperatureZoneId(), safePrincipal.getOrganizationId(), requireModule(request.module()).toComplianceArea())
 			: null;
@@ -79,7 +80,7 @@ public class TaskServiceImpl implements TaskService {
 		validateRequest(request);
 		TaskTemplate template = getTemplate(taskId, safePrincipal);
 		ComplianceArea previousComplianceArea = template.getComplianceArea();
-		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
+		boolean isTemperatureControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
 		TemperatureZoneModel temperatureZone = isTemperatureControl
 			? getTemperatureZone(request.temperatureZoneId(), safePrincipal.getOrganizationId(), requireModule(request.module()).toComplianceArea())
 			: null;
@@ -195,7 +196,7 @@ public class TaskServiceImpl implements TaskService {
 		if (!hasText(request.title())) throw new IllegalArgumentException("Task title is required.");
 		if (request.module() == null) throw new IllegalArgumentException("module is required.");
 		if (request.sectionType() == null) throw new IllegalArgumentException("sectionType is required.");
-		boolean isTemperatureControl = request.sectionType() == edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes.TEMPERATURE_CONTROL;
+		boolean isTemperatureControl = request.sectionType() == SectionTypes.TEMPERATURE_CONTROL;
 		if (!isTemperatureControl && request.temperatureZoneId() != null) {
 			throw new IllegalArgumentException("temperatureZoneId is only allowed for TEMPERATURE_CONTROL.");
 		}

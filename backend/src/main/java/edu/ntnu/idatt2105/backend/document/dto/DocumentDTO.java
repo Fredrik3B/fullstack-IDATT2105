@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.document.dto;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.DocumentCategory;
-import edu.ntnu.idatt2105.backend.common.model.enums.DocumentModule;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

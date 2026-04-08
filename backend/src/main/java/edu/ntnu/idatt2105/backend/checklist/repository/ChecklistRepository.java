@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.checklist.repository;
 
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

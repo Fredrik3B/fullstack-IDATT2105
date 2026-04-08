@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.common.model.enums;
+package edu.ntnu.idatt2105.backend.document.model.enums;
 
 public enum DocumentModule {
     SHARED,

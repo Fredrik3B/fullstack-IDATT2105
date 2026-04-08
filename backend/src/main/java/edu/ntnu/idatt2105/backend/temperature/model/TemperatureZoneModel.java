@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.temperature.model;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
 import edu.ntnu.idatt2105.backend.shared.model.AuditableEntity;
 import java.math.BigDecimal;
 import java.util.UUID;

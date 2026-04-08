@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.task.repository;
 
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;

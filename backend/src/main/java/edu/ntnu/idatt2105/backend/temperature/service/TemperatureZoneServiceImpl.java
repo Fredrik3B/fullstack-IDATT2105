@@ -5,7 +5,7 @@ import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureZoneRequest;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;

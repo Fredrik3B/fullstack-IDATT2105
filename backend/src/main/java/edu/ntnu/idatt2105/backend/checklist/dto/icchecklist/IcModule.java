@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.checklist.dto.icchecklist;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 
 public enum IcModule {
 	IC_FOOD,

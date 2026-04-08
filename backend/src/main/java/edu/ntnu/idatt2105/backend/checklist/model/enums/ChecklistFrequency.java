@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.common.model.enums;
+package edu.ntnu.idatt2105.backend.checklist.model.enums;
 
 public enum ChecklistFrequency {
 	DAILY,

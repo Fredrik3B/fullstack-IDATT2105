@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.checklist.dto.checklist;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

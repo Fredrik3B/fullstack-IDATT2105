@@ -5,8 +5,8 @@ import edu.ntnu.idatt2105.backend.shared.model.AuditableEntity;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

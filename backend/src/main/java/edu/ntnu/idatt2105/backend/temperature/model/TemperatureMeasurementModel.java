@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.temperature.model;
 
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.shared.model.AuditableEntity;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;

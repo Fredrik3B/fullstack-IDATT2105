@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.task.dto;
 
 import edu.ntnu.idatt2105.backend.checklist.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;

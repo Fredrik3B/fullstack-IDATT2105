@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.checklist.service;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import java.time.Instant;
 import java.util.UUID;
 

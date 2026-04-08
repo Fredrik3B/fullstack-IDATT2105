@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.report.dto;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.DeviationSeverity;
+import edu.ntnu.idatt2105.backend.shared.enums.DeviationSeverity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

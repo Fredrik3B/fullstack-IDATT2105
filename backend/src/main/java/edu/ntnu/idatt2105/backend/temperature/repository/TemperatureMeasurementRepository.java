@@ -2,7 +2,7 @@ package edu.ntnu.idatt2105.backend.temperature.repository;
 
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;

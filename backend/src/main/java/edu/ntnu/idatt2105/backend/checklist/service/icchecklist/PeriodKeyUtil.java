@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.checklist.service.icchecklist;
 
-import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
