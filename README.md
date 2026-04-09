@@ -184,12 +184,6 @@ When the backend is running, API documentation should be available at:
 5. Record temperature measurements and upload documents.
 6. Create deviation reports and review reports or admin data.
 
-## Known Limitations And Future Work
-
-- Some support models still use direct `organizationId` fields instead of full entity relationships.
-- The backend structure is still evolving, so parts of the domain model may be refined further.
-- The README setup assumes a local MySQL environment and could be improved with a full `.env.example`.
-- Deployment instructions are not yet documented.
 
 ## Contributors
 
