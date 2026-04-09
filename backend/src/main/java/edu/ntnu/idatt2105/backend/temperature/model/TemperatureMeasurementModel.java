@@ -23,6 +23,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a single temperature reading logged against an active checklist task.
+ *
+ * <p>Each measurement is scoped to a {@link edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel},
+ * a specific activated {@link edu.ntnu.idatt2105.backend.task.model.TasksModel}, and the
+ * organisation that owns the checklist. The {@code measuredAt} timestamp defaults to
+ * {@link java.time.LocalDateTime#now()} via a {@link jakarta.persistence.PrePersist} callback
+ * if not supplied by the caller.
+ */
 @Entity
 @Getter
 @Setter
@@ -61,6 +70,9 @@ public class TemperatureMeasurementModel extends AuditableEntity {
 	@JoinColumn(name = "recorded_by_user_id", nullable = false)
 	private UserModel recordedBy;
 
+	/**
+	 * Sets {@code measuredAt} to the current timestamp before insert if the caller did not supply one.
+	 */
 	@PrePersist
 	public void setDefaultMeasuredAt() {
 		if (measuredAt == null) {

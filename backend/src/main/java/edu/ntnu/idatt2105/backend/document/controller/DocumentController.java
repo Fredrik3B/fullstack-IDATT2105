@@ -34,6 +34,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * REST controller for managing compliance documents.
+ *
+ * <p>Upload and delete operations require {@code ADMIN} or {@code MANAGER} role.
+ * List and download are accessible to all authenticated users within the organisation.
+ */
 @Tag(name = "Documents", description = "Upload, list, download, and delete compliance documents")
 @RestController
 @AllArgsConstructor

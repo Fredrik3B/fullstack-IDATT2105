@@ -7,6 +7,12 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/**
+ * JPA repository for {@link TemperatureZoneModel}.
+ *
+ * <p>Provides organisation-scoped lookup methods used by
+ * {@link edu.ntnu.idatt2105.backend.temperature.service.TemperatureZoneService}.
+ */
 public interface TemperatureZoneRepository extends JpaRepository<TemperatureZoneModel, Long> {
 
 	List<TemperatureZoneModel> findAllByOrganizationIdAndComplianceAreaOrderByZoneTypeAscNameAsc(

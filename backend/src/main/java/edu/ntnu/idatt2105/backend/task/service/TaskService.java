@@ -23,6 +23,13 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Business logic for managing task templates.
+ *
+ * <p>Tasks are organisation-scoped reusable definitions that managers add to checklists.
+ * Deleting a template cascades to all active task instances and removes it from every
+ * checklist that referenced it.
+ */
 @Service
 @AllArgsConstructor
 public class TaskService {
@@ -36,6 +43,16 @@ public class TaskService {
 	private final TaskMapper taskMapper;
 
 
+	/**
+	 * Creates a new task template for the caller's organisation.
+	 *
+	 * <p>Temperature-control tasks must supply a {@code temperatureZoneId}; the zone's
+	 * target range is copied onto the template so it is available even if the zone is later changed.
+	 *
+	 * @param request   the task details
+	 * @param principal the authenticated user
+	 * @return the created task response
+	 */
 	public TaskResponse createTask(CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
 		UUID orgId = principal.requireOrganizationId();
 		ComplianceArea area = request.module().toComplianceArea();
@@ -63,6 +80,16 @@ public class TaskService {
 		return taskMapper.toResponse(saved);
 	}
 
+	/**
+	 * Updates an existing task template and propagates the new {@code meta} to all active instances.
+	 *
+	 * <p>If the compliance area changes, the cache timestamp is touched for both the old and new area.
+	 *
+	 * @param taskId    the ID of the template to update
+	 * @param request   the updated task details
+	 * @param principal the authenticated user
+	 * @return the updated task response
+	 */
 	@Transactional
 	public TaskResponse updateTask(Long taskId, CreateTaskRequest request, JwtAuthenticatedPrincipal principal) {
 		UUID orgId = principal.requireOrganizationId();
@@ -100,6 +127,13 @@ public class TaskService {
 		return taskMapper.toResponse(saved);
 	}
 
+	/**
+	 * Returns all task templates for the caller's organisation filtered by module.
+	 *
+	 * @param module    the compliance module to filter by
+	 * @param principal the authenticated user
+	 * @return ordered list of task responses (by section type then title)
+	 */
 	public List<TaskResponse> getAllTasks(IcModule module, JwtAuthenticatedPrincipal principal) {
 		UUID orgId = principal.requireOrganizationId();
 		return taskTemplateRepository
@@ -109,10 +143,24 @@ public class TaskService {
 				.toList();
 	}
 
+	/**
+	 * Returns a single task template by ID, scoped to the caller's organisation.
+	 *
+	 * @param taskId    the task template ID
+	 * @param principal the authenticated user
+	 * @return the task response
+	 * @throws IllegalArgumentException if not found or not owned by the caller's organisation
+	 */
 	public TaskResponse getTaskById(Long taskId, JwtAuthenticatedPrincipal principal) {
 		return taskMapper.toResponse(requireOwnTemplate(taskId, principal.requireOrganizationId()));
 	}
 
+	/**
+	 * Deletes a task template, removing it from all checklists and deleting all activated instances.
+	 *
+	 * @param taskId    the task template ID to delete
+	 * @param principal the authenticated user
+	 */
 	@Transactional
 	public void deleteTask(Long taskId, JwtAuthenticatedPrincipal principal) {
 		UUID orgId = principal.requireOrganizationId();
@@ -136,6 +184,14 @@ public class TaskService {
 	}
 
 
+	/**
+	 * Loads a task template and verifies it belongs to the given organisation.
+	 *
+	 * @param taskId the template ID
+	 * @param orgId  the expected owner organisation
+	 * @return the verified template
+	 * @throws IllegalArgumentException if not found or not owned by the organisation
+	 */
 	private TaskTemplate requireOwnTemplate(Long taskId, UUID orgId) {
 		TaskTemplate template = taskTemplateRepository.findById(taskId)
 				.orElseThrow(() -> new IllegalArgumentException("Task not found."));
@@ -145,6 +201,15 @@ public class TaskService {
 		return template;
 	}
 
+	/**
+	 * Loads a temperature zone, verifying it belongs to the given organisation and compliance area.
+	 *
+	 * @param zoneId the zone ID
+	 * @param orgId  the expected owner organisation
+	 * @param area   the expected compliance area
+	 * @return the verified zone
+	 * @throws IllegalArgumentException if not found or ownership doesn't match
+	 */
 	private TemperatureZoneModel requireTemperatureZone(Long zoneId, UUID orgId, ComplianceArea area) {
 		return temperatureZoneRepository.findByIdAndOrganizationIdAndComplianceArea(zoneId, orgId, area)
 				.orElseThrow(() -> new IllegalArgumentException("Temperature zone not found."));

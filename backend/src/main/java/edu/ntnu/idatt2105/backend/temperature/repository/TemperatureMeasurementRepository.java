@@ -11,6 +11,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * JPA repository for {@link TemperatureMeasurementModel}.
+ *
+ * <p>Provides aggregate count queries used by the report service to calculate
+ * temperature compliance statistics, as well as filtered list queries
+ * for the measurement history view.
+ */
 public interface TemperatureMeasurementRepository extends JpaRepository<TemperatureMeasurementModel, Long> {
 
 	List<TemperatureMeasurementModel> findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(

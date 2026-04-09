@@ -11,6 +11,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * JPA repository for {@link JoinRequestModel}.
+ *
+ * <p>Custom JPQL queries use {@code JOIN FETCH} on the user association to
+ * avoid N+1 queries when listing pending requests for an organisation.
+ */
 public interface JoinRequestRepository extends JpaRepository<JoinRequestModel, UUID> {
 
   boolean existsByUserAndStatus(UserModel user, JoinOrgStatus status);

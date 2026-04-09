@@ -9,6 +9,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
+/**
+ * Request DTO for creating or updating a task template.
+ *
+ * <p>Temperature-control tasks ({@code sectionType = TEMPERATURE_CONTROL}) must supply
+ * a {@code temperatureZoneId}; all other section types must leave it {@code null}.
+ */
 public record CreateTaskRequest(
 	@NotNull
 	IcModule module,

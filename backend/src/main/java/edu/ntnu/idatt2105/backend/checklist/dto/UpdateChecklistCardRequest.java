@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
+/**
+ * Request DTO for updating an existing checklist card's metadata and task selection.
+ */
 public record UpdateChecklistCardRequest(
 	@NotBlank
 	String period,

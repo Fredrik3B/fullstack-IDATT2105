@@ -23,6 +23,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a manually filed deviation report.
+ *
+ * <p>Deviation reports follow the Norwegian food-authority form structure and capture
+ * the incident description, immediate actions taken, believed cause, and corrective
+ * measures. The {@code createdAt} timestamp is set automatically via a
+ * {@link jakarta.persistence.PrePersist} callback.
+ */
 @Entity
 @Getter
 @Setter
@@ -81,6 +89,9 @@ public class DeviationReportModel {
   @Column(nullable = false)
   private LocalDateTime createdAt;
 
+  /**
+   * Sets {@code createdAt} to the current timestamp before the entity is first persisted.
+   */
   @PrePersist
   protected void onCreate() {
     this.createdAt = LocalDateTime.now();

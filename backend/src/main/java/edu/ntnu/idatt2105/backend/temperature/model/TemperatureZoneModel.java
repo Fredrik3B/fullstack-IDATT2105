@@ -16,6 +16,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a named temperature zone within an organisation.
+ *
+ * <p>A zone captures the acceptable target range ({@code targetMin} / {@code targetMax}).
+ * When the range is updated via {@link edu.ntnu.idatt2105.backend.temperature.service.TemperatureZoneService#updateZone},
+ * the new bounds are automatically propagated to all linked {@link edu.ntnu.idatt2105.backend.task.model.TaskTemplate}
+ * records so that existing tasks stay in sync.
+ */
 @Entity
 @Getter
 @Setter

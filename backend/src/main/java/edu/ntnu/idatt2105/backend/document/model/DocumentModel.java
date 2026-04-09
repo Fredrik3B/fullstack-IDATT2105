@@ -26,6 +26,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a compliance document attached to an organisation.
+ *
+ * <p>A document is either a file stored on disk ({@code storagePath} is set) or a
+ * link to an external URL ({@code externalUrl} is set). The {@code uploadedAt}
+ * timestamp defaults to {@link java.time.LocalDateTime#now()} via a
+ * {@link jakarta.persistence.PrePersist} callback if not supplied by the caller.
+ */
 @Entity
 @Getter
 @Setter
@@ -83,6 +91,9 @@ public class DocumentModel {
     @JoinColumn(name = "organization_id", nullable = false)
     private OrganizationModel organization;
 
+    /**
+     * Sets {@code uploadedAt} to the current timestamp before insert if not already set.
+     */
     @PrePersist
     public void setDefaults() {
         if (uploadedAt == null) {

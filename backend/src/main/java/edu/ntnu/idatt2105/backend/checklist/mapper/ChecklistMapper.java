@@ -18,6 +18,13 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * Maps checklist and task entities to their response DTOs.
+ *
+ * <p>Groups task items into labelled sections based on their
+ * {@link edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes}, and resolves
+ * the human-readable status label and tone shown on each checklist card.
+ */
 @Component
 @RequiredArgsConstructor
 public class ChecklistMapper {
@@ -63,6 +70,14 @@ public class ChecklistMapper {
     );
   }
 
+  /**
+   * Maps a persisted {@link edu.ntnu.idatt2105.backend.task.model.TasksModel} to its response DTO,
+   * including any associated temperature measurement summary.
+   *
+   * @param task        the task entity
+   * @param measurement the most recent measurement for this task, or {@code null}
+   * @return the task item response
+   */
   public ChecklistTaskItemResponse toTaskItemResponse(TasksModel task, TemperatureMeasurementModel measurement) {
     TaskTemplate template = task.getTaskTemplate();
     String state = "todo";
@@ -99,6 +114,13 @@ public class ChecklistMapper {
     );
   }
 
+  /**
+   * Maps a {@link edu.ntnu.idatt2105.backend.task.model.TaskTemplate} to a placeholder task item
+   * response with {@code state = "todo"} — used when the checklist is not on the workbench.
+   *
+   * @param template the task template
+   * @return the placeholder task item response
+   */
   public ChecklistTaskItemResponse toTemplateTaskItemResponse(TaskTemplate template) {
     return new ChecklistTaskItemResponse(
         null,
@@ -116,6 +138,13 @@ public class ChecklistMapper {
   }
 
 
+  /**
+   * Groups active task instances into labelled {@link ChecklistSectionResponse}s.
+   *
+   * @param tasks                  the active task instances for the current period
+   * @param measurementsByTaskId   map of the latest temperature measurement keyed by task ID
+   * @return the ordered list of section responses
+   */
   public List<ChecklistSectionResponse> toSectionResponses(
       List<TasksModel> tasks,
       Map<Long, TemperatureMeasurementModel> measurementsByTaskId
@@ -139,6 +168,13 @@ public class ChecklistMapper {
         .toList();
   }
 
+  /**
+   * Groups the checklist's task templates into labelled sections for library view
+   * (no active task instances — all states default to {@code "todo"}).
+   *
+   * @param checklist the checklist whose templates to render
+   * @return the ordered list of section responses
+   */
   public List<ChecklistSectionResponse> toTemplateSectionResponses(ChecklistModel checklist) {
     Map<String, List<TaskTemplate>> grouped = new LinkedHashMap<>();
     for (TaskTemplate template : checklist.getTaskTemplates()) {
@@ -157,6 +193,12 @@ public class ChecklistMapper {
         .toList();
   }
 
+  /**
+   * Returns a comparator that sorts task templates by section label then by title,
+   * both case-insensitive.
+   *
+   * @return the task template comparator
+   */
   public Comparator<TaskTemplate> taskTemplateComparator() {
     return Comparator
         .comparing((TaskTemplate t) -> sectionLabel(t.getSectionType()), String.CASE_INSENSITIVE_ORDER)
@@ -171,6 +213,13 @@ public class ChecklistMapper {
     return t.getUnit() != null || t.getTargetMin() != null || t.getTargetMax() != null;
   }
 
+  /**
+   * Converts a {@link SectionTypes} constant to a human-readable title-case label.
+   * Returns {@code "Tasks"} for {@code null}.
+   *
+   * @param sectionType the section type, may be {@code null}
+   * @return the formatted section label
+   */
   public String sectionLabel(SectionTypes sectionType) {
     if (sectionType == null) return "Tasks";
     String[] parts = sectionType.name().split("_");

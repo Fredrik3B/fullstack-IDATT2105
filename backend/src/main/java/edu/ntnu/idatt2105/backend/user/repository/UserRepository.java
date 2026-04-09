@@ -12,6 +12,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * JPA repository for {@link UserModel}.
+ *
+ * <p>Spring Data generates implementations for all derived query methods at startup.
+ */
 public interface UserRepository extends JpaRepository<UserModel, UUID> {
   Optional<UserModel> findByEmail(String email);
 

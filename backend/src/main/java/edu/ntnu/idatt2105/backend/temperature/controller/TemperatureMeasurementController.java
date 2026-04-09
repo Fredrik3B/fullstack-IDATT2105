@@ -24,6 +24,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for recording and retrieving temperature measurements.
+ *
+ * <p>Any authenticated user may log a measurement ({@code POST}) or query the
+ * measurement history ({@code GET}). Access is scoped to the caller's organisation.
+ */
 @Tag(
 	name = "Temperature Measurements",
 	description = "Create and fetch temperature measurements"
