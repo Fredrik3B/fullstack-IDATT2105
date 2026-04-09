@@ -38,8 +38,11 @@ public class JwtAuthenticatedPrincipal {
   private final Collection<? extends GrantedAuthority> authorities;
 
   /**
-   * Extract the principal from a Spring Security Authentication object.
-   * Throws 401 if authentication is missing or not JWT-based.
+   * Extracts the principal from a Spring Security {@link Authentication} object.
+   *
+   * @param auth the current authentication, may be {@code null}
+   * @return the authenticated principal
+   * @throws org.springframework.web.server.ResponseStatusException 401 if auth is missing or not JWT-based
    */
   public static JwtAuthenticatedPrincipal from(Authentication auth) {
     if (auth == null || !(auth.getPrincipal() instanceof JwtAuthenticatedPrincipal principal)) {
@@ -48,6 +51,12 @@ public class JwtAuthenticatedPrincipal {
     return principal;
   }
 
+  /**
+   * Returns the organization ID, throwing if the user has not yet joined an organization.
+   *
+   * @return the non-null organization UUID
+   * @throws edu.ntnu.idatt2105.backend.exception.OrganizationRequiredException if organizationId is null
+   */
   public UUID requireOrganizationId() {
     if (organizationId == null) {
       throw new OrganizationRequiredException();
