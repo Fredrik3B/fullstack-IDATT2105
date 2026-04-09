@@ -5,7 +5,7 @@
       <div class="welcome-inner">
         <span class="welcome-tag">Internal Control System</span>
         <h1 class="welcome-heading">
-          Good day, <span class="welcome-accent">{{ displayUserName }}</span>
+          Good day, <span class="welcome-accent">{{ displayFirstName }}</span>
         </h1>
         <p class="welcome-sub">{{ restaurantDisplayName }} - {{ todayLabel }}</p>
         <p class="welcome-health">{{ operationalHealthLabel }}</p>
@@ -34,7 +34,7 @@
               <span class="quick-action-hint">Open alcohol compliance controls</span>
             </button>
             <button class="quick-action-card" type="button" @click="openDeviationReport">
-              <span class="quick-action-title">Report deviation</span>
+              <span class="quick-action-title">Report new deviation</span>
               <span class="quick-action-hint">Register incidents and follow-up</span>
             </button>
             <button class="quick-action-card" type="button" @click="openDocuments">
@@ -65,7 +65,7 @@
               @click="openNextChecklistModule"
             />
             <StatCard
-              label="Active deviations"
+              label="Active temperature deviations"
               :value="activeDeviationCount"
               :hint="activeDeviationHint"
               :value-variant="activeDeviationCount > 0 ? 'danger' : ''"
@@ -246,7 +246,6 @@ const dailyFoodChecklists = computed(() => foodChecklists.value.filter((card) =>
 const dailyAlcoholChecklists = computed(() => alcoholChecklists.value.filter((card) => isDailyChecklist(card)))
 const dailyChecklists = computed(() => [...dailyFoodChecklists.value, ...dailyAlcoholChecklists.value])
 
-const displayUserName = computed(() => auth.user?.name?.trim() || auth.user?.email || 'User')
 const restaurantDisplayName = computed(() => auth.restaurant?.name?.trim() || 'Restaurant')
 const todayLabel = computed(() =>
   new Intl.DateTimeFormat('en-US', {
@@ -272,11 +271,18 @@ const alcoholCompletedTasks = computed(() =>
 )
 const alcoholRemainingTasks = computed(() => countRemainingTasks(dailyAlcoholChecklists.value))
 const alcoholCompletionRate = computed(() => getCompletionRate(alcoholCompletedTasks.value, alcoholTotalTasks.value))
+const foodDeviationCount = computed(() => countTemperatureDeviations(dailyFoodChecklists.value, foodTemperatureLatestByTaskId.value))
+const alcoholDeviationCount = computed(() => countTemperatureDeviations(dailyAlcoholChecklists.value, alcoholTemperatureLatestByTaskId.value))
 
 const activeDeviationCount = computed(() =>
-  countTemperatureDeviations(dailyFoodChecklists.value, foodTemperatureLatestByTaskId.value) +
-  countTemperatureDeviations(dailyAlcoholChecklists.value, alcoholTemperatureLatestByTaskId.value)
+  foodDeviationCount.value + alcoholDeviationCount.value
 )
+
+const displayFirstName = computed(() => {
+  const name = auth.user?.name?.trim()
+  if (name) return name.split(/\s+/)[0]
+  return auth.user?.email || 'User'
+})
 
 const completionLabel = computed(() => {
   if (totalTasksToday.value === 0) return 'No daily tasks yet'
@@ -468,7 +474,14 @@ function openDeviationReport() {
 }
 
 function openDeviationsList() {
-  goToRoute('reports')
+  openActiveDeviationModule()
+}
+
+function openActiveDeviationModule() {
+  const routeName = alcoholDeviationCount.value > foodDeviationCount.value
+    ? 'ic-alcohol-dashboard'
+    : 'ic-food-dashboard'
+  goToRoute(routeName)
 }
 
 function openCertificateDocuments() {

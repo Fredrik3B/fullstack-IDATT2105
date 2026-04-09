@@ -12,6 +12,12 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * JPA entity representing an application role (e.g. ADMIN, MANAGER, STAFF).
+ *
+ * <p>Role rows are seeded at startup by {@link edu.ntnu.idatt2105.backend.config.TableSeeder}
+ * and are referenced by {@link UserModel} via the {@code user_roles} join table.
+ */
 @Entity
 @Getter
 @Setter

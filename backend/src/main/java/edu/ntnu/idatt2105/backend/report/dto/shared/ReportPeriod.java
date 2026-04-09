@@ -7,6 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Represents the inclusive time window covered by a report.
+ */
 @Schema(description = "Time period covered by the report")
 public record ReportPeriod(
 

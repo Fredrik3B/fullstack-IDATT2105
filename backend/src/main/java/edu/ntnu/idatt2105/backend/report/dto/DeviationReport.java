@@ -33,7 +33,7 @@ public class DeviationReport {
   @NotNull
   @JsonProperty("timestamp")
   @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
-  @Schema(description = "Time of when the deviation happened", example = "2026-04-09T21:00:00")
+  @Schema(description = "Time of when the deviation happened", example = "2026-04-09T21:00")
   private LocalDateTime occurredAt;
 
   @NotBlank

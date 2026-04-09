@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+/**
+ * DTO representing a task that ended without being completed (a deviation).
+ */
 @Schema(description = "An unresolved task or deviation")
 public record UnresolvedItemDto(
 

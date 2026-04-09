@@ -2,7 +2,13 @@ package edu.ntnu.idatt2105.backend.report.dto.shared;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
+import lombok.Data;
 
+/**
+ * Aggregated compliance statistics for a single compliance area within the report period.
+ *
+ * <p>Rates ({@code completionRate}, {@code outOfRangeRate}) are expressed as percentages (0–100).
+ */
 @Builder
 @Schema(description = "Compliance statistics for a module")
 public record ComplianceStats(

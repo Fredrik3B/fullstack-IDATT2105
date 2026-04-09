@@ -5,6 +5,9 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Report section summarising checklist activity within the report period.
+ */
 @Builder
 @Schema(description = "Checklist completion summary for the report period")
 public record ChecklistSection(

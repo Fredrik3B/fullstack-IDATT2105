@@ -33,7 +33,7 @@ The project is available both as a locally runnable development setup and as a d
 
 The project is divided into a frontend and a backend:
 
-- `frontend/restaurantapp-frontend` contains the Vue application, including views, components, stores, API modules, and tests.
+- `frontend` contains the Vue application, including views, components, stores, API modules, and tests.
 - `backend` contains the Spring Boot application, including controllers, services, repositories, models, DTOs, security, and tests.
 
 Main backend packages:
@@ -71,7 +71,7 @@ Before running the project locally, make sure you have:
 Frontend installation:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm install
 ```
 
@@ -108,7 +108,7 @@ mvn spring-boot:run
 Start the frontend:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm run dev
 ```
 
@@ -124,14 +124,14 @@ Deployed website:
 Frontend unit tests:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm run test:unit
 ```
 
 Frontend end-to-end tests:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm run test:e2e
 ```
 

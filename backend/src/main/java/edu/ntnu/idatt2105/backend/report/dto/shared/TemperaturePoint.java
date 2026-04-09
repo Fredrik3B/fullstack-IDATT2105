@@ -7,6 +7,10 @@ import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * A single temperature measurement enriched with zone and recorder metadata,
+ * used in the temperature-log section of an {@link edu.ntnu.idatt2105.backend.report.dto.InspectionReport}.
+ */
 @Builder
 @Schema(description = "A single temperature log entry")
 public record TemperaturePoint(

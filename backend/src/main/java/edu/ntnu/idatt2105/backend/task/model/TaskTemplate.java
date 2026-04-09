@@ -21,6 +21,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a reusable task definition that can be included in checklists.
+ *
+ * <p>Temperature-control tasks carry additional fields ({@code unit}, {@code targetMin},
+ * {@code targetMax}, {@code temperatureZone}) that drive the temperature measurement workflow.
+ * Non-temperature tasks leave these fields null.
+ */
 // implement correct relations
 @Setter
 @Getter

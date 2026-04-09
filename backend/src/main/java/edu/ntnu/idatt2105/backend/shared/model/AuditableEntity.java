@@ -7,6 +7,12 @@ import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Base class for JPA entities that use an auto-generated {@code Long} primary key.
+ *
+ * <p>All domain entities that need a surrogate ID should extend this class
+ * rather than declaring their own {@code @Id} field.
+ */
 @Setter
 @Getter
 @MappedSuperclass

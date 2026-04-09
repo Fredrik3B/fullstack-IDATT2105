@@ -8,7 +8,12 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 
-
+/**
+ * Lightweight compliance summary DTO used for the internal dashboard widget.
+ *
+ * <p>Contains food and alcohol compliance statistics plus unresolved (deviated) items
+ * for the requested time period.
+ */
 @Builder
 @Schema(description = "Short summary report")
 public record InternalSummary(

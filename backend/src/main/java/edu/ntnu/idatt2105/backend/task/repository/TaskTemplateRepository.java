@@ -10,6 +10,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 
+/**
+ * JPA repository for {@link TaskTemplate}.
+ *
+ * <p>Custom queries order results by section type then title so the task list
+ * is presented consistently in the checklist builder UI.
+ */
 public interface TaskTemplateRepository extends JpaRepository<TaskTemplate, Long> {
 	List<TaskTemplate> findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(
 		UUID organisationId,

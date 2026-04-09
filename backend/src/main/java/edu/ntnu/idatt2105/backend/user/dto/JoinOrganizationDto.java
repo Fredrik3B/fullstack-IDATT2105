@@ -6,6 +6,9 @@ import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * DTO representing a join request entry shown to admins/managers in the pending-requests list.
+ */
 @Data
 @Builder
 public class JoinOrganizationDto {

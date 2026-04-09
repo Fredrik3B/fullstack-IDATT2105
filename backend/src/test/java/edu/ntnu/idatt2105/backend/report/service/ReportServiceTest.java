@@ -1,50 +1,51 @@
 package edu.ntnu.idatt2105.backend.report.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
-import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
-import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
-import edu.ntnu.idatt2105.backend.task.model.TasksModel;
-import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
-import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
-import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
-import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
-import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
-import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
-import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
-import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
-import edu.ntnu.idatt2105.backend.report.model.DeviationReportModel;
-import edu.ntnu.idatt2105.backend.shared.enums.DeviationSeverity;
-import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
-import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
-import edu.ntnu.idatt2105.backend.report.repository.DeviationReportRepository;
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
-import edu.ntnu.idatt2105.backend.user.model.UserModel;
-import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
-import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
+import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
+import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
+import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
+import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
+import edu.ntnu.idatt2105.backend.report.model.DeviationReportModel;
+import edu.ntnu.idatt2105.backend.report.repository.DeviationReportRepository;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.DeviationSeverity;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
+import edu.ntnu.idatt2105.backend.user.model.UserModel;
+import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
+import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -68,8 +69,8 @@ class ReportServiceTest {
   @BeforeEach
   void setUp() {
     orgId = UUID.randomUUID();
-    from = LocalDateTime.now().minusMonths(1);
-    to = LocalDateTime.now();
+    from = LocalDateTime.of(2026, 3, 1, 10, 0);
+    to = LocalDateTime.of(2026, 3, 31, 10, 0);
   }
 
   // --- generateSummary ---

@@ -22,6 +22,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for generating compliance reports and filing deviation reports.
+ *
+ * <p>Provides three report endpoints (internal summary, full inspection, PDF export)
+ * and a deviation-report creation endpoint. All endpoints are scoped to the caller's
+ * organisation. The {@code from}/{@code to} query parameters default to the last 30 days
+ * when omitted.
+ */
 @Tag(name = "Reports")
 @RestController
 @AllArgsConstructor

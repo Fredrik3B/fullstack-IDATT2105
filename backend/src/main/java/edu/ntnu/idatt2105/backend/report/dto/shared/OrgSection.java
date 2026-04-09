@@ -5,6 +5,9 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Report section describing the organisation and its staff.
+ */
 @Builder
 @Schema(description = "Organization details included in the report")
 public record OrgSection(

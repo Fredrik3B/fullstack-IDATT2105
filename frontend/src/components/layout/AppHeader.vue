@@ -5,7 +5,7 @@
       <!-- Logo -->
       <RouterLink to="/" class="header-brand" aria-label="Go to dashboard">
         <div class="brand-text">
-          <span class="brand-name">ICMSS</span>
+          <span class="brand-name">ICMS</span>
           <span class="brand-tenant">{{ auth.restaurant?.name ?? '—' }}</span>
         </div>
       </RouterLink>

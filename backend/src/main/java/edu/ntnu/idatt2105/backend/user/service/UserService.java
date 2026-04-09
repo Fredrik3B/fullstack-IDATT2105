@@ -22,6 +22,15 @@ import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import lombok.AllArgsConstructor;
 
+/**
+ * Handles user registration, login, and token refresh.
+ *
+ * <p>All authentication flows produce a {@link LoginResponse} containing a short-lived
+ * access token and a refresh token. The controller is responsible for moving the
+ * refresh token into an HttpOnly cookie before sending the response to the client.
+ *
+ * @see edu.ntnu.idatt2105.backend.user.controller.UserController
+ */
 @Service
 @AllArgsConstructor
 public class UserService {
@@ -31,6 +40,13 @@ public class UserService {
   private final UserMapper userMapper;
   private final JwtService jwtService;
 
+  /**
+   * Registers a new user with the STAFF role and returns login tokens.
+   *
+   * @param request the registration details
+   * @return login response with access and refresh tokens
+   * @throws edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException if the email is taken
+   */
   public LoginResponse register(CreateUserRequest request) {
     if (userRepository.findByEmail(request.getEmail()).isPresent()) {
       throw new UserAlreadyExistsException(request.getEmail());
@@ -53,6 +69,13 @@ public class UserService {
 
   }
 
+  /**
+   * Authenticates a user with email and password and returns login tokens.
+   *
+   * @param request the login credentials
+   * @return login response with access and refresh tokens
+   * @throws org.springframework.security.authentication.BadCredentialsException if credentials are invalid
+   */
   public LoginResponse login(LoginRequest request) {
     UserModel user = userRepository.findByEmail(request.getEmail())
         .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
@@ -64,6 +87,13 @@ public class UserService {
     return buildLoginResponse(user);
   }
 
+  /**
+   * Issues new tokens using a valid refresh token.
+   *
+   * @param refreshToken the refresh token from the HttpOnly cookie
+   * @return new login response with fresh access and refresh tokens
+   * @throws org.springframework.security.authentication.BadCredentialsException if the token is invalid or the user no longer exists
+   */
   public LoginResponse refreshToken(String refreshToken) {
     String email = jwtService.extractEmail(refreshToken);
     UserModel user = userRepository.findByEmail(email)
