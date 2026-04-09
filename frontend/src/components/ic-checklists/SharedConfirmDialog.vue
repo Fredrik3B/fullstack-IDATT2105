@@ -35,6 +35,28 @@
 </template>
 
 <script setup>
+/**
+ * SharedConfirmDialog
+ *
+ * Reusable confirmation dialog used throughout the checklist workbench whenever a
+ * destructive or important action needs user acknowledgement (submit, temperature
+ * log, delete). The tone prop adjusts the background and button colour to match
+ * the severity of the action.
+ *
+ * @prop {boolean} [open]          - Controls dialog visibility (v-model compatible via `update:open`).
+ * @prop {string}  [kicker]        - Small uppercase label above the title.
+ * @prop {string}  [title]         - Dialog heading (default: 'Confirm action').
+ * @prop {string}  [message]       - Primary message body.
+ * @prop {string}  [detail]        - Secondary detail block shown in a bordered box.
+ * @prop {string}  [confirmLabel]  - Text for the confirm button (default: 'Confirm').
+ * @prop {string}  [cancelLabel]   - Text for the cancel button (default: 'Cancel').
+ * @prop {boolean} [isProcessing]  - Disables both buttons while the action is in flight.
+ * @prop {string}  [tone]          - Visual tone: 'default' | 'warning' | 'danger'.
+ *
+ * @emits confirm      - User clicked the confirm button.
+ * @emits cancel       - User clicked the cancel button.
+ * @emits update:open  - Emitted with `false` when the dialog closes.
+ */
 defineProps({
   open: { type: Boolean, default: false },
   kicker: { type: String, default: '' },
@@ -53,6 +75,7 @@ defineProps({
 
 const emit = defineEmits(['confirm', 'cancel', 'update:open'])
 
+/** Emits `update:open` with false and `cancel` so the parent can close and clean up. */
 function handleCancel() {
   emit('update:open', false)
   emit('cancel')

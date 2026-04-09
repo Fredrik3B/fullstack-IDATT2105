@@ -103,6 +103,30 @@
 </template>
 
 <script setup>
+/**
+ * CreateTaskTemplateModal
+ *
+ * Modal for creating or editing a shared task in the module task pool. The form
+ * collects a title, optional meta text, a section type, and — when the section is
+ * TEMPERATURE_CONTROL — a temperature zone selection loaded from the API.
+ *
+ * In edit mode (`mode: 'edit'`) the form is pre-populated from `initialTask`.
+ * On success the modal emits `created` or `updated` with the task payload so the
+ * parent can refresh the pool without a full page reload.
+ *
+ * @prop {boolean} [open]            - Controls modal visibility (v-model compatible).
+ * @prop {string}  [mode]            - 'create' (default) or 'edit'.
+ * @prop {Object}  [initialTask]     - Task data to pre-populate in edit mode.
+ * @prop {string}  module            - Module key used when fetching temperature zones.
+ * @prop {string}  [moduleLabel]     - Module display name for the eyebrow.
+ * @prop {number}  [zoneRefreshToken]- Increment to force a temperature zone reload.
+ *
+ * @emits update:open   - Emitted with `false` when the modal closes.
+ * @emits created       - Payload: the new task form values.
+ * @emits updated       - Payload: the updated task form values.
+ * @emits close         - Modal dismissed without saving.
+ * @emits manage-zones  - User clicked the shortcut to open the zone manager.
+ */
 import { computed, ref, watch } from 'vue'
 import { fetchTemperatureZones } from '@/api/temperatureZones'
 import { SECTION_TYPE_OPTIONS, formatSectionType } from '@/composables/ic-checklists/taskTemplateOptions'

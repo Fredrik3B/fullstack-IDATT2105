@@ -4,7 +4,24 @@
   </div>
 </template>
 
-<script setup>import { ref, watch, nextTick, onUnmounted } from 'vue'
+<script setup>
+/**
+ * TemperatureChart
+ *
+ * Line chart that visualises a sequence of temperature readings over time.
+ * Each data point is coloured green or red depending on whether it was within
+ * the allowed target range. Dashed boundary lines show the min/max targets.
+ * The chart is re-created whenever `log` changes and cleaned up on unmount.
+ *
+ * @prop {Array} log - Array of temperature log entries. Each entry should contain:
+ *   - measuredAt   {string}  ISO timestamp of the reading.
+ *   - valueC       {number}  Measured temperature in degrees Celsius.
+ *   - targetMin    {number}  Lower bound of the allowed range.
+ *   - targetMax    {number}  Upper bound of the allowed range.
+ *   - withinRange  {boolean} Whether the reading was within the target range.
+ *   - recordedBy   {string}  Name of the staff member who logged the reading.
+ */
+import { ref, watch, nextTick, onUnmounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
 
 Chart.register(...registerables)
@@ -23,6 +40,10 @@ watch(() => props.log, async () => {
   render(props.log)
 }, { immediate: true })
 
+/**
+ * Destroys any existing chart instance and renders a new line chart for the log.
+ * @param {Object[]} log - Temperature log entries (see `log` prop for entry shape).
+ */
 function render(log) {
   if (chart) chart.destroy()
 
@@ -148,6 +169,14 @@ function render(log) {
   })
 }
 
+/**
+ * Calculates sensible Y-axis min/max bounds so the target range and all measured
+ * values are visible with comfortable padding, handling negative-only and
+ * positive-only ranges differently.
+ *
+ * @param {{ values: number[], minTargets: number[], maxTargets: number[] }} param
+ * @returns {{ min: number, max: number }}
+ */
 function calculateYAxisBounds({ values, minTargets, maxTargets }) {
   const seriesValues = [...values, ...minTargets, ...maxTargets].filter((value) => Number.isFinite(value))
   if (!seriesValues.length) {
@@ -185,12 +214,22 @@ function calculateYAxisBounds({ values, minTargets, maxTargets }) {
   }
 }
 
+/**
+ * Rounds a raw minimum bound down to the nearest clean axis tick.
+ * @param {number} value - Calculated minimum value before rounding.
+ * @returns {number} Rounded minimum for the Y-axis.
+ */
 function roundAxisMin(value) {
   if (value >= 0) return Math.floor(value)
   if (value > -10) return -5
   return Math.floor(value / 5) * 5
 }
 
+/**
+ * Rounds a raw maximum bound up to the nearest clean axis tick.
+ * @param {number} value - Calculated maximum value before rounding.
+ * @returns {number} Rounded maximum for the Y-axis.
+ */
 function roundAxisMax(value) {
   if (value <= 0) return 0
   if (value < 10) return 10

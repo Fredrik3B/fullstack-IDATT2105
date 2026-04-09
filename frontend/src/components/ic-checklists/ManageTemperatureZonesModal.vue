@@ -75,6 +75,25 @@
 </template>
 
 <script setup>
+/**
+ * ManageTemperatureZonesModal
+ *
+ * Modal for managing the shared temperature zones (fridge/freezer/hot-holding items)
+ * for a given module. Lists zones sorted by type then name, allows creating new zones
+ * and editing or deleting existing ones via nested CreateTemperatureZoneModal dialogs.
+ *
+ * Can optionally open directly in create mode when `startInCreateMode` is true,
+ * which is used by the checklist editor's "New fridge item" shortcut.
+ *
+ * @prop {boolean} [open]              - Controls modal visibility (v-model compatible).
+ * @prop {string}  module              - Module key used for API calls.
+ * @prop {string}  [moduleLabel]       - Module display name for the eyebrow.
+ * @prop {boolean} [startInCreateMode] - Opens the create sub-modal immediately on mount.
+ *
+ * @emits update:open - Emitted with `false` when the modal closes.
+ * @emits close       - Modal dismissed.
+ * @emits changed     - Emitted after any successful create, update, or delete.
+ */
 import { ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import {
