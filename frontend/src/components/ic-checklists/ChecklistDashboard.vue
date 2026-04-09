@@ -83,6 +83,8 @@
         @log-temperature="emit('log-temperature', $event)"
       />
     </div>
+
+    <slot name="below-content" />
   </section>
 </template>
 
