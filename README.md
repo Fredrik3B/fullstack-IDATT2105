@@ -9,13 +9,14 @@ The application helps restaurants manage daily routines and internal control tas
 ## Main Features
 
 - Authentication for registering and logging in users
-- Organization management for creating or joining a restaurant
+- Create or join a restaurant
 - Role-based access control for managing permissions
-- Checklist management for daily operational routines
-- Temperature logging for food safety and compliance tracking
-- Document management for storing important restaurant files
+- Checklist management for daily/weekly/monthly routines
+- Temperature logging and compliance tracking
+- Document management for storing restaurant files
 - Deviation reporting for registering and following up incidents
 - Reporting and dashboard views for operational insight
+
 
 
 
