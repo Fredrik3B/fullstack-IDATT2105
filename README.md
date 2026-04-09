@@ -71,7 +71,7 @@ Before running the project locally, make sure you have:
 Frontend installation:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm install
 ```
 
