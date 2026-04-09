@@ -4,6 +4,9 @@ import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
 import java.math.BigDecimal;
 
+/**
+ * Response DTO representing a temperature zone.
+ */
 public record TemperatureZoneResponse(
 	Long id,
 	IcModule module,
