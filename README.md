@@ -108,7 +108,7 @@ mvn spring-boot:run
 Start the frontend:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm run dev
 ```
 
@@ -124,14 +124,14 @@ Deployed website:
 Frontend unit tests:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm run test:unit
 ```
 
 Frontend end-to-end tests:
 
 ```bash
-cd frontend/restaurantapp-frontend
+cd frontend
 npm run test:e2e
 ```
 
