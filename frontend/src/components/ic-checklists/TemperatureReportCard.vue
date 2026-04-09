@@ -37,6 +37,16 @@
 </template>
 
 <script setup>
+/**
+ * TemperatureReportCard
+ *
+ * Overview card shown next to the ChecklistSummaryCard on IC module dashboards.
+ * Scans all workbench checklist cards for temperature-controlled tasks and lists
+ * their latest recorded readings with target range and deviation status.
+ * A deviation badge summarises how many readings are out of range.
+ *
+ * @prop {Array} [cards] - Array of checklist card objects from the workbench.
+ */
 import { computed } from 'vue'
 import { formatTemperatureTarget, isTemperatureTask } from '@/composables/ic-checklists/temperature'
 

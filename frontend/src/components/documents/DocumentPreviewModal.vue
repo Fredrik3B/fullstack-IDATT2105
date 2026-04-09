@@ -1,4 +1,19 @@
 <script setup>
+/**
+ * DocumentPreviewModal
+ *
+ * Full-screen modal that previews a document. Renders an `<img>` for images,
+ * an `<object>` for PDFs, and a fallback icon + download prompt for unsupported
+ * types. A loading and error state are shown while the preview URL is resolving.
+ *
+ * @prop {Object}  doc          - The document metadata object (name, fileType, etc.).
+ * @prop {string}  [previewUrl] - Blob or signed URL for the file content.
+ * @prop {boolean} [loading]    - Shows a loading indicator while the URL resolves.
+ * @prop {string}  [error]      - Error message to display if the preview failed.
+ *
+ * @emits close    - User dismissed the modal.
+ * @emits download - User clicked the Download button.
+ */
 import { computed } from 'vue'
 import { fileIconClass, fileIconLabel } from '@/components/documents/documentHelpers'
 

@@ -1,4 +1,23 @@
 <script setup>
+/**
+ * ChecklistModuleCard
+ *
+ * Summary card shown on the main dashboard for a single IC module (food or alcohol).
+ * Displays the module label, a task completion progress bar, and a scrollable preview
+ * list of the module's daily checklists. Emits `open` when the user clicks the card or
+ * the "Open" button so the parent can navigate to the full module workbench.
+ *
+ * @prop {string}  label          - Display name for the module (e.g. "IC-Food").
+ * @prop {string}  [variant]      - Visual theme: 'food' (default) or 'alcohol'.
+ * @prop {number}  [completedTasks]  - Number of tasks completed across all checklists.
+ * @prop {number}  [totalTasks]      - Total tasks across all checklists.
+ * @prop {number}  [completionRate]  - Percentage (0–100) used to fill the progress bar.
+ * @prop {Array}   [checklists]   - Array of checklist preview objects to render.
+ * @prop {boolean} [isLoading]    - Shows a loading hint while checklists are being fetched.
+ * @prop {string}  [error]        - Error message to show if the fetch failed.
+ *
+ * @emits open - User wants to navigate into the module workbench.
+ */
 defineProps({
   label: {
     type: String,
@@ -37,11 +56,21 @@ defineProps({
 
 defineEmits(['open'])
 
+/**
+ * Capitalises the first letter of a period string (e.g. 'daily' → 'Daily').
+ * @param {string} period - Raw period value from the checklist.
+ * @returns {string} Human-readable period label.
+ */
 function formatPeriod(period) {
   if (!period) return 'Unknown'
   return String(period).charAt(0).toUpperCase() + String(period).slice(1).toLowerCase()
 }
 
+/**
+ * Returns the total number of task items across all sections of a checklist card.
+ * @param {Object} card - Checklist card object with an optional `sections` array.
+ * @returns {number} Total task count.
+ */
 function getTaskCount(card) {
   const sections = Array.isArray(card?.sections) ? card.sections : []
   return sections.flatMap((section) => (Array.isArray(section?.items) ? section.items : [])).length

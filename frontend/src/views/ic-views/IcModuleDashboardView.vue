@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import ChecklistDashboard from '@/components/ic-checklists/ChecklistDashboard.vue'
+import alcoholImage from '@/assets/images/GraderAvAlkoholpåvirkning.jpg'
 import ChecklistLibraryModal from '@/components/ic-checklists/ChecklistLibraryModal.vue'
 import CreateChecklistModal from '@/components/ic-checklists/CreateChecklistModal.vue'
 import ManageTaskTemplatesModal from '@/components/ic-checklists/ManageTaskTemplatesModal.vue'
@@ -98,7 +99,35 @@ function handleTaskPoolChanged() {
     @submit-checklist="submitCard"
     @log-temperature="logTemperatureMeasurement"
     @edit-checklist="editChecklist"
-  />
+  >
+    <template v-if="props.module === 'IC_ALCOHOL'" #below-content>
+      <div class="alcohol-info-panel">
+        <div class="alcohol-info-panel__image-card">
+          <img :src="alcoholImage" alt="Grader av alkoholpåvirkning" class="alcohol-info-panel__image" />
+        </div>
+        <div class="alcohol-info-panel__text-card">
+          <h2 class="alcohol-info-panel__title">Serveringsansvar</h2>
+          <p class="alcohol-info-panel__lead">
+            Som ansatt med skjenkebevilling har du et personlig ansvar for å sikre at alkohol ikke
+            serveres til mindreårige, synlig berusede personer, eller på en måte som bryter
+            skjenkelovgivningen.
+          </p>
+          <h3 class="alcohol-info-panel__subtitle">Konsekvenser ved brudd</h3>
+          <ul class="alcohol-info-panel__list">
+            <li>Inndragning av skjenkebevilling – midlertidig eller permanent</li>
+            <li>Bøter og sanksjoner mot virksomheten</li>
+            <li>Personlig straffeansvar for den ansatte som serverte</li>
+            <li>Erstatningskrav ved skade forårsaket av overstadig berusede gjester</li>
+          </ul>
+          <p class="alcohol-info-panel__footer">
+            Bruk sjekklistene aktivt og dokumenter alle avvik. God internkontroll er ditt beste
+            vern.
+          </p>
+        </div>
+      </div>
+    </template>
+
+  </ChecklistDashboard>
 
   <CreateChecklistModal
     v-model:open="isCreateOpen"
@@ -160,3 +189,79 @@ function handleTaskPoolChanged() {
     @confirm="handleDeleteChecklist(deleteDialog.checklist)"
   />
 </template>
+
+<style scoped>
+.alcohol-info-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.alcohol-info-panel__image-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.alcohol-info-panel__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.alcohol-info-panel__text-card {
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.alcohol-info-panel__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+}
+
+.alcohol-info-panel__lead {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+.alcohol-info-panel__subtitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+}
+
+.alcohol-info-panel__list {
+  margin: 0 0 var(--space-5);
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+.alcohol-info-panel__footer {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 980px) {
+  .alcohol-info-panel {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

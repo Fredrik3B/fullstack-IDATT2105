@@ -1,4 +1,18 @@
 <script setup>
+/**
+ * DocumentCard
+ *
+ * Grid card that represents a single document or external link in the document library.
+ * Clicking the thumbnail area emits `preview`; action buttons emit `download` and `delete`.
+ * Certificate documents with an `expiryDate` show a colour-coded expiry badge.
+ *
+ * @prop {Object}  doc               - The document object to render.
+ * @prop {boolean} [isAdminOrManager] - Shows the Delete button when true.
+ *
+ * @emits preview  - User clicked the card thumbnail to preview the document.
+ * @emits download - User clicked the Download button.
+ * @emits delete   - User clicked the Delete button (admin/manager only).
+ */
 import { fileIconClass, fileIconLabel, formatSize, moduleBadgeClass, moduleLabel } from '@/components/documents/documentHelpers'
 
 defineProps({
@@ -14,11 +28,21 @@ defineProps({
 
 defineEmits(['preview', 'download', 'delete'])
 
+/**
+ * Formats an ISO date string to a human-readable Norwegian locale date (e.g. "5. jan. 2025").
+ * @param {string} isoString - ISO 8601 date string.
+ * @returns {string} Formatted date, or an empty string if the input is falsy.
+ */
 function formatDate(isoString) {
   if (!isoString) return ''
   return new Date(isoString).toLocaleDateString('no-NO', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+/**
+ * Returns a CSS modifier class based on days until the certificate expires.
+ * @param {string} expiryDate - ISO date string for the expiry date.
+ * @returns {'cert-expiry--ok'|'cert-expiry--warning'|'cert-expiry--expired'} CSS modifier class.
+ */
 function expiryClass(expiryDate) {
   const daysLeft = Math.ceil((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
   if (daysLeft < 0) return 'cert-expiry--expired'
@@ -26,6 +50,11 @@ function expiryClass(expiryDate) {
   return 'cert-expiry--ok'
 }
 
+/**
+ * Returns a human-readable expiry status label (e.g. "Expires in 14d", "Expired").
+ * @param {string} expiryDate - ISO date string for the expiry date.
+ * @returns {string} Human-readable status label.
+ */
 function expiryLabel(expiryDate) {
   const daysLeft = Math.ceil((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
   if (daysLeft < 0) return 'Expired'

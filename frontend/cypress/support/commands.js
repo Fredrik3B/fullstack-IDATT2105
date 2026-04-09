@@ -1,5 +1,5 @@
 // ***********************************************
-// Custom Cypress commands for the ICSystem app.
+// Custom Cypress commands for the ICMSS app.
 // ***********************************************
 
 /** Shared token storage between setAuthState and visitAuthenticated. */

@@ -83,10 +83,51 @@
         @log-temperature="emit('log-temperature', $event)"
       />
     </div>
+
+    <slot name="below-content" />
   </section>
 </template>
 
 <script setup>
+/**
+ * ChecklistDashboard
+ *
+ * Module-level workbench shell shared by IC-Food and IC-Alcohol views.
+ * Composes the page header, the summary + temperature overview grid, an urgent
+ * reminder banner, loading/error/empty states, and the grid of ChecklistCards.
+ *
+ * All data and interaction logic lives in the parent view; this component only
+ * arranges the layout and forwards events upward.
+ *
+ * @prop {string}   moduleLabel         - Module name shown in the header eyebrow.
+ * @prop {string}   title               - Page heading (e.g. "IC-Food Workbench").
+ * @prop {string}   dateLabel           - Formatted current date shown below the heading.
+ * @prop {string}   [moduleDescription] - Optional description paragraph in the header.
+ * @prop {string}   [summaryHint]       - Hint text in the workbench insight card.
+ * @prop {string[]} [periods]           - Period filter options (default: Daily/Weekly/Monthly).
+ * @prop {string}   [activePeriod]      - Currently selected period filter.
+ * @prop {string}   [manageLabel]       - Label for the task pool manage button.
+ * @prop {boolean}  [canManageChecklists]  - Shows checklist management actions.
+ * @prop {boolean}  [canManageTaskPool]    - Shows the task pool management button.
+ * @prop {Array}    cards               - Array of checklist card data objects.
+ * @prop {Date|string|number|null} [now] - Reference time forwarded to each ChecklistCard.
+ * @prop {string|number|null} [highlightedChecklistId] - ID of the card to highlight.
+ * @prop {Object}   [reminderSummary]   - `{ totalCount, temperatureCount, checklistTitles }`.
+ * @prop {boolean}  [isLoading]         - Shows a loading state card.
+ * @prop {boolean}  [isRefreshing]      - Passed to the header refresh button.
+ * @prop {string}   [loadError]         - Shows an error state card.
+ *
+ * @emits toggle-task        - `{ cardIndex, sectionIndex, taskIndex }`
+ * @emits toggle-pending     - `{ cardIndex, sectionIndex, taskIndex }`
+ * @emits edit-checklist     - `{ cardIndex }`
+ * @emits submit-checklist   - `{ cardIndex, checklistId }`
+ * @emits log-temperature    - `{ checklistId, taskId, valueC }`
+ * @emits update:activePeriod - New period string selected by the user.
+ * @emits create             - User clicked "New checklist".
+ * @emits open-library       - User clicked "Open library".
+ * @emits manage-tasks       - User clicked the task pool manage button.
+ * @emits refresh            - User clicked the refresh button.
+ */
 import ChecklistCard from './ChecklistCard.vue'
 import ChecklistPageHeader from './ChecklistPageHeader.vue'
 import ChecklistSummaryCard from './ChecklistSummaryCard.vue'

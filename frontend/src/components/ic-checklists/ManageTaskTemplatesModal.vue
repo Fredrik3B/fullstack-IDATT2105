@@ -118,6 +118,25 @@
 </template>
 
 <script setup>
+/**
+ * ManageTaskTemplatesModal
+ *
+ * Full-screen management modal for the shared task pool of a given module.
+ * Lists all tasks grouped by section type, lets managers create new tasks
+ * (inline via CreateTaskTemplateModal), edit existing ones, and delete tasks
+ * after confirmation. Includes a shortcut button to the temperature zone manager.
+ *
+ * All CRUD operations call the tasks API directly; on success the list is
+ * refreshed and `changed` is emitted so the parent can reload any derived state.
+ *
+ * @prop {boolean} [open]       - Controls modal visibility (v-model compatible).
+ * @prop {string}  module       - Module key used for API calls (e.g. 'IC_MAT').
+ * @prop {string}  [moduleLabel]- Module display name for the eyebrow.
+ *
+ * @emits update:open - Emitted with `false` when the modal closes.
+ * @emits close       - Modal dismissed.
+ * @emits changed     - Emitted after any successful create, update, or delete.
+ */
 import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, deleteTask, fetchTasks, updateTask } from '@/api/tasks'

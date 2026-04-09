@@ -11,7 +11,7 @@
         <div class="result-icon"><CheckCircle /></div>
         <h2 class="result-title">Workspace created</h2>
         <p class="result-body">
-          <strong>{{ form.name }}</strong> is now active in ICSystem and your account is set as administrator.
+          <strong>{{ form.name }}</strong> is now active in ICMS and your account is set as administrator.
         </p>
 
         <div class="join-code-display">

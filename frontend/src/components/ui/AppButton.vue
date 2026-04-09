@@ -1,4 +1,18 @@
 <script setup>
+/**
+ * AppButton
+ *
+ * Reusable styled button used throughout the application.
+ * Renders a native `<button>` with a slot for content and supports three visual
+ * variants. When `loading` is true the label is replaced with a CSS spinner and
+ * the button is disabled automatically.
+ *
+ * @prop {string}  [variant]   - Visual style: 'primary' (default) | 'secondary' | 'danger'.
+ * @prop {boolean} [loading]   - Shows a spinner and disables the button while true.
+ * @prop {boolean} [disabled]  - Explicitly disables the button.
+ * @prop {string}  [type]      - HTML button type attribute (default: 'button').
+ * @prop {boolean} [fullWidth] - Stretches the button to 100% of its container.
+ */
 defineProps({
   variant: {
     type: String,

@@ -1,4 +1,15 @@
 <script setup>
+/**
+ * SetupShell
+ *
+ * Dark full-viewport shell used during the post-registration onboarding flow
+ * (restaurant creation, profile setup). Provides a branded top bar with the
+ * logged-in user's initials and a Log out button, and a centred content area
+ * with a configurable max-width that hosts the setup steps via the default slot.
+ *
+ * @prop {string} [subtitle]        - Secondary line rendered next to the brand name in the top bar.
+ * @prop {string} [contentMaxWidth] - CSS max-width for the content area (default: '860px').
+ */
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -17,6 +28,7 @@ const auth = useAuthStore()
 const userEmail = computed(() => auth.user?.email ?? '')
 const userInitials = computed(() => auth.userInitials)
 
+/** Signs the user out via the auth store and redirects to the login page. */
 function handleLogout() {
   auth.logout()
 }
@@ -33,7 +45,7 @@ function handleLogout() {
       <div class="topbar-brand">
         <div class="brand-logo"><span class="brand-icon">IC</span></div>
         <div>
-          <span class="brand-name">ICSystem</span>
+          <span class="brand-name">ICMS</span>
           <p v-if="subtitle" class="brand-sub">{{ subtitle }}</p>
         </div>
       </div>

@@ -5,7 +5,7 @@
       <!-- Logo -->
       <RouterLink to="/" class="header-brand" aria-label="Go to dashboard">
         <div class="brand-text">
-          <span class="brand-name">ICSystem</span>
+          <span class="brand-name">ICMSS</span>
           <span class="brand-tenant">{{ auth.restaurant?.name ?? '—' }}</span>
         </div>
       </RouterLink>
@@ -106,6 +106,19 @@
 </template>
 
 <script setup>
+/**
+ * AppHeader
+ *
+ * Sticky top navigation bar used across all authenticated views. Contains the
+ * brand logo, desktop nav links, a responsive mobile hamburger menu, and a
+ * user chip with a dropdown for account actions (admin panel, logout).
+ *
+ * The dropdown and mobile menu close automatically when the route changes or
+ * when the user clicks outside the header element. Both menus are mutually
+ * exclusive: opening one closes the other.
+ *
+ * No props. Reads user state from the Pinia `useAuthStore`.
+ */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -122,6 +135,7 @@ const chipWrapper = ref(null)
 const dropdownOpen = ref(false)
 const mobileMenuOpen = ref(false)
 
+/** Toggles the user dropdown; closes the mobile menu if the dropdown is opening. */
 function toggleDropdown() {
   dropdownOpen.value = !dropdownOpen.value
   if (dropdownOpen.value) {
@@ -129,6 +143,7 @@ function toggleDropdown() {
   }
 }
 
+/** Toggles the mobile navigation panel; closes the dropdown if the menu is opening. */
 function toggleMobileMenu() {
   mobileMenuOpen.value = !mobileMenuOpen.value
   if (mobileMenuOpen.value) {
@@ -136,6 +151,10 @@ function toggleMobileMenu() {
   }
 }
 
+/**
+ * Closes both the dropdown and the mobile menu when clicking outside the header.
+ * @param {MouseEvent} e - The native mousedown event from the document listener.
+ */
 function handleClickOutside(e) {
   if (headerRef.value && !headerRef.value.contains(e.target)) {
     dropdownOpen.value = false
@@ -167,6 +186,7 @@ const primaryRole = computed(() => {
 
 // ── Actions ───────────────────────────────────────────────────────────────
 
+/** Closes the dropdown, shows a logout toast, and delegates sign-out to the auth store. */
 function handleLogout() {
   dropdownOpen.value = false
   toast.info('You are now logged out')

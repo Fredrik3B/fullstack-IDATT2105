@@ -46,9 +46,9 @@ describe('SetupShell', () => {
   // ── Brand ──────────────────────────────────────────────────────────────
 
   describe('brand', () => {
-    it('shows "ICSystem" as the brand name', () => {
+    it('shows "ICMS" as the brand name', () => {
       const wrapper = mountShell()
-      expect(wrapper.find('.brand-name').text()).toBe('ICSystem')
+      expect(wrapper.find('.brand-name').text()).toBe('ICMS')
     })
 
     it('does not render brand-sub when subtitle is not provided', () => {

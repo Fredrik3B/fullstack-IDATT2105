@@ -55,6 +55,32 @@
 </template>
 
 <script setup>
+/**
+ * ChecklistPageHeader
+ *
+ * Hero header at the top of IC module dashboards. The left column shows the module
+ * label, page title, current date, and an optional description. The right column
+ * hosts an insight card showing the active period, a period filter toggle, and
+ * (for managers) "New checklist", "Open library", "Refresh", and "Task pool" buttons.
+ *
+ * @prop {string}   [moduleLabel]       - Eyebrow badge text for the module (e.g. "IC-Food").
+ * @prop {string}   title               - Main page heading.
+ * @prop {string}   dateLabel           - Formatted current date string.
+ * @prop {string}   [moduleDescription] - Optional supporting paragraph.
+ * @prop {string}   [summaryHint]       - Text shown inside the workbench insight card.
+ * @prop {string[]} [periods]           - Period options for the switcher (default: Daily/Weekly/Monthly).
+ * @prop {string}   [activePeriod]      - Currently active period selection.
+ * @prop {string}   [manageLabel]       - Label for the secondary task-pool button.
+ * @prop {boolean}  [canManageChecklists]  - Shows the primary management actions row.
+ * @prop {boolean}  [canManageTaskPool]    - Shows the task pool button row.
+ * @prop {boolean}  [isRefreshing]      - Puts the Refresh button into a loading state.
+ *
+ * @emits update:activePeriod - User selected a different period.
+ * @emits create              - User clicked "New checklist".
+ * @emits open-library        - User clicked "Open library".
+ * @emits manage-tasks        - User clicked the task pool button.
+ * @emits refresh             - User clicked the Refresh button.
+ */
 defineProps({
   moduleLabel: {
     type: String,

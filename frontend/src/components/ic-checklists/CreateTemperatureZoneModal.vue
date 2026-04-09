@@ -70,6 +70,27 @@
 </template>
 
 <script setup>
+/**
+ * CreateTemperatureZoneModal
+ *
+ * Modal for creating or editing a shared temperature zone (fridge, freezer,
+ * hot-holding item). Collects a name, zone type, and target min/max temperature
+ * range. Zone types are populated from the shared `TEMPERATURE_ZONE_OPTIONS` constant.
+ *
+ * In edit mode (`mode: 'edit'`) the form is pre-populated from `initialZone`.
+ * On success the modal emits `created` or `updated` with the zone form values.
+ *
+ * @prop {boolean} [open]        - Controls modal visibility (v-model compatible).
+ * @prop {string}  [mode]        - 'create' (default) or 'edit'.
+ * @prop {Object}  [initialZone] - Zone data to pre-populate in edit mode.
+ * @prop {string}  module        - Module key the zone belongs to.
+ * @prop {string}  [moduleLabel] - Module display name for the eyebrow.
+ *
+ * @emits update:open - Emitted with `false` when the modal closes.
+ * @emits created     - Payload: `{ name, zoneType, targetMin, targetMax }`.
+ * @emits updated     - Payload: same shape as `created`.
+ * @emits close       - Modal dismissed without saving.
+ */
 import { computed, ref, watch } from 'vue'
 import { TEMPERATURE_ZONE_OPTIONS, formatTemperatureZoneType } from '@/composables/ic-checklists/temperatureZoneOptions'
 

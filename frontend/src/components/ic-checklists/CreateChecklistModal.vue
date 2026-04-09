@@ -386,6 +386,38 @@
 </template>
 
 <script setup>
+/**
+ * CreateChecklistModal
+ *
+ * Multi-step modal for creating or editing a checklist within a module. The editor
+ * has two steps: "Details" (title, period, workbench/recurrence settings) and
+ * "Tasks" (pick from the shared task pool; inline quick-create also available).
+ *
+ * In edit mode (`mode: 'edit'`) the form is pre-populated from `initialCard` and
+ * additional "Remove from workbench" and "Delete checklist" actions appear.
+ * Save and delete are asynchronous; the parent view is responsible for the API
+ * calls and signals progress via `savePending` / `deletePending` / `removePending`.
+ *
+ * @prop {boolean} [open]              - Controls modal visibility (v-model compatible).
+ * @prop {boolean} [canManageChecklists] - Enables checklist creation/editing.
+ * @prop {string}  [mode]              - 'create' (default) or 'edit'.
+ * @prop {Object}  [initialCard]       - Checklist data to pre-populate in edit mode.
+ * @prop {string}  module              - Module key (e.g. 'IC_MAT') used when fetching tasks.
+ * @prop {string}  [moduleLabel]       - Display name shown in the modal eyebrow.
+ * @prop {boolean} [canManageTasks]    - Shows the "Open full task pool" link.
+ * @prop {number}  [taskPoolRefreshToken] - Increment to force a task pool reload.
+ * @prop {boolean} [savePending]       - Disables the save button while the parent saves.
+ * @prop {boolean} [deletePending]     - Disables the delete button while deleting.
+ * @prop {boolean} [removePending]     - Disables the remove button while removing.
+ *
+ * @emits update:open          - Emitted with `false` when the modal closes.
+ * @emits close                - Modal dismissed without saving.
+ * @emits created              - Payload: `{ title, subtitle, period, recurring, displayedOnWorkbench, taskIds }`.
+ * @emits updated              - Payload: same shape as `created`.
+ * @emits delete               - User confirmed deletion.
+ * @emits manage-tasks         - User clicked "Open full task pool".
+ * @emits remove-from-workbench - User confirmed removing the checklist from the workbench.
+ */
 import { computed, ref, watch } from 'vue'
 import { useToast } from '@/composables/useToast'
 import { createTask, fetchTasks } from '@/api/tasks'

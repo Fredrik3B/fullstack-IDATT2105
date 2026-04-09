@@ -22,9 +22,9 @@ describe('AuthShell', () => {
       expect(wrapper.find('.aside-body').text()).toContain('calmer workflow')
     })
 
-    it('renders the brand name "ICSystem"', () => {
+    it('renders the brand name "ICMS"', () => {
       const wrapper = mount(AuthShell)
-      expect(wrapper.find('.brand-title').text()).toBe('ICSystem')
+      expect(wrapper.find('.brand-title').text()).toBe('ICMS')
     })
 
     it('renders the default eyebrow text', () => {

@@ -68,9 +68,9 @@ describe('AppHeader', () => {
       expect(wrapper.find('.brand-tenant').text()).toBe('—')
     })
 
-    it('shows "ICSystem" as the brand name', () => {
+    it('shows "ICMS" as the brand name', () => {
       const wrapper = mountHeader()
-      expect(wrapper.find('.brand-name').text()).toBe('ICSystem')
+      expect(wrapper.find('.brand-name').text()).toBe('ICMS')
     })
   })
 

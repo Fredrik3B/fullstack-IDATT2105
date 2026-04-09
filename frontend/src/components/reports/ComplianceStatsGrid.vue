@@ -59,6 +59,20 @@
 </template>
 
 <script setup>
+/**
+ * ComplianceStatsGrid
+ *
+ * Side-by-side grid showing key compliance metrics for the two IC modules (Food and
+ * Alcohol). Each block displays completed/total tasks, completion rate (colour-coded
+ * via `rateClass`), deviation count, and — for the food module — out-of-range
+ * temperature readings when available.
+ *
+ * @prop {Object} foodStats    - Stats object for the IC-Food module.
+ *   Expected shape: `{ completedTasks, totalTasks, completionRate, deviatedTasks,
+ *                      temperatureReadings?, outOfRangeReadings? }`.
+ * @prop {Object} alcoholStats - Stats object for the IC-Alcohol module.
+ *   Expected shape: `{ completedTasks, totalTasks, completionRate, deviatedTasks }`.
+ */
 import { formatRate, rateClass } from './reportHelpers.js'
 
 defineProps({

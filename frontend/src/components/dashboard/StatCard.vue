@@ -1,4 +1,20 @@
 <script setup>
+/**
+ * StatCard
+ *
+ * Compact metric card for the main dashboard. Shows a label, a prominent value,
+ * and an optional hint line. When `interactive` is true the card acts as a button
+ * and emits `click` so the parent can respond (e.g. navigate to a detail view).
+ * The `valueVariant` prop colours the value text to reflect health status.
+ *
+ * @prop {string}          label         - Metric label shown above the value.
+ * @prop {string|number}   value         - Primary metric value to display.
+ * @prop {string}          [hint]        - Secondary descriptor shown below the value.
+ * @prop {string}          [valueVariant] - Colour variant: '' | 'danger' | 'warning'.
+ * @prop {boolean}         [interactive] - Makes the card clickable and keyboard-accessible.
+ *
+ * @emits click - Fired when the card is activated (only when `interactive` is true).
+ */
 defineProps({
   label: {
     type: String,

@@ -26,6 +26,27 @@
 </template>
 
 <script setup>
+/**
+ * ReportFilterBar
+ *
+ * Toolbar at the top of the Reports view. Provides controls for selecting the
+ * report type, date range, and triggering generation or PDF export. Uses v-model
+ * style emits (`update:reportType`, `update:fromDate`, `update:toDate`) so the
+ * parent view can bind the values with v-model.
+ *
+ * @prop {string}  [reportType] - Currently selected report type: 'inspection' | 'summary'.
+ * @prop {string}  [fromDate]   - Start date value (ISO date string).
+ * @prop {string}  [toDate]     - End date value (ISO date string).
+ * @prop {boolean} [loading]    - Disables the Generate button while a report is loading.
+ * @prop {boolean} [hasReport]  - Shows the Export PDF button when a report is available.
+ *
+ * @emits update:reportType - New report type selected.
+ * @emits update:fromDate   - New from-date entered.
+ * @emits update:toDate     - New to-date entered.
+ * @emits generate          - User clicked "Generate report".
+ * @emits export            - User clicked "Export PDF".
+ * @emits deviation         - User clicked "Report deviation".
+ */
 defineProps({
   reportType: { type: String, default: 'inspection' },
   fromDate: { type: String, default: '' },
