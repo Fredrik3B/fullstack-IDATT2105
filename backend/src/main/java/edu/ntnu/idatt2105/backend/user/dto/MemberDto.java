@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.user.dto;
 
 import java.util.Set;
 import java.util.UUID;
+
 import lombok.Builder;
 import lombok.Data;
 

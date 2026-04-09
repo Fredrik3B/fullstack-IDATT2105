@@ -25,6 +25,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for managing temperature zones.
+ *
+ * <p>All mutating operations ({@code POST}, {@code PUT}, {@code DELETE}) require
+ * {@code ADMIN} or {@code MANAGER} role. Read access ({@code GET}) is also restricted
+ * to those roles since zone configuration is an administrative concern.
+ */
 @Tag(name = "Temperature Zones", description = "Create, fetch, update, and delete reusable temperature zones")
 @RestController
 @AllArgsConstructor

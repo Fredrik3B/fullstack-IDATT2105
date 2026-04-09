@@ -27,6 +27,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for recording and retrieving temperature measurements.
+ *
+ * <p>A measurement is always tied to an active checklist task ({@code task.active == true})
+ * that is classified as a temperature-control task (has a unit or target range set on its
+ * template). If the caller supplies an explicit {@code periodKey} it must match the task's
+ * own period key; otherwise the task's period key is used automatically.
+ */
 @Service
 @AllArgsConstructor
 public class TemperatureMeasurementService {
@@ -41,6 +49,18 @@ public class TemperatureMeasurementService {
 	private final ChecklistCacheStateService checklistCacheStateService;
 	private final TemperatureMapper temperatureMapper;
 
+	/**
+	 * Records a new temperature measurement against an active checklist task.
+	 *
+	 * <p>Validates that the checklist belongs to the caller's organisation, the task is active,
+	 * and the task is a temperature-control task. If a {@code periodKey} is supplied it must
+	 * match the task's own period key.
+	 *
+	 * @param request   measurement data including module, checklist/task IDs, value, and optional period key
+	 * @param principal the authenticated principal used to resolve the organisation and recorded-by user
+	 * @return the persisted measurement as a response DTO with deviation flag
+	 * @throws IllegalArgumentException if validation fails (checklist/task not found, wrong module, inactive task, etc.)
+	 */
 	public TemperatureMeasurementResponse createMeasurement(
 		CreateTemperatureMeasurementRequest request,
 		JwtAuthenticatedPrincipal principal
@@ -100,6 +120,19 @@ public class TemperatureMeasurementService {
 		return temperatureMapper.toMeasurementResponse(saved, request.module());
 	}
 
+	/**
+	 * Returns temperature measurements for the caller's organisation filtered by module and date range.
+	 *
+	 * <p>If {@code from} is {@code null} it defaults to {@link java.time.LocalDateTime#MIN};
+	 * if {@code to} is {@code null} it defaults to now. Results are ordered by {@code measuredAt} descending.
+	 *
+	 * @param module    the IC module whose compliance area scopes the query
+	 * @param from      inclusive lower bound for {@code measuredAt} (nullable)
+	 * @param to        inclusive upper bound for {@code measuredAt} (nullable)
+	 * @param principal the authenticated principal used to resolve the organisation
+	 * @return list of measurement response DTOs ordered newest first
+	 * @throws IllegalArgumentException if {@code to} is before {@code from}
+	 */
 	public List<TemperatureMeasurementResponse> fetchMeasurements(
 		IcModule module,
 		LocalDateTime from,
@@ -122,6 +155,13 @@ public class TemperatureMeasurementService {
 				.toList();
 	}
 
+	/**
+	 * Returns {@code true} if the task's template has any temperature-control fields set
+	 * (unit, targetMin, or targetMax).
+	 *
+	 * @param task the activated task to inspect
+	 * @return {@code true} if the task is a temperature-control task
+	 */
 	private boolean isTemperatureTask(TasksModel task) {
 		return task.getTaskTemplate() != null && (
 			task.getTaskTemplate().getUnit() != null ||
