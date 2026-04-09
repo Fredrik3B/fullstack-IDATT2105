@@ -19,6 +19,7 @@ public record TaskResponse(
 		Long temperatureZoneId,
 		String temperatureZoneName,
 		TemperatureZone temperatureZoneType,
+
 		String unit,
 		@DecimalMin("-200.00") @DecimalMax("999.99") BigDecimal targetMin,
 		@DecimalMin("-200.00") @DecimalMax("999.99") BigDecimal targetMax
