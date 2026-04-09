@@ -21,11 +21,26 @@
 </template>
 
 <script setup>
+/**
+ * ToastContainer
+ *
+ * Global toast notification host. Teleports itself to `<body>` so it floats above
+ * all other content. Reads from the shared `toastStore` and renders each queued
+ * notification with an appropriate icon, message, and dismiss button.
+ * Notifications slide in from the right and slide out when removed.
+ *
+ * No props or emits – this component owns its own state via the Pinia toast store.
+ */
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 
 const toastStore = useToastStore()
 
+/**
+ * Maps a toast type string to its corresponding Lucide icon component.
+ * @param {'success'|'error'|'warning'|'info'} type - The toast notification type.
+ * @returns {Component} The Lucide Vue icon component for that type.
+ */
 function iconFor(type) {
   return { success: CheckCircle, error: AlertCircle, warning: AlertTriangle, info: Info }[type]
 }

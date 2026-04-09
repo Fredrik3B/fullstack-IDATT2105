@@ -1,4 +1,19 @@
 <script setup>
+/**
+ * DocumentUploadModal
+ *
+ * Modal dialog for uploading a new document or adding an external URL link.
+ * Supports drag-and-drop and click-to-browse file selection. The upload mode
+ * can be toggled between file upload and URL link. Certificate documents
+ * optionally accept an expiry date.
+ *
+ * After a successful upload the form is reset and `uploaded` is emitted with
+ * the new document object returned by the API. Closing the modal (by the
+ * backdrop click, cancel button, or after upload) resets the form state.
+ *
+ * @emits uploaded - Payload: the newly created document object from the server.
+ * @emits close    - User dismissed the modal without uploading.
+ */
 import { ref } from 'vue'
 import { uploadDocument } from '@/api/documents'
 import { CATEGORIES, MODULES, formatSize } from '@/components/documents/documentHelpers'
@@ -21,23 +36,36 @@ const uploadForm = ref({
   expiryDate: '',
 })
 
+/** Resets all form fields and clears any previous upload error. */
 function resetForm() {
   uploadError.value = null
   uploadMode.value = 'file'
   uploadForm.value = { file: null, externalUrl: '', name: '', description: '', category: '', module: '', expiryDate: '' }
 }
 
+/**
+ * Reads the first file from a file input change event and stores it in the form.
+ * @param {Event} event - The native `change` event from the file input element.
+ */
 function onFileChange(event) {
   const file = event.target.files[0]
   if (file) uploadForm.value.file = file
 }
 
+/**
+ * Handles a drag-and-drop file drop and stores the first dropped file in the form.
+ * @param {DragEvent} event - The native `drop` event from the drop zone element.
+ */
 function onDrop(event) {
   isDragging.value = false
   const file = event.dataTransfer.files[0]
   if (file) uploadForm.value.file = file
 }
 
+/**
+ * Validates the form, builds a FormData payload, calls the upload API, then
+ * emits `uploaded` with the new document on success or sets `uploadError` on failure.
+ */
 async function handleUpload() {
   uploading.value = true
   uploadError.value = null
@@ -66,6 +94,7 @@ async function handleUpload() {
   }
 }
 
+/** Resets the form and emits `close` to signal the parent to hide the modal. */
 function handleClose() {
   resetForm()
   emit('close')
