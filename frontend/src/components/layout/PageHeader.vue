@@ -12,6 +12,18 @@
 </template>
 
 <script setup>
+/**
+ * PageHeader
+ *
+ * Dark hero-style section header used at the top of full-page views (e.g. Reports,
+ * Documents). Renders an eyebrow badge, an H1 title, and an optional description
+ * in the left column. The `actions` named slot on the right column is used for
+ * filter controls, stat cards, or other page-level actions.
+ *
+ * @prop {string} eyebrow      - Small uppercase badge above the title.
+ * @prop {string} title        - Main page heading.
+ * @prop {string} [description]- Supporting paragraph below the title.
+ */
 defineProps({
   eyebrow: { type: String, required: true },
   title: { type: String, required: true },

@@ -8,6 +8,14 @@
 </template>
 
 <script setup>
+/**
+ * AppLayout
+ *
+ * Root shell for all authenticated application pages. Renders the sticky
+ * AppHeader at the top and a `<main>` content area that hosts the current
+ * route via `<router-view>`. Background gradients are applied here via global
+ * CSS so they span the full viewport.
+ */
 import AppHeader from './AppHeader.vue'
 </script>
 

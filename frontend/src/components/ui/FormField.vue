@@ -1,4 +1,17 @@
 <script setup>
+/**
+ * FormField
+ *
+ * Wrapper that provides consistent label, optional icon, and inline error styling
+ * for any form control. The default slot receives the input element and the `icon`
+ * named slot can hold a Lucide icon placed absolutely to the left of the input.
+ * An `after` named slot is available for hints or secondary controls below the input.
+ *
+ * @prop {string} label      - Visible label text for the field.
+ * @prop {string} [labelHint]- Secondary hint appended to the label (e.g. "(optional)").
+ * @prop {string} [error]    - Validation error message; adds the `has-error` modifier.
+ * @prop {string} [inputId]  - Value forwarded to the label's `for` attribute for accessibility.
+ */
 defineProps({
   label: {
     type: String,

@@ -50,6 +50,25 @@
 </template>
 
 <script setup>
+/**
+ * AuthShell
+ *
+ * Two-column full-viewport layout for authentication pages (login, register).
+ * The left column is a marketing aside with a tag, headline, body text, and an
+ * optional features list. The right column is a white card that hosts the form
+ * content via the default slot and an optional footer slot.
+ *
+ * All text content is customisable through props so different auth pages can
+ * reuse the same shell with different messaging.
+ *
+ * @prop {string}   [tag]        - Small label above the aside headline (default: 'Welcome').
+ * @prop {string}   [eyebrow]    - Small label on the form card (default: 'Account access').
+ * @prop {string}   [title]      - Form card heading (default: 'Welcome back').
+ * @prop {string}   [subtitle]   - Supporting line below the form card heading.
+ * @prop {string}   [asideTitle] - Main headline in the left aside column.
+ * @prop {string}   [asideBody]  - Paragraph in the left aside column.
+ * @prop {string[]} [features]   - List items rendered as bullet cards in the aside.
+ */
 defineProps({
   tag: { type: String, default: 'Welcome' },
   eyebrow: { type: String, default: 'Account access' },
