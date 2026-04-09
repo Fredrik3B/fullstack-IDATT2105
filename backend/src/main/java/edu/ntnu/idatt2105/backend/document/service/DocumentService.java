@@ -254,4 +254,22 @@ public class DocumentService {
         return doc;
     }
 
+    public String storeFile(byte[] bytes, UUID orgId, String fileName) {
+        try {
+            Path orgDir = Paths.get(storagePath).toAbsolutePath().normalize().resolve(orgId.toString());
+            Files.createDirectories(orgDir);
+            String uniqueFileName = UUID.randomUUID() + "_" + fileName;
+            Path destination = orgDir.resolve(uniqueFileName);
+            Files.write(destination, bytes);
+            return destination.toAbsolutePath().toString();
+        } catch (IOException e) {
+            LOGGER.error("Failed to store file: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to store file");
+        }
+    }
+
+    public void saveDocumentModel(DocumentModel document) {
+        documentRepository.save(document);
+        LOGGER.info("Document saved: orgId={} name='{}'", document.getOrganization().getId(), document.getName());
+    }
 }

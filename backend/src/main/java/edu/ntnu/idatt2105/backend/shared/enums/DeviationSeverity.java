@@ -8,11 +8,11 @@ package edu.ntnu.idatt2105.backend.shared.enums;
  */
 public enum DeviationSeverity {
   /** Minor issue with negligible risk. */
-  LOW,
+  MINOR,
   /** Noteworthy issue that should be addressed. */
-  MEDIUM,
+  MODERATE,
   /** Serious issue requiring prompt corrective action. */
-  HIGH,
+  MAJOR,
   /** Immediate action required; significant safety or compliance risk. */
   CRITICAL
 }

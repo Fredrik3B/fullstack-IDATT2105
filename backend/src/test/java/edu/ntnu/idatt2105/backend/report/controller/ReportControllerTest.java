@@ -99,8 +99,8 @@ class ReportControllerTest {
         .thenReturn(InternalSummary.builder().build());
 
     mockMvc.perform(get("/api/reports/summary")
-            .param("from", "2025-01-01T00:00:00")
-            .param("to", "2025-01-31T23:59:59")
+            .param("from", "2025-01-01T00:00")
+            .param("to", "2025-01-31T23:59")
             .with(authentication(adminAuth())))
         .andExpect(status().isOk());
   }
@@ -165,8 +165,8 @@ class ReportControllerTest {
             .content("""
                 {
                   "deviationName": "Cold storage too warm",
-                  "severity": "HIGH",
-                  "occurredAt": "2025-01-15T10:00:00",
+                  "severity": "MAJOR",
+                  "timestamp": "2025-01-15T10:00",
                   "noticedBy": "Jane Doe",
                   "reportedTo": "Manager Smith",
                   "processedBy": "Jane Doe",
@@ -189,8 +189,8 @@ class ReportControllerTest {
             .content("""
                 {
                   "deviationName": "Cold storage too warm",
-                  "severity": "HIGH",
-                  "occurredAt": "2025-01-15T10:00:00",
+                  "severity": "MAJOR",
+                  "timestamp": "2025-01-15T10:00",
                   "noticedBy": "Jane Doe",
                   "reportedTo": "Manager Smith",
                   "processedBy": "Jane Doe",
@@ -222,7 +222,7 @@ class ReportControllerTest {
             .content("""
                 {
                   "deviationName": "Cold storage too warm",
-                  "occurredAt": "2025-01-15T10:00:00",
+                  "timestamp": "2025-01-15T10:00",
                   "noticedBy": "Jane Doe",
                   "reportedTo": "Manager Smith",
                   "processedBy": "Jane Doe",

@@ -91,19 +91,19 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    ComplianceStats foodStats = summary.getFoodStats();
-    assertThat(foodStats.getTotalTasks()).isEqualTo(10);
-    assertThat(foodStats.getCompletedTasks()).isEqualTo(8);
-    assertThat(foodStats.getDeviatedTasks()).isEqualTo(2);
-    assertThat(foodStats.getCompletionRate()).isEqualTo(80.0);
-    assertThat(foodStats.getTemperatureReadings()).isEqualTo(20);
-    assertThat(foodStats.getOutOfRangeReadings()).isEqualTo(3);
+    ComplianceStats foodStats = summary.foodStats();
+    assertThat(foodStats.totalTasks()).isEqualTo(10);
+    assertThat(foodStats.completedTasks()).isEqualTo(8);
+    assertThat(foodStats.deviatedTasks()).isEqualTo(2);
+    assertThat(foodStats.completionRate()).isEqualTo(80.0);
+    assertThat(foodStats.temperatureReadings()).isEqualTo(20);
+    assertThat(foodStats.outOfRangeReadings()).isEqualTo(3);
 
-    ComplianceStats alcStats = summary.getAlcoholStats();
-    assertThat(alcStats.getTotalTasks()).isEqualTo(5);
-    assertThat(alcStats.getCompletedTasks()).isEqualTo(5);
-    assertThat(alcStats.getCompletionRate()).isEqualTo(100.0);
-    assertThat(alcStats.getDeviatedTasks()).isEqualTo(0);
+    ComplianceStats alcStats = summary.alcoholStats();
+    assertThat(alcStats.totalTasks()).isEqualTo(5);
+    assertThat(alcStats.completedTasks()).isEqualTo(5);
+    assertThat(alcStats.completionRate()).isEqualTo(100.0);
+    assertThat(alcStats.deviatedTasks()).isEqualTo(0);
   }
 
   @Test
@@ -117,8 +117,8 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getCompletionRate()).isEqualTo(0.0);
-    assertThat(summary.getAlcoholStats().getCompletionRate()).isEqualTo(0.0);
+    assertThat(summary.foodStats().completionRate()).isEqualTo(0.0);
+    assertThat(summary.alcoholStats().completionRate()).isEqualTo(0.0);
   }
 
   @Test
@@ -132,7 +132,7 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getOutOfRangeRate()).isEqualTo(0.0);
+    assertThat(summary.foodStats().outOfRangeRate()).isEqualTo(0.0);
   }
 
   @Test
@@ -146,8 +146,8 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getPeriod().getFrom()).isEqualTo(from);
-    assertThat(summary.getPeriod().getTo()).isEqualTo(to);
+    assertThat(summary.period().from()).isEqualTo(from);
+    assertThat(summary.period().to()).isEqualTo(to);
   }
 
   @Test
@@ -167,8 +167,8 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getUnresolvedItems()).hasSize(1);
-    assertThat(summary.getUnresolvedItems().get(0).getName()).isEqualTo("Fridge temperature check");
+    assertThat(summary.unresolvedItems()).hasSize(1);
+    assertThat(summary.unresolvedItems().get(0).name()).isEqualTo("Fridge temperature check");
     verify(taskMapper).toUnresolvedDto(deviatedTask);
   }
 
@@ -186,7 +186,7 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getCompletionRate()).isEqualTo(100.0);
+    assertThat(summary.foodStats().completionRate()).isEqualTo(100.0);
   }
 
   @Test
@@ -217,24 +217,24 @@ class ReportServiceTest {
 
     InspectionReport report = reportService.generateInspection(orgId, from, to);
 
-    assertThat(report.getChecklists().getChecklists()).hasSize(2);
+    assertThat(report.checklists().checklists()).hasSize(2);
 
-    var weeklyRecord = report.getChecklists().getChecklists().stream()
-        .filter(record -> record.getName().equals("Weekly food safety"))
+    var weeklyRecord = report.checklists().checklists().stream()
+        .filter(record -> record.name().equals("Weekly food safety"))
         .findFirst()
         .orElseThrow();
-    assertThat(weeklyRecord.getCompletionsInPeriod()).isEqualTo(2);
-    assertThat(weeklyRecord.getExpectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.WEEKLY));
-    assertThat(weeklyRecord.getAverageCompletionRate()).isEqualTo(75.0);
-    assertThat(weeklyRecord.getDeviatedTasks()).isEqualTo(1);
+    assertThat(weeklyRecord.completionsInPeriod()).isEqualTo(2);
+    assertThat(weeklyRecord.expectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.WEEKLY));
+    assertThat(weeklyRecord.averageCompletionRate()).isEqualTo(75.0);
+    assertThat(weeklyRecord.deviatedTasks()).isEqualTo(1);
 
-    var dailyRecord = report.getChecklists().getChecklists().stream()
-        .filter(record -> record.getName().equals("Daily opening"))
+    var dailyRecord = report.checklists().checklists().stream()
+        .filter(record -> record.name().equals("Daily opening"))
         .findFirst()
         .orElseThrow();
-    assertThat(dailyRecord.getCompletionsInPeriod()).isEqualTo(1);
-    assertThat(dailyRecord.getExpectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.DAILY));
-    assertThat(dailyRecord.getAverageCompletionRate()).isEqualTo(100.0);
+    assertThat(dailyRecord.completionsInPeriod()).isEqualTo(1);
+    assertThat(dailyRecord.expectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.DAILY));
+    assertThat(dailyRecord.averageCompletionRate()).isEqualTo(100.0);
   }
 
   @Test
@@ -273,18 +273,18 @@ class ReportServiceTest {
 
     InspectionReport report = reportService.generateInspection(orgId, from, to);
 
-    assertThat(report.getDeviationsByDay()).hasSize(2);
-    assertThat(report.getDeviationsByDay().get(0).getCount()).isEqualTo(2);
-    assertThat(report.getDeviationsByDay().get(1).getCount()).isEqualTo(1);
+    assertThat(report.deviationsByDay()).hasSize(2);
+    assertThat(report.deviationsByDay().get(0).count()).isEqualTo(2);
+    assertThat(report.deviationsByDay().get(1).count()).isEqualTo(1);
 
-    assertThat(report.getMissedTasks()).hasSize(1);
-    assertThat(report.getMissedTasks().get(0).getTaskName()).isEqualTo("Freezer reading");
-    assertThat(report.getMissedTasks().get(0).getMissedCount()).isEqualTo(3);
+    assertThat(report.missedTasks()).hasSize(1);
+    assertThat(report.missedTasks().get(0).taskName()).isEqualTo("Freezer reading");
+    assertThat(report.missedTasks().get(0).missedCount()).isEqualTo(3);
 
-    assertThat(report.getTemperatureLog()).hasSize(1);
-    assertThat(report.getTemperatureLog().get(0).getZoneId()).isEqualTo(90L);
-    assertThat(report.getTemperatureLog().get(0).getZoneName()).isEqualTo("Main freezer");
-    assertThat(report.getTemperatureLog().get(0).isWithinRange()).isFalse();
+    assertThat(report.temperatureLog()).hasSize(1);
+    assertThat(report.temperatureLog().get(0).zoneId()).isEqualTo(90L);
+    assertThat(report.temperatureLog().get(0).zoneName()).isEqualTo("Main freezer");
+    assertThat(report.temperatureLog().get(0).withinRange()).isFalse();
   }
 
   private void stubSummaryCounts() {
@@ -373,7 +373,7 @@ class ReportServiceTest {
 
     DeviationReport request = new DeviationReport();
     request.setDeviationName("Cold chain breach");
-    request.setSeverity(DeviationSeverity.HIGH);
+    request.setSeverity(DeviationSeverity.MAJOR);
     request.setOccurredAt(LocalDateTime.of(2026, 4, 1, 10, 0));
     request.setDescription("Fridge temperature exceeded 8°C for 2 hours.");
 
@@ -391,8 +391,8 @@ class ReportServiceTest {
 
     DeviationCreatedResponse response = reportService.createDeviationReport(request, userId, orgId);
 
-    assertThat(response.getId()).isEqualTo(reportId);
-    assertThat(response.getCreatedAt()).isEqualTo(createdAt);
+    assertThat(response.id()).isEqualTo(reportId);
+    assertThat(response.createdAt()).isEqualTo(createdAt);
     verify(deviationReportRepository).save(any(DeviationReportModel.class));
   }
 

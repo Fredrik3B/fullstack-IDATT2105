@@ -21,5 +21,8 @@ public enum DocumentCategory {
 	HACCP,
 
 	/** Emergency plans and incident response procedures. */
-	EMERGENCY
+	EMERGENCY,
+
+  /** Created deviation reports */
+  DEVIATION_REPORT
 }
