@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/**
+ * JPA repository for {@link DeviationReportModel}.
+ */
 public interface DeviationReportRepository extends JpaRepository<DeviationReportModel, UUID> {
   List<DeviationReportModel> findAllByOrganizationId(UUID organizationId);
 }

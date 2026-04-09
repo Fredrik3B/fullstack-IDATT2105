@@ -23,6 +23,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a manually filed deviation report.
+ *
+ * <p>Deviation reports follow the Norwegian food-authority form structure and capture
+ * the incident description, immediate actions taken, believed cause, and corrective
+ * measures. The {@code createdAt} timestamp is set automatically via a
+ * {@link jakarta.persistence.PrePersist} callback.
+ */
 @Entity
 @Getter
 @Setter

@@ -9,6 +9,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
+/**
+ * Request DTO for creating or updating a temperature zone.
+ *
+ * <p>Both {@code targetMin} and {@code targetMax} are required and must satisfy
+ * {@code targetMin <= targetMax} (validated by the service layer).
+ */
 public record CreateTemperatureZoneRequest(
 	@NotNull
 	IcModule module,

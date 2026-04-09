@@ -30,6 +30,13 @@ import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Service for uploading, retrieving, downloading, and deleting compliance documents.
+ *
+ * <p>Uploaded files are stored under {@code app.document-storage-path} (default
+ * {@code ./uploads/documents/}) in a per-organisation subdirectory identified by the
+ * organisation UUID. External-URL documents skip file storage entirely.
+ */
 @Service
 @RequiredArgsConstructor
 public class DocumentService {
@@ -44,6 +51,23 @@ public class DocumentService {
     @Value("${app.document-storage-path:./uploads/documents/}")
     private String storagePath;
 
+    /**
+     * Saves a new document record for the caller's organisation.
+     *
+     * <p>Exactly one of {@code file} or {@code externalUrl} must be non-blank.
+     * When a file is provided it is written to the organisation's storage directory.
+     *
+     * @param file        the uploaded file (nullable if {@code externalUrl} is provided)
+     * @param externalUrl link to an external document (nullable if {@code file} is provided)
+     * @param name        display name for the document
+     * @param description optional description
+     * @param category    document category
+     * @param module      compliance module the document belongs to
+     * @param expiryDate  optional expiry date
+     * @param principal   the authenticated principal used to resolve organisation and uploader
+     * @return the persisted document as a DTO
+     * @throws org.springframework.web.server.ResponseStatusException (400) if neither file nor URL is provided
+     */
     public DocumentDto uploadDocument(
             MultipartFile file,
             String externalUrl,
@@ -84,6 +108,14 @@ public class DocumentService {
         return documentMapper.toDto(saved);
     }
 
+    /**
+     * Returns documents for the caller's organisation, optionally filtered by category and/or module.
+     *
+     * @param category  optional category filter
+     * @param module    optional module filter
+     * @param principal the authenticated principal used to resolve the organisation
+     * @return list of matching document DTOs
+     */
     public List<DocumentDto> getDocuments(
             DocumentCategory category,
             DocumentModule module,
@@ -105,6 +137,15 @@ public class DocumentService {
         return docs.stream().map(documentMapper::toDto).toList();
     }
 
+    /**
+     * Returns a {@link Resource} for the file associated with a stored document.
+     *
+     * @param documentId the ID of the document to download
+     * @param principal  the authenticated principal; must own the document's organisation
+     * @return a readable {@link Resource} pointing to the file on disk
+     * @throws org.springframework.web.server.ResponseStatusException (404) if the file does not exist on disk
+     * @throws org.springframework.web.server.ResponseStatusException (403) if the document belongs to another organisation
+     */
     public Resource downloadDocument(Long documentId, JwtAuthenticatedPrincipal principal) {
         DocumentModel doc = requireOwnDocument(documentId, principal.getOrganizationId());
         Path filePath = Paths.get(doc.getStoragePath());
@@ -119,14 +160,38 @@ public class DocumentService {
         }
     }
 
+    /**
+     * Returns the MIME type of a stored document file.
+     *
+     * @param documentId the document ID
+     * @param principal  the authenticated principal; must own the document's organisation
+     * @return the stored content type string (e.g. {@code "application/pdf"})
+     */
     public String getDocumentContentType(Long documentId, JwtAuthenticatedPrincipal principal) {
         return requireOwnDocument(documentId, principal.getOrganizationId()).getFileType();
     }
 
+    /**
+     * Returns the original file name of a stored document.
+     *
+     * @param documentId the document ID
+     * @param principal  the authenticated principal; must own the document's organisation
+     * @return the original file name as uploaded
+     */
     public String getDocumentFileName(Long documentId, JwtAuthenticatedPrincipal principal) {
         return requireOwnDocument(documentId, principal.getOrganizationId()).getOriginalFileName();
     }
 
+    /**
+     * Deletes a document record and its associated file from disk (if any).
+     *
+     * <p>If the file cannot be removed from disk, a warning is logged but the database
+     * record is still deleted.
+     *
+     * @param documentId the ID of the document to delete
+     * @param principal  the authenticated principal; must own the document's organisation
+     * @throws org.springframework.web.server.ResponseStatusException (403) if the document belongs to another organisation
+     */
     public void deleteDocument(Long documentId, JwtAuthenticatedPrincipal principal) {
         DocumentModel doc = requireOwnDocument(documentId, principal.getOrganizationId());
         if (doc.getStoragePath() != null && !doc.getStoragePath().isBlank()) {
@@ -137,6 +202,14 @@ public class DocumentService {
     }
 
 
+    /**
+     * Saves an uploaded file to the organisation's storage directory and returns the absolute path.
+     *
+     * @param file  the multipart file to persist
+     * @param orgId the organisation ID used as subdirectory name
+     * @return absolute path to the saved file
+     * @throws org.springframework.web.server.ResponseStatusException (500) if the file cannot be written
+     */
     private String saveFileToDisk(MultipartFile file, UUID orgId) {
         try {
             Path orgDir = Paths.get(storagePath).toAbsolutePath().normalize().resolve(orgId.toString());
@@ -151,6 +224,11 @@ public class DocumentService {
         }
     }
 
+    /**
+     * Attempts to delete a file from disk. Failures are logged as warnings and swallowed.
+     *
+     * @param path absolute path of the file to delete
+     */
     private void deleteFileFromDisk(String path) {
         try {
             Files.deleteIfExists(Paths.get(path));
@@ -159,6 +237,14 @@ public class DocumentService {
         }
     }
 
+    /**
+     * Loads a document and asserts it belongs to the given organisation.
+     *
+     * @param documentId the document ID to look up
+     * @param orgId      the organisation that must own the document
+     * @return the document entity
+     * @throws org.springframework.web.server.ResponseStatusException (404) if not found, (403) if ownership check fails
+     */
     private DocumentModel requireOwnDocument(Long documentId, UUID orgId) {
         DocumentModel doc = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Document not found"));
