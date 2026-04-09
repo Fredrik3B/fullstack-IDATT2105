@@ -624,7 +624,7 @@ class ChecklistServiceTest {
 
     when(checklistRepository.findByIdAndOrganization_Id(40L, orgId)).thenReturn(Optional.of(cl));
     when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(eq(40L), any())).thenReturn(List.of());
+    when(tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(eq(40L), any())).thenReturn(new java.util.ArrayList<>());
     when(checklistMapper.taskTemplateComparator()).thenReturn(Comparator.comparing(TaskTemplate::getTitle));
     when(checklistMapper.toCardResponse(any(), any(), any(), any(), any(Boolean.class)))
         .thenReturn(stubCard(40L));
