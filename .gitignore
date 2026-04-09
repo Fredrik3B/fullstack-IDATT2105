@@ -26,6 +26,7 @@ replay_pid*
 
 
 .env
+.env.local
 
 # Uploaded documents (stored on disk, not tracked in git)
 uploads/

@@ -16,6 +16,8 @@ services:
   backend:
     build: ./backend
     container_name: app-backend
+    env_file:
+      - .env.local
     depends_on:
       - mysql
     environment:
@@ -35,11 +37,12 @@ services:
       - "5173:5173"
     profiles: ["run"]
 
-
   backend-test:
     build: ./backend
     container_name: backend-test
     command: mvn test
+    env_file:
+      - .env.local
     depends_on:
       - mysql
     environment:
@@ -54,7 +57,7 @@ services:
     container_name: frontend-test
     command: npm run dev
     depends_on:
-      - backend
+      - backend-test
     ports:
       - "5173:5173"
     profiles: ["test"]
@@ -69,7 +72,9 @@ services:
       - frontend-test
     environment:
       CYPRESS_baseUrl: http://frontend-test:5173
-    command: ["npx", "cypress", "run"]
+    command: >
+      sh -c "npx wait-on http://frontend-test:5173 &&
+           npx cypress run"
     profiles: ["test"]
 
 volumes:
