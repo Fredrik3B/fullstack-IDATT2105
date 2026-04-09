@@ -3,119 +3,174 @@ Restaurant management application
 
 ## Backend Structure
 
-The backend foundation is centered on a simple tenant-aware domain model.
-`Organization` isolates each restaurant's data, while operational entities such as checklists, logs,
-deviations, and alcohol compliance records are linked back to both the organization and the user when relevant.
+The backend is organized around a tenant-aware restaurant domain.
+`OrganizationModel` is the core boundary for most operational data, while user access, checklist execution,
+temperature logging, document storage, and deviation reporting are split into focused modules.
 
 Key relationships:
-- One `Organization` owns many `User`, `Checklist`, `TemperatureLog`, `Deviation`, and `AlcoholCompliance` records.
-- One `Checklist` contains many `Task` entries.
-- One `Task` can have many `TaskLog` records.
-- A `User` can create operational records such as task logs, temperature logs, deviations, and alcohol compliance entries.
+- One `OrganizationModel` can have many `UserModel`, `ChecklistModel`, `DocumentModel`, `DeviationReportModel`, and `JoinRequestModel` records.
+- `UserModel` belongs to an organization and can hold many `RoleModel` entries through the `user_roles` join table.
+- `ChecklistModel` belongs to an organization and is composed from reusable `TaskTemplate` entries.
+- `TasksModel` represents activated checklist tasks for a specific period and links a checklist to a task template.
+- `TemperatureMeasurementModel` records a measured value for an activated task, checklist, organization, and user.
+- `ChecklistModuleState` and some supporting models currently store `organizationId` directly instead of a JPA relation.
 
 ```mermaid
 classDiagram
 
 class AuditableEntity {
   Long id
-  LocalDateTime createdAt
-  LocalDateTime updatedAt
 }
 
-class Organization {
+class OrganizationModel {
+  UUID id
   String name
-  String organizationNumber
+  String joinCode
 }
 
-class Checklist {
+class UserModel {
+  UUID id
+  String email
+  String password
+  String firstName
+  String lastName
+}
+
+class RoleModel {
+  Integer id
+  RoleEnum name
+}
+
+class JoinRequestModel {
+  UUID id
+  JoinOrgStatus status
+  LocalDateTime createdAt
+  LocalDateTime resolvedAt
+}
+
+class ChecklistModel {
   String name
   String description
   ChecklistFrequency frequency
   ComplianceArea complianceArea
+  String activePeriodKey
+  boolean recurring
+  boolean displayedOnWorkbench
   boolean active
 }
 
-class Task {
+class TaskTemplate {
   String title
-  String description
-  int orderIndex
-  boolean requiredTask
-  boolean active
-}
-
-class TaskLog {
-  boolean completed
-  String notes
-  LocalDateTime timestamp
-}
-
-class TemperatureLog {
-  String location
-  BigDecimal value
-  TemperatureZone temperatureZone
-  BigDecimal minimumAllowed
-  BigDecimal maximumAllowed
-  LocalDateTime timestamp
-}
-
-class Deviation {
-  String title
-  String description
-  DeviationSeverity severity
-  DeviationStatus status
+  SectionTypes sectionType
   ComplianceArea complianceArea
-  LocalDateTime reportedAt
-  LocalDateTime resolvedAt
+  String unit
+  String meta
+  BigDecimal targetMin
+  BigDecimal targetMax
+  UUID organisationId
 }
 
-class AlcoholCompliance {
-  AlcoholComplianceType complianceType
-  boolean compliant
-  String details
-  String notes
-  LocalDateTime performedAt
-}
-
-class User {
-  String username
-  String fullName
-  String email
-  String passwordHash
-  Role role
+class TasksModel {
+  boolean completed
+  boolean flagged
   boolean active
+  String meta
+  String periodKey
+  LocalDateTime endedAt
+}
+
+class TemperatureZoneModel {
+  String name
+  TemperatureZone zoneType
+  ComplianceArea complianceArea
+  BigDecimal targetMin
+  BigDecimal targetMax
+  UUID organizationId
+}
+
+class TemperatureMeasurementModel {
+  ComplianceArea complianceArea
+  String periodKey
+  BigDecimal valueC
+  LocalDateTime measuredAt
+}
+
+class DocumentModel {
+  Long id
+  String name
+  String description
+  DocumentCategory category
+  DocumentModule module
+  String externalUrl
+  String originalFileName
+  String fileType
+  Long fileSize
+  String storagePath
+  LocalDate expiryDate
+  LocalDateTime uploadedAt
+}
+
+class DeviationReportModel {
+  UUID id
+  String deviationName
+  DeviationSeverity severity
+  LocalDateTime occurredAt
+  String noticedBy
+  String reportedTo
+  String processedBy
+  String description
+  String immediateAction
+  String believedCause
+  String correctiveMeasures
+  String correctiveMeasuresDone
+  LocalDateTime createdAt
+}
+
+class ChecklistModuleState {
+  Long id
+  UUID organizationId
+  ComplianceArea complianceArea
+  LocalDateTime modifiedAt
 }
 
 
 
-AuditableEntity <|-- Organization
-AuditableEntity <|-- User
-AuditableEntity <|-- Checklist
-AuditableEntity <|-- Task
-AuditableEntity <|-- TaskLog
-AuditableEntity <|-- TemperatureLog
-AuditableEntity <|-- Deviation
-AuditableEntity <|-- AlcoholCompliance
+AuditableEntity <|-- ChecklistModel
+AuditableEntity <|-- TaskTemplate
+AuditableEntity <|-- TasksModel
+AuditableEntity <|-- TemperatureZoneModel
+AuditableEntity <|-- TemperatureMeasurementModel
 
-Organization "1" --> "*" User
-Organization "1" --> "*" Checklist
-Organization "1" --> "*" TemperatureLog
-Organization "1" --> "*" Deviation
-Organization "1" --> "*" AlcoholCompliance
+OrganizationModel "1" --> "*" UserModel
+OrganizationModel "1" --> "*" ChecklistModel
+OrganizationModel "1" --> "*" DocumentModel
+OrganizationModel "1" --> "*" DeviationReportModel
+OrganizationModel "1" --> "*" JoinRequestModel
 
-Checklist "1" --> "*" Task
-Task "1" --> "*" TaskLog
+UserModel "*" --> "1" OrganizationModel
+UserModel "*" --> "*" RoleModel
+JoinRequestModel "*" --> "1" UserModel : requester
+JoinRequestModel "*" --> "1" UserModel : resolvedBy
+JoinRequestModel "*" --> "1" OrganizationModel
 
-User "1" --> "*" TaskLog
-User "1" --> "*" TemperatureLog
-User "1" --> "*" Deviation
-User "1" --> "*" AlcoholCompliance
+ChecklistModel "*" --> "1" OrganizationModel
+ChecklistModel "*" --> "*" TaskTemplate
+TasksModel "*" --> "1" ChecklistModel
+TasksModel "*" --> "1" TaskTemplate
 
-User "*" --> "1" Organization
-Checklist "*" --> "1" Organization
-TemperatureLog "*" --> "1" Organization
-Deviation "*" --> "1" Organization
-AlcoholCompliance "*" --> "1" Organization
-Task "*" --> "1" Checklist
-TaskLog "*" --> "1" Task
-TaskLog "*" --> "1" User
+TaskTemplate "*" --> "0..1" TemperatureZoneModel
+TemperatureMeasurementModel "*" --> "1" ChecklistModel
+TemperatureMeasurementModel "*" --> "1" TasksModel
+TemperatureMeasurementModel "*" --> "1" OrganizationModel
+TemperatureMeasurementModel "*" --> "1" UserModel : recordedBy
+
+DocumentModel "*" --> "1" OrganizationModel
+DocumentModel "*" --> "1" UserModel : uploadedBy
+
+DeviationReportModel "*" --> "1" OrganizationModel
+DeviationReportModel "*" --> "1" UserModel : reportedByUser
+
+ChecklistModuleState ..> OrganizationModel : organizationId
+TaskTemplate ..> OrganizationModel : organisationId
+TemperatureZoneModel ..> OrganizationModel : organizationId
 ```
