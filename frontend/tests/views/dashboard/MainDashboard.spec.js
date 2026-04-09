@@ -56,6 +56,7 @@ import { useAuthStore } from '@/stores/auth'
 import { fetchChecklists } from '@/api/checklists'
 import { fetchDocuments } from '@/api/documents'
 import { fetchTemperatureMeasurements } from '@/api/temperatureMeasurements'
+import { isTemperatureTask, isTemperatureDeviation } from '@/composables/ic-checklists/temperature'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -116,6 +117,8 @@ beforeEach(() => {
   fetchChecklists.mockResolvedValue(makeChecklistResponse())
   fetchDocuments.mockResolvedValue([])
   fetchTemperatureMeasurements.mockResolvedValue([])
+  isTemperatureTask.mockReturnValue(false)
+  isTemperatureDeviation.mockReturnValue(false)
 })
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -129,7 +132,7 @@ describe('MainDashboard', () => {
       const wrapper = mountView()
       await flushPromises()
 
-      expect(wrapper.find('.welcome-accent').text()).toBe('Jane Doe')
+      expect(wrapper.find('.welcome-accent').text()).toBe('Jane')
     })
 
     it('falls back to email when user has no name', async () => {
@@ -156,7 +159,7 @@ describe('MainDashboard', () => {
       expect(quickActions).toHaveLength(4)
       expect(wrapper.text()).toContain('Start IC-Food')
       expect(wrapper.text()).toContain('Start IC-Alcohol')
-      expect(wrapper.text()).toContain('Report deviation')
+      expect(wrapper.text()).toContain('Report new deviation')
       expect(wrapper.text()).toContain('Open documents')
     })
 
@@ -386,14 +389,59 @@ describe('MainDashboard', () => {
       expect(mockRouterPush).toHaveBeenCalledWith({ name: 'ic-alcohol-dashboard' })
     })
 
-    it('navigates to reports (deviation) when Report deviation is clicked', async () => {
+    it('navigates to IC-Food when active deviations are on food checklists', async () => {
+      isTemperatureTask.mockReturnValue(true)
+      isTemperatureDeviation.mockReturnValue(true)
+      fetchChecklists
+        .mockResolvedValueOnce(makeChecklistResponse([
+          makeChecklist({
+            sections: [
+              {
+                id: 's1',
+                items: [
+                  { id: 't1', state: 'todo', type: 'TEMPERATURE', latestMeasurement: { valueC: 10 } },
+                ],
+              },
+            ],
+          }),
+        ]))
+        .mockResolvedValueOnce(makeChecklistResponse())
+
       const wrapper = mountView()
       await flushPromises()
 
-      const btn = wrapper.findAll('.quick-action-card').find(b => b.text().includes('Report deviation'))
+      const btn = wrapper.findAll('.stat-card').find(b => b.find('.stat-label').text() === 'Active temperature deviations')
       await btn.trigger('click')
 
-      expect(mockRouterPush).toHaveBeenCalledWith({ name: 'reports', query: { action: 'deviation' } })
+      expect(mockRouterPush).toHaveBeenCalledWith({ name: 'ic-food-dashboard' })
+    })
+
+    it('navigates to IC-Alcohol when active deviations are on alcohol checklists', async () => {
+      isTemperatureTask.mockReturnValue(true)
+      isTemperatureDeviation.mockReturnValue(true)
+      fetchChecklists
+        .mockResolvedValueOnce(makeChecklistResponse())
+        .mockResolvedValueOnce(makeChecklistResponse([
+          makeChecklist({
+            id: 'alcohol-1',
+            sections: [
+              {
+                id: 's1',
+                items: [
+                  { id: 't1', state: 'todo', type: 'TEMPERATURE', latestMeasurement: { valueC: 10 } },
+                ],
+              },
+            ],
+          }),
+        ]))
+
+      const wrapper = mountView()
+      await flushPromises()
+
+      const btn = wrapper.findAll('.stat-card').find(b => b.find('.stat-label').text() === 'Active temperature deviations')
+      await btn.trigger('click')
+
+      expect(mockRouterPush).toHaveBeenCalledWith({ name: 'ic-alcohol-dashboard' })
     })
 
     it('navigates to documents when Open documents is clicked', async () => {
