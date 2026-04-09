@@ -75,6 +75,24 @@
 </template>
 
 <script setup>
+/**
+ * ChecklistLibraryModal
+ *
+ * Modal that lists all saved checklists for the current module so managers can
+ * browse them and load one onto the active workbench. Checklists already on the
+ * workbench are shown as disabled with an "Already loaded" label. While a
+ * checklist is being opened its row shows an "Opening…" loading state.
+ *
+ * @prop {boolean}        [open]               - Controls modal visibility (v-model compatible).
+ * @prop {string}         [moduleLabel]        - Module name shown in the header eyebrow.
+ * @prop {Array}          [cards]              - All checklist objects for this module.
+ * @prop {Array}          [loadedChecklistIds] - IDs of checklists currently on the workbench.
+ * @prop {string|number|null} [openingChecklistId] - ID of the checklist currently being loaded.
+ *
+ * @emits update:open      - Emitted with `false` when the modal closes.
+ * @emits close            - Emitted when the modal closes.
+ * @emits open-checklist   - Payload: the selected checklist card object.
+ */
 import { computed } from 'vue'
 
 const props = defineProps({

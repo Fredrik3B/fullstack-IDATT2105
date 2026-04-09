@@ -46,6 +46,16 @@
 </template>
 
 <script setup>
+/**
+ * ChecklistSummaryCard
+ *
+ * Overview card shown at the top of IC module dashboards. Aggregates task states
+ * across all workbench checklists for the selected period and displays a
+ * segmented progress bar (completed / pending / not started) with a legend.
+ * Segment widths and aria labels are derived from the `countTaskStates` composable.
+ *
+ * @prop {Array} [cards] - Array of checklist card objects from the workbench.
+ */
 import { computed } from 'vue'
 import { countTaskStates, getSummaryAriaLabel } from '@/composables/ic-checklists/checklistSummary'
 

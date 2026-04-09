@@ -174,6 +174,43 @@
 </template>
 
 <script setup>
+/**
+ * ChecklistCard
+ *
+ * The interactive workbench card for a single checklist run. Staff use this card to
+ * complete tasks, flag pending issues, log temperature readings, and submit the run.
+ *
+ * Key behaviours:
+ * - Task completion is blocked for temperature tasks that do not yet have a saved
+ *   reading for the current period.
+ * - Submitting or logging a temperature always shows a SharedConfirmDialog first.
+ * - Period expiry is derived from the `period` / `activePeriodKey` props via the
+ *   recurrence composable; expired periods show a distinct overdue submit bar.
+ * - The submit button is locked when `activePeriodKey` does not match the current
+ *   real period (i.e. the next run was pre-prepared before the period started).
+ *
+ * @prop {string}         [id]                  - Checklist ID; used to anchor-scroll and emit events.
+ * @prop {string}         title                 - Display title of the checklist.
+ * @prop {string}         [period]              - Recurrence: 'daily' | 'weekly' | 'monthly'.
+ * @prop {string}         [activePeriodKey]     - Period key string of the currently active run.
+ * @prop {string}         subtitle              - Supporting subtitle shown in the card header.
+ * @prop {string}         statusLabel           - Text for the status pill badge.
+ * @prop {string}         [statusTone]          - Colour tone for the status pill: 'success' | 'warning' | 'muted'.
+ * @prop {number|null}    [progress]            - Completion percentage (0–100); null hides the bar.
+ * @prop {boolean}        [isSubmitting]        - Disables the submit button and shows a loading state.
+ * @prop {Array}          sections              - Array of `{ title, items[] }` section objects.
+ * @prop {boolean}        [featured]            - Applies accent border styling.
+ * @prop {string}         [moduleChip]          - Module label badge text (default: 'IC-Food').
+ * @prop {boolean}        [canManageChecklists] - Shows the Edit button when true.
+ * @prop {boolean}        [highlightedWorkbench]- Applies a highlight ring (e.g. after navigating from a link).
+ * @prop {Date|string|number|null} [now]        - Reference time; defaults to `new Date()`.
+ *
+ * @emits toggle-task       - `{ sectionIndex, taskIndex }` – user toggled a task's completed state.
+ * @emits toggle-pending    - `{ sectionIndex, taskIndex }` – user flagged/unflagged a task.
+ * @emits edit-checklist    - User clicked the Edit button.
+ * @emits submit-checklist  - `{ checklistId }` – user confirmed checklist submission.
+ * @emits log-temperature   - `{ checklistId, taskId, valueC }` – user confirmed a temperature reading.
+ */
 import { computed, reactive } from 'vue'
 import { getPeriodEnd, getPeriodKey, isPeriodExpired, normalizePeriodEnum } from '@/composables/ic-checklists/recurrence'
 import SharedConfirmDialog from './SharedConfirmDialog.vue'
@@ -344,15 +381,31 @@ function handleSubmitChecklist() {
   })
 }
 
+/**
+ * Returns the latest temperature measurement object attached to a task, or null.
+ * @param {Object} task - Task item from a checklist section.
+ * @returns {Object|null} The `latestMeasurement` object, or null if absent.
+ */
 function getLatestMeasurement(task) {
   return task?.latestMeasurement ?? null
 }
 
+/**
+ * Returns true if a temperature task cannot be completed yet because no reading
+ * has been saved for the current period key.
+ * @param {Object} task - Task item from a checklist section.
+ * @returns {boolean} Whether task completion should be blocked.
+ */
 function isCompletionBlocked(task) {
   if (task?.state === 'completed') return false
   return isTemperatureTask(task) && !hasTemperatureMeasurementForPeriod(task, props.activePeriodKey)
 }
 
+/**
+ * Returns true if the current temperature draft for the task is a finite number.
+ * @param {Object} task - Task item that must have a valid `id` property.
+ * @returns {boolean} Whether the draft value is ready to be saved.
+ */
 function canSaveTemperature(task) {
   const id = task?.id
   if (!id) return false
@@ -385,6 +438,11 @@ function handleSaveTemperature(task) {
   })
 }
 
+/**
+ * Opens the shared confirm dialog with the provided configuration.
+ * @param {{ kicker?: string, title?: string, message?: string, detail?: string,
+ *           confirmLabel?: string, tone?: string, onConfirm?: Function }} config
+ */
 function openConfirmDialog(config) {
   confirmDialog.open = true
   confirmDialog.kicker = config?.kicker ?? ''
@@ -397,6 +455,7 @@ function openConfirmDialog(config) {
   confirmDialog.onConfirm = typeof config?.onConfirm === 'function' ? config.onConfirm : null
 }
 
+/** Executes the confirm dialog's `onConfirm` callback, guarding against double-clicks. */
 function runConfirmDialogAction() {
   if (confirmDialog.isProcessing) return
   confirmDialog.isProcessing = true
@@ -409,6 +468,7 @@ function runConfirmDialogAction() {
   }
 }
 
+/** Resets and closes the confirm dialog. */
 function closeConfirmDialog() {
   confirmDialog.open = false
   confirmDialog.kicker = ''
