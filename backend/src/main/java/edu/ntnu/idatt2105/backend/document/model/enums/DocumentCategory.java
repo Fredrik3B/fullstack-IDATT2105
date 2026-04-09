@@ -6,5 +6,6 @@ public enum DocumentCategory {
     CERTIFICATE,
     AUDIT_REPORT,
     HACCP,
-    EMERGENCY
+    EMERGENCY,
+    DEVIATION_REPORT
 }

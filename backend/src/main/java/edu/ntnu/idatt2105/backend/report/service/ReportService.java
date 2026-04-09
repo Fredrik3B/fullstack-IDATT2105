@@ -1,6 +1,19 @@
 package edu.ntnu.idatt2105.backend.report.service;
 
 
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import edu.ntnu.idatt2105.backend.checklist.controller.ChecklistController;
+import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
 import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
@@ -33,6 +46,7 @@ import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -43,7 +57,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @AllArgsConstructor
@@ -56,6 +74,11 @@ public class ReportService {
   private final OrganizationRepository organizationRepository;
   private final TaskMapper taskMapper;
   private final DeviationReportRepository deviationReportRepository;
+  private final DocumentRepository documentRepository;
+  private final DocumentService documentService;
+
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReportService.class);
 
   private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to, ComplianceArea area) {
     int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
@@ -284,6 +307,70 @@ public class ReportService {
         .build();
 
     DeviationReportModel saved = deviationReportRepository.save(entity);
+
+    byte[] pdf = generateDeviationReportPdf(saved);
+    saveDeviationReportAsDocument(pdf, saved);
+
     return new DeviationCreatedResponse(saved.getId(), saved.getCreatedAt());
   }
+
+  private void saveDeviationReportAsDocument(byte[] pdf, DeviationReportModel report) {
+    String fileName = "deviation-report-" + report.getId() + ".pdf";
+    String path = documentService.storeFile(pdf, report.getOrganization().getId(), fileName);
+    DocumentModel document = DocumentModel.builder()
+        .name("Deviation Report - " + report.getDeviationName())
+        .description("Auto-generated deviation report filed on " + report.getCreatedAt())
+        .category(DocumentCategory.DEVIATION_REPORT)
+        .module(DocumentModule.SHARED)
+        .originalFileName(fileName)
+        .fileType("application/pdf")
+        .fileSize((long) pdf.length)
+        .storagePath(path)
+        .uploadedBy(report.getReportedByUser())
+        .organization(report.getOrganization())
+        .build();
+
+    documentRepository.save(document);
+  }
+
+  private byte[] generateDeviationReportPdf(DeviationReportModel report) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    try {
+      PdfWriter writer = new PdfWriter(out);
+      PdfDocument pdf = new PdfDocument(writer);
+      Document document = new Document(pdf);
+
+      PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+
+      document.add(new Paragraph("Deviation Report")
+          .setFontSize(20).setFont(bold));
+      document.add(new Paragraph(" "));
+
+      document.add(new Paragraph("Incident Details").setFontSize(14).setFont(bold));
+      document.add(new Paragraph("Deviation: " + report.getDeviationName()));
+      document.add(new Paragraph("Severity: " + report.getSeverity()));
+      document.add(new Paragraph("Occurred at: " + report.getOccurredAt()));
+      document.add(new Paragraph("Description: " + report.getDescription()));
+      document.add(new Paragraph(" "));
+
+      document.add(new Paragraph("People Involved").setFontSize(14).setFont(bold));
+      document.add(new Paragraph("Noticed by: " + report.getNoticedBy()));
+      document.add(new Paragraph("Reported to: " + report.getReportedTo()));
+      document.add(new Paragraph("Handled by: " + report.getProcessedBy()));
+      document.add(new Paragraph(" "));
+
+      document.add(new Paragraph("Response and Prevention").setFontSize(14).setFont(bold));
+      document.add(new Paragraph("Immediate action: " + report.getImmediateAction()));
+      document.add(new Paragraph("Believed cause: " + report.getBelievedCause()));
+      document.add(new Paragraph("Corrective measures: " + report.getCorrectiveMeasures()));
+      document.add(new Paragraph("Measures done: " + report.getCorrectiveMeasuresDone()));
+
+      document.close();
+    } catch (Exception e) {
+      LOGGER.error("Failed to generate deviation report PDF: {}", e.getMessage());
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to generate PDF");
+    }
+    return out.toByteArray();
+  }
+
 }
