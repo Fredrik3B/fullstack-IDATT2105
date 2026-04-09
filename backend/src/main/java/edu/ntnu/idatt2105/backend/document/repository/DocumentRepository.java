@@ -8,6 +8,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * JPA repository for {@link DocumentModel}.
+ *
+ * <p>Provides organisation-scoped lookup methods with optional filtering by
+ * {@link DocumentCategory} and/or {@link DocumentModule}.
+ */
 public interface DocumentRepository extends JpaRepository<DocumentModel, Long> {
 
     List<DocumentModel> findAllByOrganizationId(UUID organizationId);
