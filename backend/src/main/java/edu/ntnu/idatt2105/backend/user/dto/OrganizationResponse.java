@@ -4,6 +4,9 @@ import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Response DTO representing an organisation summary.
+ */
 @Data
 @Builder
 public class OrganizationResponse {
