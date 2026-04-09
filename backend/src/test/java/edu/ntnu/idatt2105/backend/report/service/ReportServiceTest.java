@@ -372,7 +372,7 @@ class ReportServiceTest {
 
     DeviationReport request = new DeviationReport();
     request.setDeviationName("Cold chain breach");
-    request.setSeverity(DeviationSeverity.HIGH);
+    request.setSeverity(DeviationSeverity.MAJOR);
     request.setOccurredAt(LocalDateTime.of(2026, 4, 1, 10, 0));
     request.setDescription("Fridge temperature exceeded 8°C for 2 hours.");
 

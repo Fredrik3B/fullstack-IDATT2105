@@ -59,7 +59,7 @@
 
           <label class="field">
             <span class="field-label">When did it happen <span class="required">*</span></span>
-            <input id="dev-time" v-model="form.timestamp" class="field-input" type="datetime-local" />
+            <input id="dev-time" v-model="form.occurredAt" class="field-input" type="datetime-local" />
           </label>
 
           <label class="field field--full">
@@ -169,7 +169,7 @@
  * DeviationReportForm
  *
  * Multi-section form for filing a deviation report. Collects incident details
- * (name, severity, timestamp, description), the people involved (noticed by,
+ * (name, severity, occurredAt, description), the people involved (noticed by,
  * reported to, handled by), and the response (immediate action, believed cause,
  * corrective measures, measures already completed).
  *
@@ -191,7 +191,7 @@ const error = ref('')
 const form = reactive({
   deviationName: '',
   severity: '',
-  timestamp: '',
+  occurredAt: '',
   noticedBy: '',
   reportedTo: '',
   processedBy: '',
@@ -205,7 +205,7 @@ const form = reactive({
 const isValid = computed(() => {
   return form.deviationName
     && form.severity
-    && form.timestamp
+    && form.occurredAt
     && form.noticedBy
     && form.reportedTo
     && form.processedBy

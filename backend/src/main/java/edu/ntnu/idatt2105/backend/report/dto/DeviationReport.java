@@ -1,7 +1,11 @@
 package edu.ntnu.idatt2105.backend.report.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import edu.ntnu.idatt2105.backend.shared.enums.DeviationSeverity;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -22,11 +26,14 @@ public class DeviationReport {
   private String deviationName;
 
   @NotNull
+  @Enumerated(EnumType.STRING)
   @Schema(description = "Severity of the deviation", example = "MINOR")
   private DeviationSeverity severity;
 
   @NotNull
-  @Schema(description = "Time of when the deviation happened")
+  @JsonProperty("timestamp")
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm")
+  @Schema(description = "Time of when the deviation happened", example = "2026-04-09T21:00:00")
   private LocalDateTime occurredAt;
 
   @NotBlank
