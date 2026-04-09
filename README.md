@@ -6,6 +6,19 @@ A full-stack application developed to help restaurants manage daily operations, 
 
 The application helps restaurants manage daily routines and internal control tasks in one place. Users can register, join or create a restaurant organization, complete checklists, log temperatures, manage documents, and get detailed reports on checklist completion and temperature tracking. The system is designed to support safer operations, clearer responsibilities, and better documentation of internal routines.
 
+## Main Features
+
+- Authentication for registering and logging in users
+- Organization management for creating or joining a restaurant
+- Role-based access control for managing permissions
+- Checklist management for daily operational routines
+- Temperature logging for food safety and compliance tracking
+- Document management for storing important restaurant files
+- Deviation reporting for registering and following up incidents
+- Reporting and dashboard views for operational insight
+
+
+
 
 
 
