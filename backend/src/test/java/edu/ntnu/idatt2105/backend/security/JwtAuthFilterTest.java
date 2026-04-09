@@ -1,6 +1,6 @@
 package edu.ntnu.idatt2105.backend.security;
 
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,26 +18,17 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
-import edu.ntnu.idatt2105.backend.user.model.RoleModel;
-import edu.ntnu.idatt2105.backend.user.model.UserModel;
-import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
-import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
-
 @ExtendWith(MockitoExtension.class)
 class JwtAuthFilterTest {
 
   @Mock
   private JwtService jwtService;
 
-  @Mock
-  private UserRepository userRepository;
-
   private JwtAuthFilter jwtAuthFilter;
 
   @BeforeEach
   void setUp() {
-    jwtAuthFilter = new JwtAuthFilter(jwtService, userRepository);
+    jwtAuthFilter = new JwtAuthFilter(jwtService);
     SecurityContextHolder.clearContext();
   }
 
@@ -48,27 +38,17 @@ class JwtAuthFilterTest {
   }
 
   @Test
-  void doFilterInternal_usesCurrentDatabaseRolesAfterPromotion() throws Exception {
+  void doFilterInternal_usesTokenClaimsForAuthoritiesAndOrganization() throws Exception {
     UUID userId = UUID.randomUUID();
     UUID organizationId = UUID.randomUUID();
-    String email = "promoted.user@test.com";
-
-    UserModel user = new UserModel();
-    user.setId(userId);
-    user.setEmail(email);
-
-    OrganizationModel organization = new OrganizationModel();
-    organization.setId(organizationId);
-    user.setOrganization(organization);
-
-    RoleModel adminRole = new RoleModel();
-    adminRole.setName(RoleEnum.ADMIN);
-    user.getRoles().add(adminRole);
+    String email = "jwt.user@test.com";
+    List<String> roles = List.of("ROLE_ADMIN");
 
     when(jwtService.extractEmail("token")).thenReturn(email);
     when(jwtService.validateToken("token", email)).thenReturn(true);
     when(jwtService.extractUserId("token")).thenReturn(userId);
-    when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+    when(jwtService.extractOrganizationId("token")).thenReturn(organizationId);
+    when(jwtService.extractRoles("token")).thenReturn(roles);
 
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.addHeader("Authorization", "Bearer token");
@@ -87,33 +67,16 @@ class JwtAuthFilterTest {
         .extracting(grantedAuthority -> grantedAuthority.getAuthority())
         .containsExactly("ROLE_ADMIN");
 
-    // Regression guard: stale token role claims should not drive authorization after role updates.
-    verify(jwtService, never()).extractRoles("token");
-    verify(jwtService, never()).extractOrganizationId("token");
+    verify(jwtService).extractOrganizationId("token");
+    verify(jwtService).extractRoles("token");
   }
 
   @Test
-  void doFilterInternal_fallsBackToEmailLookupWhenUserIdCannotBeResolved() throws Exception {
-    UUID userId = UUID.randomUUID();
-    UUID organizationId = UUID.randomUUID();
-    String email = "fallback.user@test.com";
-
-    UserModel user = new UserModel();
-    user.setId(userId);
-    user.setEmail(email);
-
-    OrganizationModel organization = new OrganizationModel();
-    organization.setId(organizationId);
-    user.setOrganization(organization);
-
-    RoleModel managerRole = new RoleModel();
-    managerRole.setName(RoleEnum.MANAGER);
-    user.getRoles().add(managerRole);
+  void doFilterInternal_doesNothingWhenTokenValidationFails() throws Exception {
+    String email = "jwt.user@test.com";
 
     when(jwtService.extractEmail("token")).thenReturn(email);
-    when(jwtService.validateToken("token", email)).thenReturn(true);
-    when(jwtService.extractUserId("token")).thenThrow(new IllegalArgumentException("bad id"));
-    when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+    when(jwtService.validateToken("token", email)).thenReturn(false);
 
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.addHeader("Authorization", "Bearer token");
@@ -122,14 +85,13 @@ class JwtAuthFilterTest {
     jwtAuthFilter.doFilterInternal(request, response, new MockFilterChain());
 
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    assertThat(authentication).isNotNull();
-    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) authentication.getPrincipal();
-    assertThat(principal.getUserId()).isEqualTo(userId);
-    assertThat(principal.getOrganizationId()).isEqualTo(organizationId);
-    assertThat(principal.getAuthorities())
-        .extracting(grantedAuthority -> grantedAuthority.getAuthority())
-        .containsExactly("ROLE_MANAGER");
+    assertThat(authentication).isNull();
+  }
 
-    verify(userRepository).findByEmail(email);
+  @Test
+  void jwtAuthFilter_hasNoDatabaseRepositoryFieldDependency() {
+    assertThat(JwtAuthFilter.class.getDeclaredFields())
+        .extracting(field -> field.getType().getSimpleName())
+        .doesNotContain("UserRepository");
   }
 }

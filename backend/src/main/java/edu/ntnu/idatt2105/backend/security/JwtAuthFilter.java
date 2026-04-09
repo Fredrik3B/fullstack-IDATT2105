@@ -1,6 +1,7 @@
 package edu.ntnu.idatt2105.backend.security;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -8,8 +9,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import edu.ntnu.idatt2105.backend.user.model.UserModel;
-import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,9 +20,8 @@ import lombok.NonNull;
 /**
  * Extracts and validates the JWT from every request Authorization header.
  *
- * <p>Stateless authentication based on JWT verification. User authorities
- * and organization are loaded from the database to reflect role and membership
- * changes immediately without requiring a re-login. The resulting
+ * <p>Stateless authentication, all data is extracted from
+ * the token claims. No database call is made. The resulting
  * {@link JwtAuthenticatedPrincipal} is placed in the SecurityContext
  * for the duration of the request period only.
  *
@@ -41,7 +39,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 
   private final JwtService jwtService;
-  private final UserRepository userRepository;
 
   /**
    * Finds the Authorization header field and extracts the jwt string from here.
@@ -80,21 +77,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       String email = jwtService.extractEmail(jwt);
       if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
         if (jwtService.validateToken(jwt, email)) {
-          UserModel user = resolveCurrentUser(jwt, email);
-          if (user == null) {
-            return;
-          }
+          UUID userId = jwtService.extractUserId(jwt);
+          UUID organizationId = jwtService.extractOrganizationId(jwt);
+          List<String> roles = jwtService.extractRoles(jwt);
 
-          UUID organizationId = user.getOrganization() != null
-              ? user.getOrganization().getId()
-              : null;
-
-          var authorities = user.getRoles().stream()
-              .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
+          List<SimpleGrantedAuthority> authorities = roles.stream()
+              .map(SimpleGrantedAuthority::new)
               .toList();
 
           JwtAuthenticatedPrincipal principal = new JwtAuthenticatedPrincipal(
-              user.getId(), organizationId, email, authorities
+              userId, organizationId, email, authorities
           );
 
           JwtAuthenticationToken authToken = new JwtAuthenticationToken(principal, authorities);
@@ -106,21 +98,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       // Expired or malformed token — skip authentication and let Spring Security
       // handle access control. permitAll endpoints will still be reachable.
     }
-  }
-
-  private UserModel resolveCurrentUser(String jwt, String email) {
-    try {
-      UUID tokenUserId = jwtService.extractUserId(jwt);
-      if (tokenUserId != null) {
-        UserModel user = userRepository.findById(tokenUserId).orElse(null);
-        if (user != null && email.equals(user.getEmail())) {
-          return user;
-        }
-      }
-    } catch (RuntimeException ignored) {
-      // Fall through to email lookup so older or partially-migrated tokens can still authenticate.
-    }
-
-    return userRepository.findByEmail(email).orElse(null);
   }
 }
