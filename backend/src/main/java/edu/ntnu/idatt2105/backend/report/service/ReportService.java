@@ -110,8 +110,8 @@ public class ReportService {
 
     List<ChecklistRecord> records = checklists.stream()
         .map(cl -> buildChecklistRecord(cl, tasksByChecklist.getOrDefault(cl.getId(), List.of()), from, to))
-        .filter(r -> r.getCompletionsInPeriod() > 0)
-        .sorted(Comparator.comparing(ChecklistRecord::getName, String.CASE_INSENSITIVE_ORDER))
+        .filter(r -> r.completionsInPeriod() > 0)
+        .sorted(Comparator.comparing(ChecklistRecord::name, String.CASE_INSENSITIVE_ORDER))
         .toList();
 
     return ChecklistSection.builder()
@@ -229,8 +229,8 @@ public class ReportService {
             })
         ))
         .values().stream()
-        .sorted(Comparator.comparing(MissedTaskRecord::getMissedCount).reversed()
-            .thenComparing(MissedTaskRecord::getTaskName, String.CASE_INSENSITIVE_ORDER))
+        .sorted(Comparator.comparing(MissedTaskRecord::missedCount).reversed()
+            .thenComparing(MissedTaskRecord::taskName, String.CASE_INSENSITIVE_ORDER))
         .limit(8)
         .toList();
   }

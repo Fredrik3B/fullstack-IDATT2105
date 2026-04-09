@@ -3,15 +3,25 @@ package edu.ntnu.idatt2105.backend.report.dto;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ReportPeriod;
 import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 
-@Data
+
 @Builder
-public class InternalSummary {
-  private ReportPeriod period;
-  private ComplianceStats foodStats;
-  private ComplianceStats alcoholStats;
-  private List<UnresolvedItemDto> unresolvedItems;
-}
+@Schema(description = "Short summary report")
+public record InternalSummary(
+
+    @Schema(description = "Report time period")
+    ReportPeriod period,
+
+    @Schema(description = "Food compliance statistics")
+    ComplianceStats foodStats,
+
+    @Schema(description = "Alcohol compliance statistics")
+    ComplianceStats alcoholStats,
+
+    @Schema(description = "All currently unresolved tasks")
+    List<UnresolvedItemDto> unresolvedItems
+) {}

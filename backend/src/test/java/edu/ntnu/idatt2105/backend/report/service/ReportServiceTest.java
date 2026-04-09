@@ -90,7 +90,7 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    ComplianceStats foodStats = summary.getFoodStats();
+    ComplianceStats foodStats = summary.foodStats();
     assertThat(foodStats.getTotalTasks()).isEqualTo(10);
     assertThat(foodStats.getCompletedTasks()).isEqualTo(8);
     assertThat(foodStats.getDeviatedTasks()).isEqualTo(2);
@@ -98,7 +98,7 @@ class ReportServiceTest {
     assertThat(foodStats.getTemperatureReadings()).isEqualTo(20);
     assertThat(foodStats.getOutOfRangeReadings()).isEqualTo(3);
 
-    ComplianceStats alcStats = summary.getAlcoholStats();
+    ComplianceStats alcStats = summary.alcoholStats();
     assertThat(alcStats.getTotalTasks()).isEqualTo(5);
     assertThat(alcStats.getCompletedTasks()).isEqualTo(5);
     assertThat(alcStats.getCompletionRate()).isEqualTo(100.0);
@@ -116,8 +116,8 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getCompletionRate()).isEqualTo(0.0);
-    assertThat(summary.getAlcoholStats().getCompletionRate()).isEqualTo(0.0);
+    assertThat(summary.foodStats().getCompletionRate()).isEqualTo(0.0);
+    assertThat(summary.alcoholStats().getCompletionRate()).isEqualTo(0.0);
   }
 
   @Test
@@ -131,7 +131,7 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getOutOfRangeRate()).isEqualTo(0.0);
+    assertThat(summary.foodStats().getOutOfRangeRate()).isEqualTo(0.0);
   }
 
   @Test
@@ -145,8 +145,8 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getPeriod().getFrom()).isEqualTo(from);
-    assertThat(summary.getPeriod().getTo()).isEqualTo(to);
+    assertThat(summary.period().getFrom()).isEqualTo(from);
+    assertThat(summary.period().getTo()).isEqualTo(to);
   }
 
   @Test
@@ -166,8 +166,8 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getUnresolvedItems()).hasSize(1);
-    assertThat(summary.getUnresolvedItems().get(0).getName()).isEqualTo("Fridge temperature check");
+    assertThat(summary.unresolvedItems()).hasSize(1);
+    assertThat(summary.unresolvedItems().get(0).name()).isEqualTo("Fridge temperature check");
     verify(taskMapper).toUnresolvedDto(deviatedTask);
   }
 
@@ -185,7 +185,7 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getCompletionRate()).isEqualTo(100.0);
+    assertThat(summary.foodStats().getCompletionRate()).isEqualTo(100.0);
   }
 
   @Test
@@ -216,9 +216,9 @@ class ReportServiceTest {
 
     InspectionReport report = reportService.generateInspection(orgId, from, to);
 
-    assertThat(report.getChecklists().getChecklists()).hasSize(2);
+    assertThat(report.checklists().getChecklists()).hasSize(2);
 
-    var weeklyRecord = report.getChecklists().getChecklists().stream()
+    var weeklyRecord = report.checklists().getChecklists().stream()
         .filter(record -> record.getName().equals("Weekly food safety"))
         .findFirst()
         .orElseThrow();
@@ -227,7 +227,7 @@ class ReportServiceTest {
     assertThat(weeklyRecord.getAverageCompletionRate()).isEqualTo(75.0);
     assertThat(weeklyRecord.getDeviatedTasks()).isEqualTo(1);
 
-    var dailyRecord = report.getChecklists().getChecklists().stream()
+    var dailyRecord = report.checklists().getChecklists().stream()
         .filter(record -> record.getName().equals("Daily opening"))
         .findFirst()
         .orElseThrow();
@@ -272,18 +272,18 @@ class ReportServiceTest {
 
     InspectionReport report = reportService.generateInspection(orgId, from, to);
 
-    assertThat(report.getDeviationsByDay()).hasSize(2);
-    assertThat(report.getDeviationsByDay().get(0).getCount()).isEqualTo(2);
-    assertThat(report.getDeviationsByDay().get(1).getCount()).isEqualTo(1);
+    assertThat(report.deviationsByDay()).hasSize(2);
+    assertThat(report.deviationsByDay().get(0).getCount()).isEqualTo(2);
+    assertThat(report.deviationsByDay().get(1).getCount()).isEqualTo(1);
 
-    assertThat(report.getMissedTasks()).hasSize(1);
-    assertThat(report.getMissedTasks().get(0).getTaskName()).isEqualTo("Freezer reading");
-    assertThat(report.getMissedTasks().get(0).getMissedCount()).isEqualTo(3);
+    assertThat(report.missedTasks()).hasSize(1);
+    assertThat(report.missedTasks().get(0).getTaskName()).isEqualTo("Freezer reading");
+    assertThat(report.missedTasks().get(0).getMissedCount()).isEqualTo(3);
 
-    assertThat(report.getTemperatureLog()).hasSize(1);
-    assertThat(report.getTemperatureLog().get(0).getZoneId()).isEqualTo(90L);
-    assertThat(report.getTemperatureLog().get(0).getZoneName()).isEqualTo("Main freezer");
-    assertThat(report.getTemperatureLog().get(0).isWithinRange()).isFalse();
+    assertThat(report.temperatureLog()).hasSize(1);
+    assertThat(report.temperatureLog().get(0).getZoneId()).isEqualTo(90L);
+    assertThat(report.temperatureLog().get(0).getZoneName()).isEqualTo("Main freezer");
+    assertThat(report.temperatureLog().get(0).isWithinRange()).isFalse();
   }
 
   private void stubSummaryCounts() {
