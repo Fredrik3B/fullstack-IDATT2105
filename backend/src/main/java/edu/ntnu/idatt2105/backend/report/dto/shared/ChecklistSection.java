@@ -4,6 +4,9 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Report section summarising checklist activity within the report period.
+ */
 @Data
 @Builder
 public class ChecklistSection {

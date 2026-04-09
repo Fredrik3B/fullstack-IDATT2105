@@ -45,6 +45,18 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for generating compliance reports and persisting deviation reports.
+ *
+ * <p>The two main report types are:
+ * <ul>
+ *   <li>{@link #generateSummary} — a lightweight dashboard summary with task and temperature statistics</li>
+ *   <li>{@link #generateInspection} — a full inspection report including checklist records,
+ *       temperature log, missed-task breakdown, and per-day deviation counts</li>
+ * </ul>
+ * All report data is derived from existing task, temperature, checklist, and user records.
+ * No data is written during report generation.
+ */
 @Service
 @AllArgsConstructor
 public class ReportService {
@@ -235,6 +247,14 @@ public class ReportService {
         .toList();
   }
 
+  /**
+   * Generates a lightweight internal compliance summary for the given organisation and period.
+   *
+   * @param orgId the organisation to generate the summary for
+   * @param from  inclusive start of the period
+   * @param to    inclusive end of the period
+   * @return the internal summary DTO
+   */
   public InternalSummary generateSummary(UUID orgId, LocalDateTime from, LocalDateTime to) {
     return InternalSummary.builder()
         .period(new ReportPeriod(from, to))
@@ -244,6 +264,15 @@ public class ReportService {
         .build();
   }
 
+  /**
+   * Generates a full inspection report for the given organisation and period.
+   *
+   * @param orgId the organisation to generate the report for
+   * @param from  inclusive start of the period
+   * @param to    inclusive end of the period
+   * @return the inspection report DTO
+   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if the organisation is not found
+   */
   public InspectionReport generateInspection(UUID orgId, LocalDateTime from, LocalDateTime to) {
     OrganizationModel org = organizationRepository.findById(orgId)
         .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
@@ -264,6 +293,14 @@ public class ReportService {
         .build();
     }
 
+  /**
+   * Persists a new deviation report filed by the given user.
+   *
+   * @param request        the deviation report data
+   * @param userId         ID of the user filing the report
+   * @param organizationId ID of the organisation the report belongs to
+   * @return the created response containing the new report's UUID and creation timestamp
+   */
   public DeviationCreatedResponse createDeviationReport(
       DeviationReport request, UUID userId, UUID organizationId
   ) {

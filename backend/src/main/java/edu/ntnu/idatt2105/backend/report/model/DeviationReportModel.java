@@ -89,6 +89,9 @@ public class DeviationReportModel {
   @Column(nullable = false)
   private LocalDateTime createdAt;
 
+  /**
+   * Sets {@code createdAt} to the current timestamp before the entity is first persisted.
+   */
   @PrePersist
   protected void onCreate() {
     this.createdAt = LocalDateTime.now();
