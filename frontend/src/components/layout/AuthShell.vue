@@ -24,7 +24,7 @@
             <div class="brand-row">
               <div class="brand-mark">IC</div>
               <div>
-                <p class="brand-title">ICSystem</p>
+                <p class="brand-title">ICMS</p>
                 <p class="brand-subtitle">Internal control that teams actually use</p>
               </div>
             </div>

@@ -33,7 +33,7 @@ function handleLogout() {
       <div class="topbar-brand">
         <div class="brand-logo"><span class="brand-icon">IC</span></div>
         <div>
-          <span class="brand-name">ICSystem</span>
+          <span class="brand-name">ICMS</span>
           <p v-if="subtitle" class="brand-sub">{{ subtitle }}</p>
         </div>
       </div>
