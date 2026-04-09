@@ -49,7 +49,9 @@ services:
   frontend-test:
     build: ./frontend
     container_name: frontend-test
-    command: npx vite --mode development
+    command: npx vite
+    environment:
+      DOCKER: "true"
     depends_on:
       - backend-test
     ports:
