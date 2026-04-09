@@ -2,6 +2,7 @@ package edu.ntnu.idatt2105.backend.task.dto;
 
 import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.task.validation.TemperatureZoneRequiredIfTemperature;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -10,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
+@TemperatureZoneRequiredIfTemperature
 @Schema(description = "Request to create a new task")
 public record CreateTaskRequest(
 		@NotNull

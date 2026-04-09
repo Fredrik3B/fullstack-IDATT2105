@@ -1,9 +1,14 @@
 package edu.ntnu.idatt2105.backend.exception;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -46,14 +51,27 @@ public class GlobalExceptionHandler {
     return problem;
   }
 
+  // TODO: frontend check if handle errors nested
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ProblemDetail handleValidation(MethodArgumentNotValidException e) {
-    String message = e.getBindingResult().getFieldErrors().stream()
-        .findFirst()
-        .map(error -> error.getField() + ": " + error.getDefaultMessage())
-        .orElse("Request validation failed.");
-    ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, message);
+    Map<String, String> fieldErrors = e.getBindingResult().getFieldErrors().stream()
+        .collect(Collectors.toMap(
+            FieldError::getField,
+            error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value",
+            (existing, duplicate) -> existing
+        ));
+
+    List<String> globalErrors = e.getBindingResult().getGlobalErrors().stream()
+        .map(DefaultMessageSourceResolvable::getDefaultMessage)
+        .toList();
+
+    ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST, "One or more fields failed validation.");
     problem.setTitle("Validation failed");
+
+    if (!fieldErrors.isEmpty()) problem.setProperty("errors", fieldErrors);
+    if (!globalErrors.isEmpty()) problem.setProperty("globalErrors", globalErrors);
+
     return problem;
   }
 
