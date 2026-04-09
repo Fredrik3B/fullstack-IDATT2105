@@ -73,6 +73,22 @@
           />
         </Teleport>
 
+        <Teleport to="body">
+          <SharedConfirmDialog
+            v-model:open="deleteDialog.open"
+            kicker="Delete document"
+            title="Delete this document?"
+            :message="deleteDialogMessage"
+            detail="This action cannot be undone."
+            confirm-label="Delete"
+            cancel-label="Cancel"
+            tone="danger"
+            :is-processing="deletePending"
+            @cancel="closeDeleteDialog"
+            @confirm="confirmDelete"
+          />
+        </Teleport>
+
         <!-- Certificate expiry alert -->
         <div v-if="expiryAlerts.length > 0 && !expiryBannerDismissed" class="expiry-banner">
           <AlertTriangle :size="15" class="expiry-icon" />
@@ -149,7 +165,8 @@ import PageHeader from '@/components/layout/PageHeader.vue'
 import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
 import DocumentCard from '@/components/documents/DocumentCard.vue'
 import DocumentPreviewModal from '@/components/documents/DocumentPreviewModal.vue'
-import { CATEGORIES, MODULES } from '@/components/documents/documentHelpers'
+import SharedConfirmDialog from '@/components/ic-checklists/SharedConfirmDialog.vue'
+import { CATEGORIES, MODULES, normalizeExternalUrl } from '@/components/documents/documentHelpers'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -167,6 +184,16 @@ const activeModule = ref('')
 const expiryBannerDismissed = ref(false)
 const collapsedCategories = ref(new Set())
 const showUploadModal = ref(false)
+const deletePending = ref(false)
+const deleteDialog = ref({
+  open: false,
+  doc: null,
+})
+
+const deleteDialogMessage = computed(() => {
+  const name = deleteDialog.value.doc?.name
+  return name ? `Delete "${name}" from your document library?` : 'Delete this document from your document library?'
+})
 
 // ── Certificate expiry alerts ──────────────────────────────────────────────
 
@@ -286,7 +313,12 @@ const previewError = ref(null)
 
 async function handlePreview(doc) {
   if (doc.externalUrl) {
-    window.open(doc.externalUrl, '_blank', 'noopener,noreferrer')
+    const url = normalizeExternalUrl(doc.externalUrl)
+    if (!url) {
+      toast.error('This link is invalid.')
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
     return
   }
   previewDoc.value = doc
@@ -326,14 +358,28 @@ async function handleDownload(doc) {
   }
 }
 
-async function handleDelete(doc) {
-  if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return
+function handleDelete(doc) {
+  deleteDialog.value = { open: true, doc }
+}
+
+function closeDeleteDialog() {
+  deleteDialog.value = { open: false, doc: null }
+}
+
+async function confirmDelete() {
+  if (!deleteDialog.value.doc || deletePending.value) return
+
+  deletePending.value = true
   try {
-    await deleteDocument(doc.id)
-    documents.value = documents.value.filter(d => d.id !== doc.id)
+    const docId = deleteDialog.value.doc.id
+    await deleteDocument(docId)
+    documents.value = documents.value.filter(d => d.id !== docId)
+    closeDeleteDialog()
     toast.success('Document deleted successfully.')
   } catch {
     toast.error('Failed to delete document. Please try again.')
+  } finally {
+    deletePending.value = false
   }
 }
 </script>

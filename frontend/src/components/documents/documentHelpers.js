@@ -89,3 +89,23 @@ export function moduleLabel(module) {
   if (module === 'IC_ALCOHOL') return 'IC-Alcohol'
   return 'Shared'
 }
+
+/**
+ * Normalize external document links so missing protocol still opens correctly.
+ *
+ * @param {string|null|undefined} url
+ * @returns {string}
+ */
+export function normalizeExternalUrl(url) {
+  if (!url) return ''
+  const value = String(url).trim()
+  if (!value) return ''
+
+  // Keep explicit URL schemes untouched (http, https, mailto, etc.)
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(value)) return value
+
+  // Protocol-relative URLs like //example.com
+  if (value.startsWith('//')) return `https:${value}`
+
+  return `https://${value}`
+}

@@ -161,6 +161,13 @@ describe('DocumentCard', () => {
       expect(link.attributes('target')).toBe('_blank')
     })
 
+    it('normalizes protocol-less external links to https', () => {
+      const wrapper = mountCard({ externalUrl: 'example.com/docs' })
+      const link = wrapper.find('a.doc-btn')
+      expect(link.exists()).toBe(true)
+      expect(link.attributes('href')).toBe('https://example.com/docs')
+    })
+
     it('hides Delete button when isAdminOrManager is false', () => {
       const wrapper = mountCard({}, { isAdminOrManager: false })
       expect(wrapper.find('.doc-btn--danger').exists()).toBe(false)

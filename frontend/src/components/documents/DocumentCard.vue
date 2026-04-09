@@ -13,9 +13,17 @@
  * @emits download - User clicked the Download button.
  * @emits delete   - User clicked the Delete button (admin/manager only).
  */
-import { fileIconClass, fileIconLabel, formatSize, moduleBadgeClass, moduleLabel } from '@/components/documents/documentHelpers'
+import { computed } from 'vue'
+import {
+  fileIconClass,
+  fileIconLabel,
+  formatSize,
+  moduleBadgeClass,
+  moduleLabel,
+  normalizeExternalUrl,
+} from '@/components/documents/documentHelpers'
 
-defineProps({
+const props = defineProps({
   doc: {
     type: Object,
     required: true,
@@ -27,6 +35,8 @@ defineProps({
 })
 
 defineEmits(['preview', 'download', 'delete'])
+
+const normalizedExternalUrl = computed(() => normalizeExternalUrl(props.doc?.externalUrl))
 
 /**
  * Formats an ISO date string to a human-readable Norwegian locale date (e.g. "5. jan. 2025").
@@ -84,7 +94,7 @@ function expiryLabel(expiryDate) {
         >{{ expiryLabel(doc.expiryDate) }}</span>
       </div>
       <div class="doc-card-actions">
-        <a v-if="doc.externalUrl" :href="doc.externalUrl" target="_blank" rel="noopener noreferrer" class="doc-btn">Open</a>
+        <a v-if="doc.externalUrl" :href="normalizedExternalUrl" target="_blank" rel="noopener noreferrer" class="doc-btn">Open</a>
         <button v-else class="doc-btn" type="button" @click="$emit('download', doc)">Download</button>
         <button v-if="isAdminOrManager" class="doc-btn doc-btn--danger" type="button" @click="$emit('delete', doc)">Delete</button>
       </div>
