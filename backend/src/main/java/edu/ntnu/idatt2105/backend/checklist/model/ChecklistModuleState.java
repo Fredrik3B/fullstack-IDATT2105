@@ -15,6 +15,13 @@ import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * JPA entity that stores the last-modified timestamp for a single organisation/module combination.
+ *
+ * <p>There is at most one row per {@code (organization_id, compliance_area)} pair.
+ * It is updated by {@link edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService}
+ * on every mutating checklist operation so that HTTP conditional-GET clients can detect changes.
+ */
 @Setter
 @Getter
 @Entity
