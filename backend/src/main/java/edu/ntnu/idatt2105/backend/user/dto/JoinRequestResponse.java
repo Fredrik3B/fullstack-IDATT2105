@@ -6,6 +6,9 @@ import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Response DTO shown to a user who checks the status of their own pending join request.
+ */
 @Data
 @Builder
 public class JoinRequestResponse {
