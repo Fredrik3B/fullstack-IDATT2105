@@ -49,27 +49,38 @@ services:
   frontend-test:
     build: ./frontend
     container_name: frontend-test
-    command: npm run dev
+    command: npx vite --mode development
     depends_on:
       - backend-test
     ports:
       - "5173:5173"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
     profiles: ["test"]
 
   cypress:
-    image: cypress/included:13.6.0
+    image: cypress/included
     container_name: cypress
     working_dir: /e2e
     volumes:
-      - ./frontend:/e2e
+      - ./frontend/cypress:/e2e/cypress
+      - ./frontend/cypress.config.js:/e2e/cypress.config.js
+      - cypress_cache:/root/.cache/Cypress
     depends_on:
-      - frontend-test
+      frontend-test:
+        condition: service_healthy
     environment:
       CYPRESS_baseUrl: http://frontend-test:5173
+      CYPRESS_INSTALL_BINARY: 0 
+    entrypoint: /bin/sh
     command: >
-      sh -c "npx wait-on http://frontend-test:5173 &&
-           npx cypress run"
+      -c "npx cypress run --headless"
     profiles: ["test"]
 
 volumes:
   mysql_data:
+  cypress_cache:

@@ -22,6 +22,14 @@ export default defineConfig([
       },
     },
   },
+  {
+    files: ['vite.config.js'],
+    languageOptions: {
+      globals: {
+        process: 'readonly'
+      }
+    }
+  },
 
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
