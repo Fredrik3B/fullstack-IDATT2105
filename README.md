@@ -88,26 +88,7 @@ If the Maven wrapper is not available in your environment, use:
 mvn clean install
 ```
 
-## Environment Variables
 
-The backend loads configuration from a root `.env` file.
-
-Example:
-
-```env
-DB_URL=jdbc:mysql://localhost:3306/mydatabase
-DB_USERNAME=myuser
-DB_PASSWORD=secret
-DB_DIALECT=org.hibernate.dialect.MySQLDialect
-JWT_SECRET=replace-with-a-long-random-secret
-COOKIE_SECURE=false
-```
-
-The frontend can optionally use:
-
-```env
-VITE_API_BASE_URL=http://localhost:8080
-```
 
 ## Running The Application
 
