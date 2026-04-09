@@ -175,7 +175,8 @@ class TaskControllerTest {
             .content("""
                 {
                   "module": "IC_FOOD",
-                  "title": "Updated task title"
+                  "title": "Updated task title",
+                  "sectionType": "HYGIENE"
                 }
                 """)
             .with(authentication(adminAuth())))
@@ -190,7 +191,8 @@ class TaskControllerTest {
             .content("""
                 {
                   "module": "IC_FOOD",
-                  "title": "Updated task title"
+                  "title": "Updated task title",
+                  "sectionType": "HYGIENE"
                 }
                 """)
             .with(authentication(staffAuth())))
@@ -205,7 +207,8 @@ class TaskControllerTest {
             .content("""
                 {
                   "module": "IC_FOOD",
-                  "title": "Updated task title"
+                  "title": "Updated task title",
+                  "sectionType": "HYGIENE"
                 }
                 """))
         .andExpect(status().isUnauthorized());
