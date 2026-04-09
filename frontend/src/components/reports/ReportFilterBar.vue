@@ -20,7 +20,7 @@
     </button>
     <button v-if="hasReport" class="btn-export" @click="$emit('export')">Export PDF</button>
     <button class="btn-deviation" type="button" @click="$emit('deviation')">
-      Report deviation
+      New deviation report
     </button>
   </div>
 </template>
@@ -135,11 +135,11 @@ defineEmits(['update:reportType', 'update:fromDate', 'update:toDate', 'generate'
 .btn-deviation {
   height: 36px;
   padding: 0 var(--space-5);
-  background: var(--color-bg-primary);
-  color: var(--color-danger, #dc2626);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
-  border: 1px solid var(--color-danger, #dc2626);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   cursor: pointer;
   font-family: inherit;
@@ -147,8 +147,9 @@ defineEmits(['update:reportType', 'update:fromDate', 'update:toDate', 'generate'
 }
 
 .btn-deviation:hover {
-  background: var(--color-danger, #dc2626);
-  color: white;
+  background: #eef3fb;
+  border-color: var(--color-dark-secondary);
+  color: var(--color-dark-secondary);
 }
 
 @media (max-width: 900px) {

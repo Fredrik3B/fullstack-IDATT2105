@@ -40,6 +40,19 @@ vi.mock('@/components/documents/DocumentPreviewModal.vue', () => ({
   default: { template: '<div class="preview-modal" />', props: ['doc', 'previewUrl', 'loading', 'error'], emits: ['close', 'download'] },
 }))
 
+vi.mock('@/components/ic-checklists/SharedConfirmDialog.vue', () => ({
+  default: {
+    template: `
+      <div v-if="open" class="confirm-dialog-stub">
+        <button class="confirm-delete-btn" @click="$emit('confirm')">Confirm</button>
+        <button class="cancel-delete-btn" @click="$emit('cancel'); $emit('update:open', false)">Cancel</button>
+      </div>
+    `,
+    props: ['open', 'isProcessing', 'kicker', 'title', 'message', 'detail', 'confirmLabel', 'cancelLabel', 'tone'],
+    emits: ['confirm', 'cancel', 'update:open'],
+  },
+}))
+
 vi.mock('lucide-vue-next', () => ({
   Search: { template: '<span />' },
   AlertTriangle: { template: '<span />' },
@@ -372,34 +385,55 @@ describe('DocumentsView', () => {
   // ── Delete via DocumentCard event ──────────────────────────────────────
 
   describe('delete', () => {
-    it('calls deleteDocument and removes doc when confirmed', async () => {
+    it('opens dialog, then calls deleteDocument and removes doc when confirmed', async () => {
       fetchDocuments.mockResolvedValue([makeDoc({ id: 5, name: 'To Delete' })])
       deleteDocument.mockResolvedValue()
-      vi.spyOn(window, 'confirm').mockReturnValue(true)
 
       const wrapper = mountView()
       await flushPromises()
 
       expect(wrapper.text()).toContain('To Delete')
       await wrapper.find('.delete-btn').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.vm.deleteDialog.open).toBe(true)
+      await wrapper.vm.confirmDelete()
       await flushPromises()
 
       expect(deleteDocument).toHaveBeenCalledWith(5)
       expect(wrapper.text()).not.toContain('To Delete')
     })
 
-    it('does not delete when user cancels confirmation', async () => {
+    it('does not delete when user cancels in custom confirmation dialog', async () => {
       fetchDocuments.mockResolvedValue([makeDoc({ id: 5, name: 'Keep Me' })])
-      vi.spyOn(window, 'confirm').mockReturnValue(false)
 
       const wrapper = mountView()
       await flushPromises()
 
       await wrapper.find('.delete-btn').trigger('click')
+      await wrapper.vm.$nextTick()
+      wrapper.vm.closeDeleteDialog()
       await flushPromises()
 
       expect(deleteDocument).not.toHaveBeenCalled()
       expect(wrapper.text()).toContain('Keep Me')
+    })
+  })
+
+  // ── External links ─────────────────────────────────────────────────────
+
+  describe('external links', () => {
+    it('opens external link with https when protocol is missing', async () => {
+      fetchDocuments.mockResolvedValue([])
+      const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+      const wrapper = mountView()
+      await flushPromises()
+
+      await wrapper.vm.handlePreview(makeDoc({ externalUrl: 'example.com/doc' }))
+
+      expect(openSpy).toHaveBeenCalledWith('https://example.com/doc', '_blank', 'noopener,noreferrer')
+      openSpy.mockRestore()
     })
   })
 
