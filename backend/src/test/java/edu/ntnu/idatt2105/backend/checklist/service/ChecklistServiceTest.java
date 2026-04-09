@@ -1,4 +1,4 @@
-package edu.ntnu.idatt2105.backend.common.service;
+package edu.ntnu.idatt2105.backend.checklist.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,7 +19,6 @@ import edu.ntnu.idatt2105.backend.checklist.dto.UpdateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.mapper.ChecklistMapper;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
@@ -31,7 +30,6 @@ import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;

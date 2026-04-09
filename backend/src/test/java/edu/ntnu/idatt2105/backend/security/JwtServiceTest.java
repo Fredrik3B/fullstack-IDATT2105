@@ -26,6 +26,7 @@ class JwtServiceTest {
     ReflectionTestUtils.setField(jwtService, "secret",
         "dGhpcyBpcyBhIHZlcnkgc2VjcmV0IGtleSBmb3IgdGVzdGluZyBwdXJwb3Nlcw==");
     ReflectionTestUtils.setField(jwtService, "expiration", 100000000L);
+    ReflectionTestUtils.setField(jwtService, "refreshExpiration", 604800000L);
 
     UserModel user = new UserModel();
     user.setId(UUID.randomUUID());

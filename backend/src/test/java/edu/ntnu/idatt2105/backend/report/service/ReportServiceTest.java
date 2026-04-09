@@ -20,8 +20,12 @@ import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
 import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
 import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
+import edu.ntnu.idatt2105.backend.report.model.DeviationReportModel;
+import edu.ntnu.idatt2105.backend.shared.enums.DeviationSeverity;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
 import edu.ntnu.idatt2105.backend.report.repository.DeviationReportRepository;
@@ -354,6 +358,84 @@ class ReportServiceTest {
     task.setEndedAt(endedAt);
     checklist.getTaskTemplates().add(template);
     return task;
+  }
+
+  // ── createDeviationReport ─────────────────────────────────────────────────
+
+  @Test
+  void createDeviationReport_savesEntityAndReturnsIdWithCreatedAt() {
+    UUID userId = UUID.randomUUID();
+    edu.ntnu.idatt2105.backend.user.model.UserModel user = new edu.ntnu.idatt2105.backend.user.model.UserModel();
+    user.setId(userId);
+    edu.ntnu.idatt2105.backend.user.model.OrganizationModel org = new edu.ntnu.idatt2105.backend.user.model.OrganizationModel();
+    org.setId(orgId);
+
+    DeviationReport request = new DeviationReport();
+    request.setDeviationName("Cold chain breach");
+    request.setSeverity(DeviationSeverity.HIGH);
+    request.setOccurredAt(LocalDateTime.of(2026, 4, 1, 10, 0));
+    request.setDescription("Fridge temperature exceeded 8°C for 2 hours.");
+
+    UUID reportId = UUID.randomUUID();
+    LocalDateTime createdAt = LocalDateTime.of(2026, 4, 9, 12, 0);
+
+    when(organizationRepository.getReferenceById(orgId)).thenReturn(org);
+    when(userRepository.getReferenceById(userId)).thenReturn(user);
+    when(deviationReportRepository.save(any(DeviationReportModel.class))).thenAnswer(inv -> {
+      DeviationReportModel m = inv.getArgument(0);
+      m.setId(reportId);
+      m.setCreatedAt(createdAt);
+      return m;
+    });
+
+    DeviationCreatedResponse response = reportService.createDeviationReport(request, userId, orgId);
+
+    assertThat(response.getId()).isEqualTo(reportId);
+    assertThat(response.getCreatedAt()).isEqualTo(createdAt);
+    verify(deviationReportRepository).save(any(DeviationReportModel.class));
+  }
+
+  @Test
+  void createDeviationReport_mapsAllFieldsFromRequestToEntity() {
+    UUID userId = UUID.randomUUID();
+    when(organizationRepository.getReferenceById(orgId))
+        .thenReturn(new edu.ntnu.idatt2105.backend.user.model.OrganizationModel());
+    when(userRepository.getReferenceById(userId))
+        .thenReturn(new edu.ntnu.idatt2105.backend.user.model.UserModel());
+
+    DeviationReport request = new DeviationReport();
+    request.setDeviationName("Pest found");
+    request.setSeverity(DeviationSeverity.CRITICAL);
+    request.setOccurredAt(LocalDateTime.of(2026, 3, 15, 8, 0));
+    request.setNoticedBy("Chef Marie");
+    request.setReportedTo("Manager Lars");
+    request.setDescription("Pest traces found in storage.");
+    request.setImmediateAction("Area sealed off.");
+    request.setBelievedCause("Damaged door seal.");
+    request.setCorrectiveMeasures("Replace door seal.");
+    request.setCorrectiveMeasuresDone("Completed on 2026-03-16");
+
+    when(deviationReportRepository.save(any(DeviationReportModel.class))).thenAnswer(inv -> {
+      DeviationReportModel m = inv.getArgument(0);
+      m.setId(UUID.randomUUID());
+      return m;
+    });
+
+    reportService.createDeviationReport(request, userId, orgId);
+
+    org.mockito.ArgumentCaptor<DeviationReportModel> captor =
+        org.mockito.ArgumentCaptor.forClass(DeviationReportModel.class);
+    verify(deviationReportRepository).save(captor.capture());
+    DeviationReportModel saved = captor.getValue();
+
+    assertThat(saved.getDeviationName()).isEqualTo("Pest found");
+    assertThat(saved.getSeverity()).isEqualTo(DeviationSeverity.CRITICAL);
+    assertThat(saved.getNoticedBy()).isEqualTo("Chef Marie");
+    assertThat(saved.getReportedTo()).isEqualTo("Manager Lars");
+    assertThat(saved.getImmediateAction()).isEqualTo("Area sealed off.");
+    assertThat(saved.getBelievedCause()).isEqualTo("Damaged door seal.");
+    assertThat(saved.getCorrectiveMeasures()).isEqualTo("Replace door seal.");
+    assertThat(saved.getCorrectiveMeasuresDone()).isEqualTo("Completed on 2026-03-16");
   }
 
   private TemperatureZoneModel temperatureZone(

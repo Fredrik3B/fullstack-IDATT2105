@@ -167,4 +167,80 @@ class TemperatureZoneServiceImplTest {
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("targetMin cannot be greater");
   }
+
+  // ── getAllZones ───────────────────────────────────────────────────────────
+
+  @Test
+  void getAllZones_returnsMappedZonesForModule() {
+    TemperatureZoneModel zone = new TemperatureZoneModel();
+    zone.setId(1L);
+    zone.setName("Walk-in fridge");
+    zone.setZoneType(TemperatureZone.FRIDGE);
+    zone.setComplianceArea(ComplianceArea.IK_MAT);
+    zone.setOrganizationId(orgId);
+
+    when(temperatureZoneRepository.findAllByOrganizationIdAndComplianceAreaOrderByZoneTypeAscNameAsc(orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of(zone));
+    when(temperatureMapper.toZoneResponse(zone)).thenReturn(
+        new TemperatureZoneResponse(1L, IcModule.IC_FOOD, "Walk-in fridge", TemperatureZone.FRIDGE,
+            new BigDecimal("2.0"), new BigDecimal("5.0")));
+
+    List<TemperatureZoneResponse> result = temperatureZoneService.getAllZones(IcModule.IC_FOOD, principal);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).name()).isEqualTo("Walk-in fridge");
+  }
+
+  @Test
+  void getAllZones_returnsEmptyListWhenNoZonesExist() {
+    when(temperatureZoneRepository.findAllByOrganizationIdAndComplianceAreaOrderByZoneTypeAscNameAsc(orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of());
+
+    List<TemperatureZoneResponse> result = temperatureZoneService.getAllZones(IcModule.IC_FOOD, principal);
+
+    assertThat(result).isEmpty();
+  }
+
+  // ── deleteZone (success path) ─────────────────────────────────────────────
+
+  @Test
+  void deleteZone_whenNotUsedByAnyTask_deletesZoneAndTouchesCache() {
+    TemperatureZoneModel zone = new TemperatureZoneModel();
+    zone.setId(5L);
+    zone.setOrganizationId(orgId);
+    zone.setComplianceArea(ComplianceArea.IK_MAT);
+
+    when(temperatureZoneRepository.findByIdAndOrganizationId(5L, orgId)).thenReturn(Optional.of(zone));
+    when(taskTemplateRepository.findAllByTemperatureZone_Id(5L)).thenReturn(List.of());
+
+    temperatureZoneService.deleteZone(5L, principal);
+
+    verify(temperatureZoneRepository).delete(zone);
+    verify(checklistCacheStateService).touch(orgId, ComplianceArea.IK_MAT);
+  }
+
+  @Test
+  void deleteZone_whenZoneNotFound_throwsException() {
+    when(temperatureZoneRepository.findByIdAndOrganizationId(99L, orgId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> temperatureZoneService.deleteZone(99L, principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Temperature zone not found");
+
+    verify(temperatureZoneRepository, never()).delete(any());
+  }
+
+  // ── updateZone (not found) ────────────────────────────────────────────────
+
+  @Test
+  void updateZone_whenZoneNotFound_throwsException() {
+    when(temperatureZoneRepository.findByIdAndOrganizationId(99L, orgId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> temperatureZoneService.updateZone(99L,
+        new CreateTemperatureZoneRequest(IcModule.IC_FOOD, "Missing", TemperatureZone.FRIDGE,
+            new BigDecimal("2.0"), new BigDecimal("5.0")),
+        principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Temperature zone not found");
+  }
 }
