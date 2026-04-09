@@ -52,11 +52,26 @@ public class SecurityConfig {
   private AuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
 
+  /**
+   * Provides a BCrypt password encoder bean used for hashing and verifying passwords.
+   *
+   * @return a {@link BCryptPasswordEncoder} instance
+   */
   @Bean
   public PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder();
   }
 
+  /**
+   * Configures the HTTP security filter chain.
+   *
+   * <p>Registers the {@link JwtAuthFilter} before the default username/password filter,
+   * sets sessions to stateless, disables CSRF, and defines URL-level access rules.
+   * Auth and Swagger endpoints are publicly accessible; all other requests require authentication.
+   *
+   * @param http the {@link HttpSecurity} builder
+   * @return the built {@link SecurityFilterChain}
+   */
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) {
     http
@@ -76,6 +91,14 @@ public class SecurityConfig {
         );
     return http.build();
   }
+  /**
+   * Configures CORS to allow requests from the frontend origins.
+   *
+   * <p>Allows all headers and the standard REST methods. Credentials are allowed
+   * so that the HttpOnly refresh-token cookie is sent on cross-origin requests.
+   *
+   * @return the CORS configuration source
+   */
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
