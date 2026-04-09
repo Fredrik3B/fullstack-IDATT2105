@@ -1,19 +1,14 @@
 package edu.ntnu.idatt2105.backend.document.service;
 
-import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
-import edu.ntnu.idatt2105.backend.document.mapper.DocumentMapper;
-import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
-import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
-import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
-import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
-import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
-import edu.ntnu.idatt2105.backend.user.model.UserModel;
-import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
-import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,14 +19,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import edu.ntnu.idatt2105.backend.document.dto.DocumentDto;
+import edu.ntnu.idatt2105.backend.document.mapper.DocumentMapper;
+import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
+import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -132,7 +129,9 @@ public class DocumentService {
 
     public void deleteDocument(Long documentId, JwtAuthenticatedPrincipal principal) {
         DocumentModel doc = requireOwnDocument(documentId, principal.getOrganizationId());
-        deleteFileFromDisk(doc.getStoragePath());
+        if (doc.getStoragePath() != null && !doc.getStoragePath().isBlank()) {
+            deleteFileFromDisk(doc.getStoragePath());
+        }
         documentRepository.delete(doc);
         LOGGER.info("Document delete: documentId={} orgId={}", documentId, principal.getOrganizationId());
     }
@@ -155,7 +154,7 @@ public class DocumentService {
     private void deleteFileFromDisk(String path) {
         try {
             Files.deleteIfExists(Paths.get(path));
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             LOGGER.warn("Could not delete file from disk at path '{}': {}", path, e.getMessage());
         }
     }

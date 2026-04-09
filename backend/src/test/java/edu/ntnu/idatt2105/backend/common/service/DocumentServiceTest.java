@@ -356,6 +356,19 @@ class DocumentServiceTest {
     }
 
     @Test
+    @DisplayName("deleteDocument - external link without storage path: removes from DB without touching disk")
+    void deleteDocument_externalLinkWithoutStoragePath_deletesRepoOnly() {
+        DocumentModel doc = makeDoc(1L, orgId);
+        doc.setExternalUrl("https://example.com/doc");
+        doc.setStoragePath(null);
+        when(documentRepository.findById(1L)).thenReturn(Optional.of(doc));
+
+        service.deleteDocument(1L, principal);
+
+        verify(documentRepository).delete(doc);
+    }
+
+    @Test
     @DisplayName("deleteDocument - document belongs to another org: throws 403, repo not called")
     void deleteDocument_wrongOrg_throws403() {
         DocumentModel doc = makeDoc(1L, UUID.randomUUID());
