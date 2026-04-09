@@ -19,6 +19,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 
+/**
+ * JPA entity representing a user's request to join an organisation.
+ *
+ * <p>A request is created in {@link JoinOrgStatus#PENDING} state when a user
+ * submits a join-code. An ADMIN or MANAGER then accepts or declines it,
+ * transitioning the status to {@link JoinOrgStatus#ACCEPTED} or
+ * {@link JoinOrgStatus#DECLINED}.
+ */
 @Entity
 @Getter
 @Setter
