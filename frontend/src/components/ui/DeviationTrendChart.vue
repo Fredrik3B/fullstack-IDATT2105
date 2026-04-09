@@ -5,6 +5,17 @@
 </template>
 
 <script setup>
+/**
+ * DeviationTrendChart
+ *
+ * Bar chart that visualises the number of deviations per day over a given period.
+ * Wraps Chart.js and manages its own lifecycle: the chart instance is created (or
+ * re-created) whenever `points` changes and destroyed on unmount to prevent leaks.
+ *
+ * @prop {Array} points - Array of `{ date: string, count: number }` data points
+ *                        where `date` is an ISO date string and `count` is the
+ *                        number of deviations recorded on that day.
+ */
 import { ref, watch, nextTick, onUnmounted } from 'vue'
 import { Chart, registerables } from 'chart.js'
 
@@ -28,6 +39,10 @@ watch(
   { immediate: true },
 )
 
+/**
+ * Destroys any existing chart instance and renders a new bar chart for the given data points.
+ * @param {{ date: string, count: number }[]} points - Deviation data points to render.
+ */
 function render(points) {
   if (chart) chart.destroy()
 

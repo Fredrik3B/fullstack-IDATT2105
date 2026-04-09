@@ -165,6 +165,21 @@
 </template>
 
 <script setup>
+/**
+ * DeviationReportForm
+ *
+ * Multi-section form for filing a deviation report. Collects incident details
+ * (name, severity, timestamp, description), the people involved (noticed by,
+ * reported to, handled by), and the response (immediate action, believed cause,
+ * corrective measures, measures already completed).
+ *
+ * All fields are required; the submit button stays disabled until `isValid` is true.
+ * On successful submission the form data is sent to the API and `submitted` is
+ * emitted with the server response. Errors are shown inline below the form.
+ *
+ * @emits cancel    - User dismissed the form without submitting.
+ * @emits submitted - Payload: the deviation report object returned by the API.
+ */
 import { computed, reactive, ref } from 'vue'
 import { createDeviationReport } from '@/api/reports'
 
@@ -201,6 +216,7 @@ const isValid = computed(() => {
     && form.correctiveMeasuresDone
 })
 
+/** Submits the deviation report to the API and emits `submitted` on success. */
 async function submit() {
   submitting.value = true
   error.value = ''

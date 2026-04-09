@@ -166,6 +166,22 @@
 </template>
 
 <script setup>
+/**
+ * InspectionReport
+ *
+ * Full inspection report layout used when `reportType === 'inspection'`. Renders:
+ * - Organisation header (name, period, admins, managers, staff count)
+ * - Compliance stats grid (food + alcohol)
+ * - Checklist performance table with completions, expected runs, and deviation counts
+ * - Deviation highlights table (checklists with deviations, sorted by count desc)
+ * - Temperature trend charts per zone (grouped from the flat temperatureLog array)
+ * - Deviation-by-day bar chart
+ * - Most-missed tasks table
+ *
+ * @prop {Object} report - The full inspection report object returned by the API.
+ *   Key sub-objects: `organization`, `period`, `foodStats`, `alcoholStats`,
+ *   `checklists`, `temperatureLog`, `deviationsByDay`, `missedTasks`.
+ */
 import { computed } from 'vue'
 import DeviationTrendChart from '../ui/DeviationTrendChart.vue'
 import TemperatureChart from '../ui/TemperatureChart.vue'
@@ -176,6 +192,12 @@ const props = defineProps({
   report: { type: Object, required: true }
 })
 
+/**
+ * Groups the flat temperature log into per-zone objects keyed by zoneId (preferred)
+ * or a composite of task name and target range. Entries within each zone are sorted
+ * chronologically; zones are sorted alphabetically by label.
+ * @returns {{ key: string, label: string, log: Object[] }[]}
+ */
 const temperatureZones = computed(() => {
   const grouped = new Map()
   const log = Array.isArray(props.report?.temperatureLog) ? props.report.temperatureLog : []

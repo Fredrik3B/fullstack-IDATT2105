@@ -41,6 +41,17 @@
 </template>
 
 <script setup>
+/**
+ * SummaryReport
+ *
+ * Condensed internal summary report layout used when `reportType === 'summary'`.
+ * Renders the report period, a compliance stats grid, and a section listing any
+ * unresolved checklist items from the period. Shows an "All clear" message when
+ * there are no unresolved items.
+ *
+ * @prop {Object} report - The summary report object returned by the API.
+ *   Key sub-objects: `period`, `foodStats`, `alcoholStats`, `unresolvedItems`.
+ */
 import ComplianceStatsGrid from './ComplianceStatsGrid.vue'
 import { formatDate, formatDateTime } from './reportHelpers.js'
 
