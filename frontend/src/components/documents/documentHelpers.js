@@ -10,6 +10,7 @@ export const CATEGORIES = [
   { value: 'AUDIT_REPORT', label: 'Audit & inspection', emptyHint: 'Store results from external food authority inspections.' },
   { value: 'HACCP', label: 'HACCP / Risk', emptyHint: 'Upload food safety hazard analysis and risk assessment documents.' },
   { value: 'EMERGENCY', label: 'Emergency procedures', emptyHint: 'Add fire evacuation, first aid, and other emergency plans.' },
+  { value: 'DEVIATION_REPORT', label: 'Deviation reports', emptyHint: 'Document deviations, non-conformities, and corrective actions taken.' },
 ]
 
 /**
