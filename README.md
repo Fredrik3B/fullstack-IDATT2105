@@ -2,6 +2,12 @@
 
 A full-stack application developed to help restaurants manage daily operations, internal control routines, documentation, and team administration in one system.
 
+## What The App Does
+
+The application helps restaurants manage daily routines and internal control tasks in one place. Users can register, join or create a restaurant organization, complete checklists, log temperatures, manage documents, and get detailed reports on checklist completion and temperature tracking. The system is designed to support safer operations, clearer responsibilities, and better documentation of internal routines.
+
+
+
 
 ## Backend Structure
 
