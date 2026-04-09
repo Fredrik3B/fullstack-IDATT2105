@@ -38,17 +38,11 @@ services:
     profiles: ["run"]
 
   backend-test:
-    build: ./backend
+    build:
+      context: ./backend
     container_name: backend-test
     command: mvn test
-    env_file:
-      - .env.local
-    depends_on:
-      - mysql
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/app_db
-      SPRING_DATASOURCE_USERNAME: app_user
-      SPRING_DATASOURCE_PASSWORD: app_pass
       SPRING_PROFILES_ACTIVE: test
     profiles: ["test"]
 
