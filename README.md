@@ -1,5 +1,7 @@
-# fullstack-IDATT2105
-Restaurant management application
+# Restaurant Management Application
+
+A full-stack application developed to help restaurants manage daily operations, internal control routines, documentation, and team administration in one system.
+
 
 ## Backend Structure
 
