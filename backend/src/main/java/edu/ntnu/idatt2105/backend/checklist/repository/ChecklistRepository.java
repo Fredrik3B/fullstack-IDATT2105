@@ -8,6 +8,12 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 
+/**
+ * JPA repository for {@link ChecklistModel}.
+ *
+ * <p>All list queries are ordered by ID ascending so that the order seen in the UI
+ * is deterministic and matches creation order.
+ */
 public interface ChecklistRepository extends JpaRepository<ChecklistModel, Long> {
 	List<ChecklistModel> findAllByOrganization_IdOrderByIdAsc(UUID organizationId);
 

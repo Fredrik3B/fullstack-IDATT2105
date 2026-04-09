@@ -10,6 +10,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
+/**
+ * Response DTO representing a task template.
+ *
+ * <p>Temperature-control tasks additionally populate {@code unit}, {@code targetMin},
+ * {@code targetMax}, and the temperature zone fields.
+ */
 public record TaskResponse(
 		@NotNull Long id,
 		@NotBlank IcModule module,

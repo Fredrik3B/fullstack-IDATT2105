@@ -9,6 +9,16 @@ import java.time.temporal.IsoFields;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
 
+/**
+ * Utility for converting between period strings, {@link ChecklistFrequency} values, and period keys.
+ *
+ * <p>Period keys identify a specific checklist period:
+ * <ul>
+ *   <li>Daily: {@code "YYYY-MM-DD"} (ISO local date)</li>
+ *   <li>Weekly: {@code "YYYY-Www"} (ISO week, e.g. {@code "2025-W03"})</li>
+ *   <li>Monthly: {@code "YYYY-MM"} (e.g. {@code "2025-03"})</li>
+ * </ul>
+ */
 public final class PeriodKeyUtil {
 
 	private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -16,6 +26,14 @@ public final class PeriodKeyUtil {
 	private PeriodKeyUtil() {
 	}
 
+	/**
+	 * Converts a user-facing period string ({@code "daily"}, {@code "weekly"}, {@code "monthly"})
+	 * to the corresponding {@link ChecklistFrequency}.
+	 *
+	 * @param period the period string (case-insensitive, prefix-matched)
+	 * @return the matching frequency
+	 * @throws IllegalArgumentException if the period is not recognised
+	 */
 	public static ChecklistFrequency periodToFrequency(String period) {
 		String normalized = normalizePeriod(period);
 		return switch (normalized) {
@@ -26,6 +44,12 @@ public final class PeriodKeyUtil {
 		};
 	}
 
+	/**
+	 * Converts a {@link ChecklistFrequency} to its user-facing period string.
+	 *
+	 * @param frequency the frequency, or {@code null} (defaults to {@code "daily"})
+	 * @return {@code "daily"}, {@code "weekly"}, or {@code "monthly"}
+	 */
 	public static String frequencyToPeriod(ChecklistFrequency frequency) {
 		if (frequency == null) return "daily";
 		return switch (frequency) {
@@ -35,12 +59,26 @@ public final class PeriodKeyUtil {
 		};
 	}
 
+	/**
+	 * Returns the period key for the current date in the given time zone.
+	 *
+	 * @param frequency the checklist frequency
+	 * @param zoneId    the time zone to use, or {@code null} for the system default
+	 * @return the current period key
+	 */
 	public static String currentPeriodKey(ChecklistFrequency frequency, ZoneId zoneId) {
 		ZoneId zone = zoneId != null ? zoneId : ZoneId.systemDefault();
 		LocalDate date = LocalDate.now(zone);
 		return currentPeriodKey(frequency, date);
 	}
 
+	/**
+	 * Returns the period key for a given date and frequency.
+	 *
+	 * @param frequency the checklist frequency, or {@code null} (defaults to DAILY)
+	 * @param date      the reference date, or {@code null} (defaults to today)
+	 * @return the period key string
+	 */
 	public static String currentPeriodKey(ChecklistFrequency frequency, LocalDate date) {
 		ChecklistFrequency freq = frequency != null ? frequency : ChecklistFrequency.DAILY;
 		LocalDate safeDate = date != null ? date : LocalDate.now();
@@ -58,6 +96,13 @@ public final class PeriodKeyUtil {
 		return safeDate.toString(); // YYYY-MM-DD
 	}
 
+	/**
+	 * Validates that a period key matches the expected format for the given frequency.
+	 *
+	 * @param periodKey the period key to validate
+	 * @param frequency the expected frequency
+	 * @throws IllegalArgumentException if the key is blank or does not match the format
+	 */
 	public static void validatePeriodKey(String periodKey, ChecklistFrequency frequency) {
 		if (periodKey == null || periodKey.isBlank()) {
 			throw new IllegalArgumentException("periodKey is required.");
@@ -87,6 +132,14 @@ public final class PeriodKeyUtil {
 		LocalDate.parse(key, DateTimeFormatter.ISO_LOCAL_DATE);
 	}
 
+	/**
+	 * Returns the period key immediately following the given one.
+	 *
+	 * @param frequency the checklist frequency
+	 * @param periodKey the current period key
+	 * @return the next period key
+	 * @throws IllegalArgumentException if the period key is invalid
+	 */
 	public static String nextPeriodKey(ChecklistFrequency frequency, String periodKey) {
 		validatePeriodKey(periodKey, frequency);
 		ChecklistFrequency freq = frequency != null ? frequency : ChecklistFrequency.DAILY;
@@ -109,6 +162,14 @@ public final class PeriodKeyUtil {
 		return LocalDate.parse(key, DateTimeFormatter.ISO_LOCAL_DATE).plusDays(1).toString();
 	}
 
+	/**
+	 * Returns the calendar start date of the period identified by the given key.
+	 *
+	 * @param frequency the checklist frequency
+	 * @param periodKey the period key
+	 * @return the first day of the period
+	 * @throws IllegalArgumentException if the period key is invalid
+	 */
 	public static LocalDate periodStartDate(ChecklistFrequency frequency, String periodKey) {
 		validatePeriodKey(periodKey, frequency);
 		ChecklistFrequency freq = frequency != null ? frequency : ChecklistFrequency.DAILY;

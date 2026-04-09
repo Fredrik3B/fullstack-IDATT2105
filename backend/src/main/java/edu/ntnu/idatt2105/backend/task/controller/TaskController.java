@@ -26,6 +26,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for task template management.
+ *
+ * <p>Exposes CRUD endpoints for the task templates that managers configure
+ * and assign to checklists. Create, update, and delete operations are
+ * restricted to ADMIN and MANAGER roles.
+ *
+ * @see edu.ntnu.idatt2105.backend.task.service.TaskService
+ */
 @Tag(name = "Tasks", description = "Create, fetch, and delete tasks")
 @RestController
 @AllArgsConstructor

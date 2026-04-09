@@ -16,6 +16,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing an activated instance of a {@link TaskTemplate} for a specific
+ * checklist period.
+ *
+ * <p>A new instance is created by {@link edu.ntnu.idatt2105.backend.checklist.service.ChecklistService}
+ * when a checklist is first loaded for a period. The instance tracks whether the task
+ * was completed ({@code completed}), flagged as deviating ({@code flagged}), or
+ * still active in the current period ({@code active}).
+ */
 @Entity
 @Getter
 @Setter

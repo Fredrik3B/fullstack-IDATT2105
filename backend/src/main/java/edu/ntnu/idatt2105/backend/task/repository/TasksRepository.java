@@ -11,6 +11,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * JPA repository for {@link TasksModel} (activated task instances).
+ *
+ * <p>Provides custom aggregate queries used by the report service to calculate
+ * compliance statistics over a time period.
+ */
 public interface TasksRepository extends JpaRepository<TasksModel, Long> {
 
 	List<TasksModel> findAllByTaskTemplate_Id(Long taskTemplateId);
