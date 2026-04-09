@@ -38,6 +38,19 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+/**
+ * REST controller for checklist management.
+ *
+ * <p>Supports the workbench and library views: fetching checklists by module,
+ * creating and updating checklist cards, toggling workbench visibility,
+ * submitting a completed period, and updating individual task states.
+ *
+ * <p>GET /checklists supports HTTP conditional requests via {@code Last-Modified} /
+ * {@code If-Modified-Since} headers to avoid unnecessary payload transfers when
+ * the checklist data has not changed.
+ *
+ * @see edu.ntnu.idatt2105.backend.checklist.service.ChecklistService
+ */
 @Tag(name = "Checklists", description = "Create, fetch, update, and manage checklists")
 @RestController
 @AllArgsConstructor
@@ -231,6 +244,12 @@ public class ChecklistController {
 		checklistService.deleteChecklist(checklistId, principal);
 	}
 
+	/**
+	 * Truncates an {@link Instant} to second precision, as required by the HTTP Last-Modified header.
+	 *
+	 * @param lastModified the instant to convert, or {@code null} (treated as epoch)
+	 * @return milliseconds since epoch, truncated to the nearest second
+	 */
 	private long toHttpLastModifiedMillis(Instant lastModified) {
 		long millis = (lastModified != null ? lastModified : Instant.EPOCH).toEpochMilli();
 		return millis - Math.floorMod(millis, 1000L);

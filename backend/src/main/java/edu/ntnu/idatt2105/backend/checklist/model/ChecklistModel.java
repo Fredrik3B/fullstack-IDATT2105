@@ -25,6 +25,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 
+/**
+ * JPA entity representing a checklist belonging to an organisation.
+ *
+ * <p>A checklist groups a set of {@link edu.ntnu.idatt2105.backend.task.model.TaskTemplate}s
+ * and tracks the current active period. The {@code activePeriodKey} advances each time the
+ * checklist is submitted, enabling historical task records while always presenting a fresh
+ * period on the workbench.
+ */
 @Setter
 @Getter
 @Entity
