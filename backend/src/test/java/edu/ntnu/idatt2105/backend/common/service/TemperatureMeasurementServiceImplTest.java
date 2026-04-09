@@ -3,8 +3,11 @@ package edu.ntnu.idatt2105.backend.common.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.List;
 
 import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureMeasurementRequest;
 import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
@@ -180,6 +183,50 @@ class TemperatureMeasurementServiceImplTest {
         principal))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("'to' must be after 'from'.");
+  }
+
+  @Test
+  void fetchMeasurements_returnsAllMeasurementsInPeriod() {
+    LocalDateTime from = LocalDateTime.of(2026, 4, 1, 0, 0);
+    LocalDateTime to   = LocalDateTime.of(2026, 4, 7, 23, 59);
+
+    TemperatureMeasurementModel m1 = new TemperatureMeasurementModel();
+    m1.setId(1L);
+    TemperatureMeasurementModel m2 = new TemperatureMeasurementModel();
+    m2.setId(2L);
+
+    when(temperatureMeasurementRepository
+        .findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(
+            orgId, ComplianceArea.IK_MAT, from, to))
+        .thenReturn(List.of(m1, m2));
+    when(temperatureMapper.toMeasurementResponse(any(), any())).thenAnswer(inv -> {
+      TemperatureMeasurementModel m = inv.getArgument(0);
+      return new TemperatureMeasurementResponse(
+          m.getId(), IcModule.IC_FOOD, null, null, null, null, null, false);
+    });
+
+    List<TemperatureMeasurementResponse> result = temperatureMeasurementService.fetchMeasurements(
+        IcModule.IC_FOOD, from, to, principal);
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).id()).isEqualTo(1L);
+    assertThat(result.get(1).id()).isEqualTo(2L);
+  }
+
+  @Test
+  void fetchMeasurements_withNullFromAndTo_usesDefaults() {
+    when(temperatureMeasurementRepository
+        .findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(
+            eq(orgId), eq(ComplianceArea.IK_MAT), any(LocalDateTime.class), any(LocalDateTime.class)))
+        .thenReturn(List.of());
+
+    List<TemperatureMeasurementResponse> result = temperatureMeasurementService.fetchMeasurements(
+        IcModule.IC_FOOD, null, null, principal);
+
+    assertThat(result).isEmpty();
+    verify(temperatureMeasurementRepository)
+        .findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(
+            eq(orgId), eq(ComplianceArea.IK_MAT), any(LocalDateTime.class), any(LocalDateTime.class));
   }
 
   private ChecklistModel checklist(Long id, ComplianceArea area) {

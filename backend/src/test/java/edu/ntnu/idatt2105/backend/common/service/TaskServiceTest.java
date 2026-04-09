@@ -220,4 +220,113 @@ class TaskServiceTest {
     assertThat(response.meta()).isEqualTo("new meta");
     assertThat(response.title()).isEqualTo("Updated hygiene task");
   }
+
+  // ── getAllTasks ───────────────────────────────────────────────────────────
+
+  @Test
+  void getAllTasks_returnsMappedTasksForModule() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(50L);
+    template.setTitle("Sanitize surfaces");
+    template.setSectionType(SectionTypes.HYGIENE);
+    template.setComplianceArea(ComplianceArea.IK_MAT);
+    template.setOrganisationId(orgId);
+
+    when(taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of(template));
+    when(taskMapper.toResponse(template)).thenReturn(
+        new TaskResponse(50L, IcModule.IC_FOOD, "Sanitize surfaces", null,
+            SectionTypes.HYGIENE, null, null, null, null, null, null));
+
+    List<TaskResponse> result = taskService.getAllTasks(IcModule.IC_FOOD, principal);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).title()).isEqualTo("Sanitize surfaces");
+  }
+
+  @Test
+  void getAllTasks_returnsEmptyListWhenNoTasksExist() {
+    when(taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of());
+
+    List<TaskResponse> result = taskService.getAllTasks(IcModule.IC_FOOD, principal);
+
+    assertThat(result).isEmpty();
+  }
+
+  // ── getTaskById ───────────────────────────────────────────────────────────
+
+  @Test
+  void getTaskById_returnsTaskWhenOwnedByOrg() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(60L);
+    template.setOrganisationId(orgId);
+    template.setTitle("Check freezer");
+    template.setSectionType(SectionTypes.TEMPERATURE_CONTROL);
+    template.setComplianceArea(ComplianceArea.IK_MAT);
+
+    when(taskTemplateRepository.findById(60L)).thenReturn(Optional.of(template));
+    when(taskMapper.toResponse(template)).thenReturn(
+        new TaskResponse(60L, IcModule.IC_FOOD, "Check freezer", null,
+            SectionTypes.TEMPERATURE_CONTROL, null, null, null, null, null, null));
+
+    TaskResponse result = taskService.getTaskById(60L, principal);
+
+    assertThat(result.id()).isEqualTo(60L);
+    assertThat(result.title()).isEqualTo("Check freezer");
+  }
+
+  @Test
+  void getTaskById_whenNotFound_throwsException() {
+    when(taskTemplateRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> taskService.getTaskById(99L, principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Task not found");
+  }
+
+  @Test
+  void getTaskById_whenOwnedByDifferentOrg_throwsException() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(70L);
+    template.setOrganisationId(UUID.randomUUID()); // different org
+    template.setTitle("Foreign task");
+
+    when(taskTemplateRepository.findById(70L)).thenReturn(Optional.of(template));
+
+    assertThatThrownBy(() -> taskService.getTaskById(70L, principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Task not found");
+  }
+
+  // ── createTask (non-temperature section) ─────────────────────────────────
+
+  @Test
+  void createTask_nonTemperatureSectionType_savesWithoutZoneOrRange() {
+    when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(inv -> {
+      TaskTemplate t = inv.getArgument(0);
+      t.setId(80L);
+      return t;
+    });
+    when(taskMapper.toResponse(any(TaskTemplate.class))).thenAnswer(inv -> {
+      TaskTemplate t = inv.getArgument(0);
+      return new TaskResponse(t.getId(), IcModule.IC_FOOD, t.getTitle(), t.getMeta(),
+          t.getSectionType(), null, null, null, null, null, null);
+    });
+
+    TaskResponse response = taskService.createTask(
+        new CreateTaskRequest(IcModule.IC_FOOD, "Wash hands", "Before food handling",
+            SectionTypes.HYGIENE, null, null, null),
+        principal);
+
+    ArgumentCaptor<TaskTemplate> captor = ArgumentCaptor.forClass(TaskTemplate.class);
+    verify(taskTemplateRepository).save(captor.capture());
+    TaskTemplate saved = captor.getValue();
+
+    assertThat(saved.getTemperatureZone()).isNull();
+    assertThat(saved.getUnit()).isNull();
+    assertThat(saved.getTargetMin()).isNull();
+    assertThat(saved.getTargetMax()).isNull();
+    assertThat(response.title()).isEqualTo("Wash hands");
+  }
 }
