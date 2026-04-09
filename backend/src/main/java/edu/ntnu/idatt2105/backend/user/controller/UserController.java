@@ -21,6 +21,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Value;
 
+/**
+ * REST controller for user authentication — register, login, token refresh, and logout.
+ *
+ * <p>The refresh token is stored in an HttpOnly cookie ({@code refreshToken}) to prevent
+ * JavaScript access. All endpoints are publicly accessible (no JWT required).
+ *
+ * @see edu.ntnu.idatt2105.backend.user.service.UserService
+ */
 @Tag(name = "Authentication", description = "Register, login, refresh token, and logout")
 @RestController
 @RequiredArgsConstructor
@@ -73,6 +81,12 @@ public class UserController {
         .build();
   }
 
+  /**
+   * Attaches the refresh token as an HttpOnly cookie and clears it from the response body.
+   *
+   * @param response the login response produced by the service
+   * @return the response entity with the Set-Cookie header
+   */
   private ResponseEntity<LoginResponse> sendWithCookie(LoginResponse response) {
     ResponseCookie cookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
         .httpOnly(true).secure(cookieSecure)
