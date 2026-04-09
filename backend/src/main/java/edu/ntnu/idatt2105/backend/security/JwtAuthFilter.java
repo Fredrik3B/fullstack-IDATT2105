@@ -80,9 +80,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       String email = jwtService.extractEmail(jwt);
       if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
         if (jwtService.validateToken(jwt, email)) {
-          UUID tokenUserId = jwtService.extractUserId(jwt);
-          UserModel user = userRepository.findById(tokenUserId).orElse(null);
-          if (user == null || !email.equals(user.getEmail())) {
+          UserModel user = resolveCurrentUser(jwt, email);
+          if (user == null) {
             return;
           }
 
@@ -107,5 +106,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       // Expired or malformed token — skip authentication and let Spring Security
       // handle access control. permitAll endpoints will still be reachable.
     }
+  }
+
+  private UserModel resolveCurrentUser(String jwt, String email) {
+    try {
+      UUID tokenUserId = jwtService.extractUserId(jwt);
+      if (tokenUserId != null) {
+        UserModel user = userRepository.findById(tokenUserId).orElse(null);
+        if (user != null && email.equals(user.getEmail())) {
+          return user;
+        }
+      }
+    } catch (RuntimeException ignored) {
+      // Fall through to email lookup so older or partially-migrated tokens can still authenticate.
+    }
+
+    return userRepository.findByEmail(email).orElse(null);
   }
 }

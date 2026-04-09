@@ -91,4 +91,45 @@ class JwtAuthFilterTest {
     verify(jwtService, never()).extractRoles("token");
     verify(jwtService, never()).extractOrganizationId("token");
   }
+
+  @Test
+  void doFilterInternal_fallsBackToEmailLookupWhenUserIdCannotBeResolved() throws Exception {
+    UUID userId = UUID.randomUUID();
+    UUID organizationId = UUID.randomUUID();
+    String email = "fallback.user@test.com";
+
+    UserModel user = new UserModel();
+    user.setId(userId);
+    user.setEmail(email);
+
+    OrganizationModel organization = new OrganizationModel();
+    organization.setId(organizationId);
+    user.setOrganization(organization);
+
+    RoleModel managerRole = new RoleModel();
+    managerRole.setName(RoleEnum.MANAGER);
+    user.getRoles().add(managerRole);
+
+    when(jwtService.extractEmail("token")).thenReturn(email);
+    when(jwtService.validateToken("token", email)).thenReturn(true);
+    when(jwtService.extractUserId("token")).thenThrow(new IllegalArgumentException("bad id"));
+    when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.addHeader("Authorization", "Bearer token");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    jwtAuthFilter.doFilterInternal(request, response, new MockFilterChain());
+
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    assertThat(authentication).isNotNull();
+    JwtAuthenticatedPrincipal principal = (JwtAuthenticatedPrincipal) authentication.getPrincipal();
+    assertThat(principal.getUserId()).isEqualTo(userId);
+    assertThat(principal.getOrganizationId()).isEqualTo(organizationId);
+    assertThat(principal.getAuthorities())
+        .extracting(grantedAuthority -> grantedAuthority.getAuthority())
+        .containsExactly("ROLE_MANAGER");
+
+    verify(userRepository).findByEmail(email);
+  }
 }
