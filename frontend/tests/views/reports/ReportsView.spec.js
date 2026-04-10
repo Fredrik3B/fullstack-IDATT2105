@@ -15,6 +15,10 @@ vi.mock('@/api/reports', () => ({
   fetchSummaryReport: vi.fn(),
 }))
 
+vi.mock('@/composables/useToast', () => ({
+  useToast: () => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }),
+}))
+
 vi.mock('@/components/layout/PageHeader.vue', () => ({
   default: {
     template: '<div class="page-header"><slot name="actions" /></div>',

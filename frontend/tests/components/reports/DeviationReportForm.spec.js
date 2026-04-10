@@ -125,7 +125,7 @@ describe('DeviationReportForm', () => {
       const payload = createDeviationReport.mock.calls[0][0]
       expect(payload.deviationName).toBe('Fridge too warm')
       expect(payload.severity).toBe('MAJOR')
-      expect(payload.timestamp).toBe('2024-06-15T10:30')
+      expect(payload.occurredAt).toBe('2024-06-15T10:30')
       expect(payload.noticedBy).toBe('Alice')
       expect(payload.reportedTo).toBe('Manager Bob')
       expect(payload.processedBy).toBe('Alice')

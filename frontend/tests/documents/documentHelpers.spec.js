@@ -16,8 +16,8 @@ describe('documentHelpers', () => {
   // ── CATEGORIES / MODULES constants ─────────────────────────────────────
 
   describe('CATEGORIES', () => {
-    it('contains 6 entries', () => {
-      expect(CATEGORIES).toHaveLength(6)
+    it('contains 7 entries', () => {
+      expect(CATEGORIES).toHaveLength(7)
     })
 
     it('each entry has value, label, and emptyHint', () => {
@@ -30,6 +30,10 @@ describe('documentHelpers', () => {
 
     it('includes CERTIFICATE category', () => {
       expect(CATEGORIES.some(c => c.value === 'CERTIFICATE')).toBe(true)
+    })
+
+    it('includes DEVIATION_REPORT category', () => {
+      expect(CATEGORIES.some(c => c.value === 'DEVIATION_REPORT')).toBe(true)
     })
   })
 
