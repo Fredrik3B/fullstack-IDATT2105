@@ -12,6 +12,11 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
@@ -19,7 +24,8 @@ services:
     env_file:
       - .env.local
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/app_db
       SPRING_DATASOURCE_USERNAME: app_user
@@ -31,6 +37,8 @@ services:
   frontend:
     build: ./frontend
     container_name: app-frontend
+    environment:
+      DOCKER: "true"
     depends_on:
       - backend
     ports:
