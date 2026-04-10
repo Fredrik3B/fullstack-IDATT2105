@@ -242,8 +242,12 @@ const teamError = ref('')
 const { latestByTaskId: foodTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_FOOD' })
 const { latestByTaskId: alcoholTemperatureLatestByTaskId } = useTemperatureLog({ module: 'IC_ALCOHOL' })
 
-const dailyFoodChecklists = computed(() => foodChecklists.value.filter((card) => isDailyChecklist(card)))
-const dailyAlcoholChecklists = computed(() => alcoholChecklists.value.filter((card) => isDailyChecklist(card)))
+const dailyFoodChecklists = computed(() =>
+  foodChecklists.value.filter((card) => isActiveChecklist(card) && isDailyChecklist(card))
+)
+const dailyAlcoholChecklists = computed(() =>
+  alcoholChecklists.value.filter((card) => isActiveChecklist(card) && isDailyChecklist(card))
+)
 const dailyChecklists = computed(() => [...dailyFoodChecklists.value, ...dailyAlcoholChecklists.value])
 
 const restaurantDisplayName = computed(() => auth.restaurant?.name?.trim() || 'Restaurant')
@@ -389,6 +393,15 @@ const alerts = computed(() => {
 
 function isDailyChecklist(card) {
   return String(card?.period ?? '').toLowerCase() === 'daily'
+}
+
+function isActiveChecklist(card) {
+  if (!card || typeof card !== 'object') return false
+  if (card.displayedOnWorkbench === false) return false
+  if (card.active === false) return false
+
+  const statusLabel = String(card.statusLabel ?? '').toLowerCase()
+  return statusLabel !== 'in library'
 }
 
 function getAllTasks(card) {

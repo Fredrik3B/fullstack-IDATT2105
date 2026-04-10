@@ -61,6 +61,7 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useToast } from '@/composables/useToast'
 import { fetchInspectionReport, fetchSummaryReport } from '@/api/reports'
 import PageHeader from '@/components/layout/PageHeader.vue'
 import ReportFilterBar from '@/components/reports/ReportFilterBar.vue'
@@ -69,12 +70,14 @@ import SummaryReport from '@/components/reports/SummaryReport.vue'
 import DeviationReportForm from '@/components/reports/DeviationReportForm.vue'
 
 const route = useRoute()
+const toast = useToast()
 
 const showDeviationForm = ref(false)
 
 function onDeviationSubmitted() {
   showDeviationForm.value = false
   if (report.value) loadReport()
+  toast.success('Deviation report submitted, find it in documents')
 }
 
 const reportType = ref('inspection')
