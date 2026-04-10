@@ -81,8 +81,6 @@ class OrganizationControllerTest {
         .id(orgId).name("Test Restaurant").joinCode("TES-1234").build();
   }
 
-  // ── POST /api/organizations ───────────────────────────────────────────────
-
   @Test
   @DisplayName("POST /api/organizations - authenticated staff creates org and returns 200")
   void createOrganization_asStaff_returns200() throws Exception {
@@ -110,7 +108,6 @@ class OrganizationControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/organizations/lookup ─────────────────────────────────────────
 
   @Test
   @DisplayName("GET /api/organizations/lookup - valid code returns 200")
@@ -135,8 +132,6 @@ class OrganizationControllerTest {
             .with(authentication(staffAuth())))
         .andExpect(status().isNotFound());
   }
-
-  // ── POST /api/organizations/join ──────────────────────────────────────────
 
   @Test
   @DisplayName("POST /api/organizations/join - valid request returns 200")
@@ -168,8 +163,6 @@ class OrganizationControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/organizations/join-request ──────────────────────────────────
-
   @Test
   @DisplayName("GET /api/organizations/join-request - pending request returns 200")
   void seeJoinRequest_pending_returns200() throws Exception {
@@ -193,8 +186,6 @@ class OrganizationControllerTest {
         .andExpect(status().isNoContent());
   }
 
-  // ── DELETE /api/organizations/join-request ────────────────────────────────
-
   @Test
   @DisplayName("DELETE /api/organizations/join-request - success returns 200")
   void withdrawJoinRequest_success_returns200() throws Exception {
@@ -204,8 +195,6 @@ class OrganizationControllerTest {
 
     verify(organizationService).withdrawJoinRequest(userId);
   }
-
-  // ── GET /api/organizations/requests ──────────────────────────────────────
 
   @Test
   @DisplayName("GET /api/organizations/requests - admin returns 200 with list")
@@ -236,8 +225,6 @@ class OrganizationControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/organizations/members ───────────────────────────────────────
-
   @Test
   @DisplayName("GET /api/organizations/members - admin returns 200 with list")
   void getMembers_asAdmin_returns200() throws Exception {
@@ -260,8 +247,6 @@ class OrganizationControllerTest {
         .andExpect(status().isForbidden());
   }
 
-  // ── DELETE /api/organizations/members/{userId} ────────────────────────────
-
   @Test
   @DisplayName("DELETE /api/organizations/members/{userId} - admin returns 200")
   void removeMember_asAdmin_returns200() throws Exception {
@@ -279,8 +264,6 @@ class OrganizationControllerTest {
             .with(authentication(staffAuth())))
         .andExpect(status().isForbidden());
   }
-
-  // ── PUT /api/organizations/members/{userId}/roles ─────────────────────────
 
   @Test
   @DisplayName("PUT /api/organizations/members/{userId}/roles - admin returns 200")

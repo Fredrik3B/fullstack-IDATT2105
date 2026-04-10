@@ -55,7 +55,6 @@ public class UserService {
     RoleModel staffRole = roleRepository.findByName(RoleEnum.STAFF)
         .orElseThrow(() -> new RuntimeException("STAFF role not found in database"));
 
-    // Refactor
     UserModel user = new UserModel();
     user.setEmail(request.getEmail());
     user.setPassword(passwordEncoder.encode(request.getPassword()));

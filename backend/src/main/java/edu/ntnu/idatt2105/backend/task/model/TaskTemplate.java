@@ -28,7 +28,6 @@ import lombok.Setter;
  * {@code targetMax}, {@code temperatureZone}) that drive the temperature measurement workflow.
  * Non-temperature tasks leave these fields null.
  */
-// implement correct relations
 @Setter
 @Getter
 @Entity

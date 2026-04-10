@@ -76,8 +76,6 @@ class TemperatureMeasurementControllerTest {
         new BigDecimal("4.5"), LocalDateTime.now(), "2025-W01", false);
   }
 
-  // ── POST /api/temperature-measurements ───────────────────────────────────
-
   @Test
   @DisplayName("POST /api/temperature-measurements - staff creates measurement and returns 201")
   void createMeasurement_asStaff_returns201() throws Exception {
@@ -158,8 +156,6 @@ class TemperatureMeasurementControllerTest {
             .with(authentication(staffAuth())))
         .andExpect(status().isBadRequest());
   }
-
-  // ── GET /api/temperature-measurements ────────────────────────────────────
 
   @Test
   @DisplayName("GET /api/temperature-measurements - staff returns 200 with list")

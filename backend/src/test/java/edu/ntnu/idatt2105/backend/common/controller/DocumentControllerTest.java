@@ -57,8 +57,6 @@ class DocumentControllerTest {
                 .build();
     }
 
-    // ── Auth helpers ──────────────────────────────────────────────────────────
-
     private Authentication adminAuth() {
         JwtAuthenticatedPrincipal principal = new JwtAuthenticatedPrincipal(
                 userId, orgId, "admin@test.com",
@@ -78,7 +76,6 @@ class DocumentControllerTest {
                 null, "test.pdf", "application/pdf", 100L, null, LocalDateTime.now(), "Admin User");
     }
 
-    // ── POST /documents ───────────────────────────────────────────────────────
 
     @Test
     @DisplayName("POST /api/documents - admin gets 201")
@@ -118,7 +115,6 @@ class DocumentControllerTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ── GET /api/documents ────────────────────────────────────────────────────
 
     @Test
     @DisplayName("GET /api/documents - authenticated returns 200 with list")
@@ -155,8 +151,6 @@ class DocumentControllerTest {
                 any());
     }
 
-    // ── GET /api/documents/{id}/download ──────────────────────────────────────
-
     @Test
     @DisplayName("GET /api/documents/{id}/download - returns 200 with Content-Disposition header")
     void downloadDocument_authenticated_returns200WithContentDisposition() throws Exception {
@@ -178,8 +172,6 @@ class DocumentControllerTest {
         mockMvc.perform(get("/api/documents/1/download"))
                 .andExpect(status().isUnauthorized());
     }
-
-    // ── DELETE /api/documents/{id} ────────────────────────────────────────────
 
     @Test
     @DisplayName("DELETE /api/documents/{id} - admin gets 204 and service is called")

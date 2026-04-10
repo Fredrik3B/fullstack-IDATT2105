@@ -221,7 +221,6 @@ class TaskServiceTest {
     assertThat(response.title()).isEqualTo("Updated hygiene task");
   }
 
-  // ── getAllTasks ───────────────────────────────────────────────────────────
 
   @Test
   void getAllTasks_returnsMappedTasksForModule() {
@@ -254,7 +253,6 @@ class TaskServiceTest {
     assertThat(result).isEmpty();
   }
 
-  // ── getTaskById ───────────────────────────────────────────────────────────
 
   @Test
   void getTaskById_returnsTaskWhenOwnedByOrg() {
@@ -289,7 +287,7 @@ class TaskServiceTest {
   void getTaskById_whenOwnedByDifferentOrg_throwsException() {
     TaskTemplate template = new TaskTemplate();
     template.setId(70L);
-    template.setOrganisationId(UUID.randomUUID()); // different org
+    template.setOrganisationId(UUID.randomUUID());
     template.setTitle("Foreign task");
 
     when(taskTemplateRepository.findById(70L)).thenReturn(Optional.of(template));
@@ -299,7 +297,6 @@ class TaskServiceTest {
         .hasMessageContaining("Task not found");
   }
 
-  // ── createTask (non-temperature section) ─────────────────────────────────
 
   @Test
   void createTask_nonTemperatureSectionType_savesWithoutZoneOrRange() {

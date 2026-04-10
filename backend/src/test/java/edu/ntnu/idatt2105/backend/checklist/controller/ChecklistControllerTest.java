@@ -88,7 +88,6 @@ class ChecklistControllerTest {
         "TEMPERATURE_CONTROL", "C", null, null, "todo", false, null, null, null, null);
   }
 
-  // ── POST /api/checklists ──────────────────────────────────────────────────
 
   @Test
   @DisplayName("POST /api/checklists - admin creates checklist and returns 201")
@@ -180,7 +179,6 @@ class ChecklistControllerTest {
         .andExpect(status().isBadRequest());
   }
 
-  // ── GET /api/checklists ───────────────────────────────────────────────────
 
   @Test
   @DisplayName("GET /api/checklists - authenticated returns 200 with list")
@@ -203,7 +201,6 @@ class ChecklistControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── PUT /api/checklists/{checklistId} ─────────────────────────────────────
 
   @Test
   @DisplayName("PUT /api/checklists/{id} - admin updates checklist and returns 200")
@@ -254,7 +251,6 @@ class ChecklistControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── PUT /api/checklists/{id}/tasks/{taskId}/completion ────────────────────
 
   @Test
   @DisplayName("PUT /api/checklists/{id}/tasks/{taskId}/completion - staff returns 200")
@@ -298,8 +294,6 @@ class ChecklistControllerTest {
         .andExpect(status().isBadRequest());
   }
 
-  // ── PUT /api/checklists/{id}/tasks/{taskId}/flag ──────────────────────────
-
   @Test
   @DisplayName("PUT /api/checklists/{id}/tasks/{taskId}/flag - staff returns 200")
   void setTaskFlag_asStaff_returns200() throws Exception {
@@ -332,7 +326,6 @@ class ChecklistControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── PUT /api/checklists/{id}/submit ───────────────────────────────────────
 
   @Test
   @DisplayName("PUT /api/checklists/{id}/submit - staff returns 200")
@@ -350,8 +343,6 @@ class ChecklistControllerTest {
     mockMvc.perform(put("/api/checklists/1/submit"))
         .andExpect(status().isUnauthorized());
   }
-
-  // ── PUT /api/checklists/{id}/workbench ────────────────────────────────────
 
   @Test
   @DisplayName("PUT /api/checklists/{id}/workbench - admin returns 200")
@@ -391,7 +382,6 @@ class ChecklistControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── DELETE /api/checklists/{checklistId} ──────────────────────────────────
 
   @Test
   @DisplayName("DELETE /api/checklists/{id} - admin returns 204")

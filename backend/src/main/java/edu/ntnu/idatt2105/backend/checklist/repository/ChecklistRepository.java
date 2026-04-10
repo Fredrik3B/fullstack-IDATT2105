@@ -24,6 +24,5 @@ public interface ChecklistRepository extends JpaRepository<ChecklistModel, Long>
 
 	Optional<ChecklistModel> findByIdAndOrganization_Id(Long checklistId, UUID organizationId);
 
-	// TODO: fix relationsss
   List<ChecklistModel> findAllByOrganizationId(UUID orgId);
 }

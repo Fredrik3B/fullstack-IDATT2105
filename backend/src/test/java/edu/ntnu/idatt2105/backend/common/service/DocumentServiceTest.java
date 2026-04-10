@@ -87,7 +87,6 @@ class DocumentServiceTest {
         principal = new JwtAuthenticatedPrincipal(userId, orgId, "user@test.com", List.of());
     }
 
-    // ── Helper ───────────────────────────────────────────────────────────────
 
     private DocumentModel makeDoc(Long id, UUID docOrgId) {
         OrganizationModel docOrg = new OrganizationModel();
@@ -123,7 +122,6 @@ class DocumentServiceTest {
         );
     }
 
-    // ── uploadDocument ────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("uploadDocument - file upload: saves file to disk and returns DTO")
@@ -152,7 +150,6 @@ class DocumentServiceTest {
         assertThat(result.name()).isEqualTo("Test Doc");
         verify(documentRepository).save(any(DocumentModel.class));
 
-        // File was physically written to disk under orgId directory
         Path orgDir = tempDir.resolve(orgId.toString());
         assertThat(Files.list(orgDir).count()).isEqualTo(1);
     }
@@ -227,8 +224,6 @@ class DocumentServiceTest {
                 .hasMessageContaining("404");
     }
 
-    // ── getDocuments ──────────────────────────────────────────────────────────
-
     @Test
     @DisplayName("getDocuments - no filters: queries all org documents")
     void getDocuments_noFilters_callsFindAllByOrganizationId() {
@@ -298,7 +293,6 @@ class DocumentServiceTest {
         assertThat(result.get(0).uploadedByName()).isEqualTo("Test User");
     }
 
-    // ── downloadDocument ──────────────────────────────────────────────────────
 
     @Test
     @DisplayName("downloadDocument - own document: returns readable resource")
@@ -337,7 +331,6 @@ class DocumentServiceTest {
                 .hasMessageContaining("404");
     }
 
-    // ── deleteDocument ────────────────────────────────────────────────────────
 
     @Test
     @DisplayName("deleteDocument - own document: removes from DB and deletes file from disk")

@@ -387,7 +387,6 @@ class OrganizationServiceTest {
   @Test
   void removeMember_userNotInOrg_throwsException() {
     UUID adminId = UUID.randomUUID();
-    // user has no organization set
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -413,7 +412,6 @@ class OrganizationServiceTest {
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
     when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(new RoleModel()));
-    // user has MANAGER not ADMIN, so wouldRemoveLastAdmin is false → countAdmins not called
 
     organizationService.updateMemberRoles(orgId, userId, adminId, List.of("STAFF"));
 

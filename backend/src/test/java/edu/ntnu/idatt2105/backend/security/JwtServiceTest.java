@@ -69,17 +69,6 @@ class JwtServiceTest {
     assertThat(orgId).isNull();
   }
 
-//  @Test
-//  void generateToken_withOrgId_extractsCorrectly() {
-//    UserModel user = principal.getUser();
-//    user.setOrganization(UUID.randomUUID());
-//    UserPrincipal withOrg = new UserPrincipal(user);
-//
-//    String token = jwtService.generateToken(withOrg);
-//    UUID orgId = jwtService.extractOrganizationId(token);
-//    assertThat(orgId).isEqualTo(user.getOrganizationId());
-//  }
-
   @Test
   void validateValidToken() {
     String token = jwtService.generateToken(principal);

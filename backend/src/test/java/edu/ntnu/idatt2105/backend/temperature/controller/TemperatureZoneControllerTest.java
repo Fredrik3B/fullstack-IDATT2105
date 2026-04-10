@@ -85,8 +85,6 @@ class TemperatureZoneControllerTest {
         TemperatureZone.FRIDGE, new BigDecimal("2.00"), new BigDecimal("5.00"));
   }
 
-  // ── POST /api/temperature-zones ───────────────────────────────────────────
-
   @Test
   @DisplayName("POST /api/temperature-zones - admin creates zone and returns 201")
   void createZone_asAdmin_returns201() throws Exception {
@@ -173,8 +171,6 @@ class TemperatureZoneControllerTest {
         .andExpect(status().isBadRequest());
   }
 
-  // ── PUT /api/temperature-zones/{zoneId} ───────────────────────────────────
-
   @Test
   @DisplayName("PUT /api/temperature-zones/{id} - admin updates zone and returns 200")
   void updateZone_asAdmin_returns200() throws Exception {
@@ -230,8 +226,6 @@ class TemperatureZoneControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/temperature-zones ────────────────────────────────────────────
-
   @Test
   @DisplayName("GET /api/temperature-zones - admin returns 200 with list")
   void getAllZones_asAdmin_returns200() throws Exception {
@@ -271,8 +265,6 @@ class TemperatureZoneControllerTest {
             .param("module", "IC_FOOD"))
         .andExpect(status().isUnauthorized());
   }
-
-  // ── DELETE /api/temperature-zones/{zoneId} ────────────────────────────────
 
   @Test
   @DisplayName("DELETE /api/temperature-zones/{id} - admin returns 204")

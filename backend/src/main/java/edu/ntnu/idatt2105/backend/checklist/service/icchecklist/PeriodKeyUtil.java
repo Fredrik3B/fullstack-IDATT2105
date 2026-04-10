@@ -93,7 +93,7 @@ public final class PeriodKeyUtil {
 			return YearMonth.from(safeDate).format(MONTH_FORMATTER);
 		}
 
-		return safeDate.toString(); // YYYY-MM-DD
+		return safeDate.toString();
 	}
 
 	/**
@@ -127,7 +127,6 @@ public final class PeriodKeyUtil {
 			return;
 		}
 
-		// DAILY
 		if (!key.matches("\\d{4}-\\d{2}-\\d{2}")) throw new IllegalArgumentException("Invalid daily periodKey: " + key);
 		LocalDate.parse(key, DateTimeFormatter.ISO_LOCAL_DATE);
 	}

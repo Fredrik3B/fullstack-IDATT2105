@@ -68,8 +68,6 @@ class ReportControllerTest {
     return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
   }
 
-  // ── GET /api/reports/summary ──────────────────────────────────────────────
-
   @Test
   @DisplayName("GET /api/reports/summary - authenticated returns 200")
   void getSummary_authenticated_returns200() throws Exception {
@@ -112,8 +110,6 @@ class ReportControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/reports/full-report ──────────────────────────────────────────
-
   @Test
   @DisplayName("GET /api/reports/full-report - authenticated returns 200")
   void getInspection_authenticated_returns200() throws Exception {
@@ -132,8 +128,6 @@ class ReportControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/reports/inspection/pdf ──────────────────────────────────────
-
   @Test
   @DisplayName("GET /api/reports/inspection/pdf - authenticated returns 200")
   void getInspectionPdf_authenticated_returns200() throws Exception {
@@ -151,8 +145,6 @@ class ReportControllerTest {
     mockMvc.perform(get("/api/reports/inspection/pdf"))
         .andExpect(status().isUnauthorized());
   }
-
-  // ── POST /api/reports/deviations ─────────────────────────────────────────
 
   @Test
   @DisplayName("POST /api/reports/deviations - authenticated creates report and returns 201")

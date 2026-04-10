@@ -168,8 +168,6 @@ class TemperatureZoneServiceImplTest {
         .hasMessageContaining("targetMin cannot be greater");
   }
 
-  // ── getAllZones ───────────────────────────────────────────────────────────
-
   @Test
   void getAllZones_returnsMappedZonesForModule() {
     TemperatureZoneModel zone = new TemperatureZoneModel();
@@ -201,7 +199,6 @@ class TemperatureZoneServiceImplTest {
     assertThat(result).isEmpty();
   }
 
-  // ── deleteZone (success path) ─────────────────────────────────────────────
 
   @Test
   void deleteZone_whenNotUsedByAnyTask_deletesZoneAndTouchesCache() {
@@ -229,8 +226,6 @@ class TemperatureZoneServiceImplTest {
 
     verify(temperatureZoneRepository, never()).delete(any());
   }
-
-  // ── updateZone (not found) ────────────────────────────────────────────────
 
   @Test
   void updateZone_whenZoneNotFound_throwsException() {

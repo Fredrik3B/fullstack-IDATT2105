@@ -98,14 +98,4 @@ public class UserController {
         .header(HttpHeaders.SET_COOKIE, cookie.toString())
         .body(response);
   }
-
-  private ResponseCookie createRefreshTokenCookie(String refreshToken) {
-    return ResponseCookie.from("refreshToken", refreshToken)
-        .httpOnly(true)
-        .secure(cookieSecure)
-        .path("/api/auth/refresh")
-        .maxAge(Duration.ofDays(7))
-        .sameSite("Lax")
-        .build();
-  }
 }

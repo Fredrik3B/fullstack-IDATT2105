@@ -83,8 +83,8 @@ class TemperatureMeasurementServiceImplTest {
 
     when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(10L, 1L)).thenReturn(Optional.of(task));
-    when(organizationRepository.getReferenceById(orgId)).thenReturn(organization); // ✅ important
-    when(userRepository.getReferenceById(userId)).thenReturn(user); // ✅ important
+    when(organizationRepository.getReferenceById(orgId)).thenReturn(organization);
+    when(userRepository.getReferenceById(userId)).thenReturn(user);
 
     when(temperatureMeasurementRepository.save(any(TemperatureMeasurementModel.class))).thenAnswer(invocation -> {
       TemperatureMeasurementModel measurement = invocation.getArgument(0);

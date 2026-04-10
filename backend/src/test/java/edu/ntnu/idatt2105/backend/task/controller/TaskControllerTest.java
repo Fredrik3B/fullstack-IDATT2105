@@ -83,7 +83,6 @@ class TaskControllerTest {
         null, SectionTypes.HYGIENE, null, null, null, null, null, null);
   }
 
-  // ── POST /api/tasks ───────────────────────────────────────────────────────
 
   @Test
   @DisplayName("POST /api/tasks - admin creates task and returns 201")
@@ -163,7 +162,6 @@ class TaskControllerTest {
         .andExpect(status().isBadRequest());
   }
 
-  // ── PUT /api/tasks/{taskId} ───────────────────────────────────────────────
 
   @Test
   @DisplayName("PUT /api/tasks/{id} - admin updates task and returns 200")
@@ -214,7 +212,6 @@ class TaskControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/tasks ────────────────────────────────────────────────────────
 
   @Test
   @DisplayName("GET /api/tasks - authenticated returns 200 with list")
@@ -236,7 +233,6 @@ class TaskControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/tasks/{taskId} ───────────────────────────────────────────────
 
   @Test
   @DisplayName("GET /api/tasks/{id} - authenticated returns 200")
@@ -256,7 +252,6 @@ class TaskControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── DELETE /api/tasks/{taskId} ────────────────────────────────────────────
 
   @Test
   @DisplayName("DELETE /api/tasks/{id} - admin returns 204")

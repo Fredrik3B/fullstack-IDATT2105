@@ -81,7 +81,6 @@ class ReportServiceTest {
     to = LocalDateTime.of(2026, 3, 31, 10, 0);
   }
 
-  // --- generateSummary ---
 
   @Test
   void generateSummary_withData_returnsCorrectStats() {
@@ -368,8 +367,6 @@ class ReportServiceTest {
     checklist.getTaskTemplates().add(template);
     return task;
   }
-
-  // ── createDeviationReport ─────────────────────────────────────────────────
 
   @Test
   void createDeviationReport_savesEntityAndReturnsIdWithCreatedAt() {

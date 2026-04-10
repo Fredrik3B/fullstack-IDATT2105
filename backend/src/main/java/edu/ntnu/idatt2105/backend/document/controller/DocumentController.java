@@ -51,7 +51,6 @@ public class DocumentController {
     private final DocumentService documentService;
 
 
-    // TODO: check validation here
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")

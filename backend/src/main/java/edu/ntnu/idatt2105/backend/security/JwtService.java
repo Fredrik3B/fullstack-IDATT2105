@@ -119,7 +119,7 @@ public class JwtService {
   }
 
   public String extractEmail(String token) {
-    return getClaims(token).getSubject();  // reads the "sub" field
+    return getClaims(token).getSubject();
   }
   
   @SuppressWarnings("unchecked")

@@ -37,7 +37,6 @@ import org.springframework.stereotype.Service;
  * request/accept flow: users submit a join-code request which an ADMIN or MANAGER
  * must resolve before the user appears as a member.
  */
-//TODO: request new access token
 @Service
 @AllArgsConstructor
 public class OrganizationService {
@@ -114,7 +113,6 @@ public class OrganizationService {
    * @return the organisation the user is requesting to join
    * @throws IllegalStateException if the user already belongs to an organisation or has a pending request
    */
-  // TODO: just cast to user instead of lookup?
   public OrganizationResponse requestToJoin(JoinOrganizationRequest request, UUID userId) {
     OrganizationModel org = organizationRepository.findByJoinCode(request.getJoinCode())
         .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
@@ -211,7 +209,6 @@ public class OrganizationService {
    * @param organizationId the organisation the resolver belongs to (ownership check)
    * @param action         {@link JoinOrgStatus#ACCEPTED} or {@link JoinOrgStatus#DECLINED}
    */
-  // TODO: fix exceptions
   public void resolveRequest(UUID requestId, UUID userId, UUID organizationId, JoinOrgStatus action) {
     JoinRequestModel request = joinRequestRepository.findById(requestId)
         .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
