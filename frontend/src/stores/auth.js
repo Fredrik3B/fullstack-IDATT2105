@@ -164,6 +164,10 @@ export const useAuthStore = defineStore('auth', () => {
     _initDone = false
     localStorage.removeItem(ACCESS_TOKEN_KEY)
     localStorage.removeItem(SESSION_KEY)
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ic-session-reset'))
+    }
   }
 
   /**

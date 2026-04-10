@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
 
 // Backend integration toggle:
 // - Keep this `false` until the backend endpoints described in `src/api/temperatureMeasurements.js` exist.
@@ -12,10 +13,13 @@ import { createTemperatureMeasurement, fetchTemperatureMeasurements } from '@/ap
  * Build storage key for offline/local fallback measurements.
  *
  * @param {string|null|undefined} module
+ * @param {import('@/stores/auth').useAuthStore} [auth]
  * @returns {string}
  */
-function storageKey(module) {
-  return `ic.temperatureMeasurements.v1.${String(module ?? 'UNKNOWN')}`
+function storageKey(module, auth) {
+  const userId = String(auth?.user?.id ?? 'anon')
+  const orgId = String(auth?.restaurant?.id ?? 'no-org')
+  return `ic.temperatureMeasurements.v1.${String(module ?? 'UNKNOWN')}.${userId}.${orgId}`
 }
 
 /**
@@ -25,6 +29,26 @@ function storageKey(module) {
  */
 function hasLocalStorage() {
   return typeof globalThis !== 'undefined' && typeof globalThis.localStorage !== 'undefined'
+}
+
+let temperatureCacheResetListenerRegistered = false
+
+function registerTemperatureCacheResetListener() {
+  if (temperatureCacheResetListenerRegistered || typeof window === 'undefined') return
+
+  window.addEventListener('ic-session-reset', () => {
+    if (!hasLocalStorage()) return
+
+    const prefix = 'ic.temperatureMeasurements.v1.'
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index)
+      if (key && key.startsWith(prefix)) {
+        localStorage.removeItem(key)
+      }
+    }
+  })
+
+  temperatureCacheResetListenerRegistered = true
 }
 
 /**
@@ -88,6 +112,8 @@ function toBackendDateTime(value) {
  */
 export function useTemperatureLog({ module }) {
   const toast = useToast()
+  const auth = useAuthStore()
+  registerTemperatureCacheResetListener()
   const measurements = ref([])
 
   if (USE_BACKEND) {
@@ -103,7 +129,7 @@ export function useTemperatureLog({ module }) {
         measurements.value = []
       })
   } else {
-    const raw = hasLocalStorage() ? safeParse(localStorage.getItem(storageKey(module)) ?? '[]') : []
+    const raw = hasLocalStorage() ? safeParse(localStorage.getItem(storageKey(module, auth)) ?? '[]') : []
     const parsed = Array.isArray(raw) ? raw.map(normalizeMeasurement).filter(Boolean) : []
     measurements.value = parsed
   }
@@ -160,7 +186,7 @@ export function useTemperatureLog({ module }) {
       return entry
     }
 
-    if (hasLocalStorage()) localStorage.setItem(storageKey(module), JSON.stringify(measurements.value))
+    if (hasLocalStorage()) localStorage.setItem(storageKey(module, auth), JSON.stringify(measurements.value))
     return entry
   }
 
