@@ -7,12 +7,20 @@ package edu.ntnu.idatt2105.backend.shared.enums;
  * in the deviation report UI to help prioritise corrective actions.
  */
 public enum DeviationSeverity {
-  /** Minor issue with negligible risk. */
+  /**
+   * Minor issue with negligible risk.
+   */
   MINOR,
-  /** Noteworthy issue that should be addressed. */
+  /**
+   * Noteworthy issue that should be addressed.
+   */
   MODERATE,
-  /** Serious issue requiring prompt corrective action. */
+  /**
+   * Serious issue requiring prompt corrective action.
+   */
   MAJOR,
-  /** Immediate action required; significant safety or compliance risk. */
+  /**
+   * Immediate action required; significant safety or compliance risk.
+   */
   CRITICAL
 }

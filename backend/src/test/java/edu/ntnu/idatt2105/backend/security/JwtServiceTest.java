@@ -1,21 +1,21 @@
 package edu.ntnu.idatt2105.backend.security;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import io.jsonwebtoken.ExpiredJwtException;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class JwtServiceTest {
+
   UserPrincipal principal;
   JwtService jwtService;
 
@@ -68,17 +68,6 @@ class JwtServiceTest {
     UUID orgId = jwtService.extractOrganizationId(token);
     assertThat(orgId).isNull();
   }
-
-//  @Test
-//  void generateToken_withOrgId_extractsCorrectly() {
-//    UserModel user = principal.getUser();
-//    user.setOrganization(UUID.randomUUID());
-//    UserPrincipal withOrg = new UserPrincipal(user);
-//
-//    String token = jwtService.generateToken(withOrg);
-//    UUID orgId = jwtService.extractOrganizationId(token);
-//    assertThat(orgId).isEqualTo(user.getOrganizationId());
-//  }
 
   @Test
   void validateValidToken() {

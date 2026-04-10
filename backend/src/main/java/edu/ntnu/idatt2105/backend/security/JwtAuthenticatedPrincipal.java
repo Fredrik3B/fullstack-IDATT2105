@@ -15,8 +15,8 @@ import org.springframework.web.server.ResponseStatusException;
  * Lightweight principal constructed from JWT claims.
  *
  * <p>Unlike {@link UserPrincipal}, which wraps a full User entity loaded from the database, this
- * class only carry the data embedded in the JWT. It is created by {@link JwtAuthFilter} on
- * every request and placed in the SecurityContext.</p>
+ * class only carry the data embedded in the JWT. It is created by {@link JwtAuthFilter} on every
+ * request and placed in the SecurityContext.</p>
  *
  * <p>Access in controllers:</p>
  * <pre>
@@ -24,14 +24,15 @@ import org.springframework.web.server.ResponseStatusException;
  * UUID orgId = principal.getOrganizationId();
  * </pre>
  *
- * @see JwtAuthFilter
  * @author Fredrik Borbe
  * @version 0.1
+ * @see JwtAuthFilter
  */
 @Getter
 @Setter
 @AllArgsConstructor
 public class JwtAuthenticatedPrincipal {
+
   private final UUID userId;
   private final UUID organizationId;
   private final String username;
@@ -42,7 +43,8 @@ public class JwtAuthenticatedPrincipal {
    *
    * @param auth the current authentication, may be {@code null}
    * @return the authenticated principal
-   * @throws org.springframework.web.server.ResponseStatusException 401 if auth is missing or not JWT-based
+   * @throws org.springframework.web.server.ResponseStatusException 401 if auth is missing or not
+   *                                                                JWT-based
    */
   public static JwtAuthenticatedPrincipal from(Authentication auth) {
     if (auth == null || !(auth.getPrincipal() instanceof JwtAuthenticatedPrincipal principal)) {
@@ -55,7 +57,8 @@ public class JwtAuthenticatedPrincipal {
    * Returns the organization ID, throwing if the user has not yet joined an organization.
    *
    * @return the non-null organization UUID
-   * @throws edu.ntnu.idatt2105.backend.exception.OrganizationRequiredException if organizationId is null
+   * @throws edu.ntnu.idatt2105.backend.exception.OrganizationRequiredException if organizationId is
+   *                                                                            null
    */
   public UUID requireOrganizationId() {
     if (organizationId == null) {

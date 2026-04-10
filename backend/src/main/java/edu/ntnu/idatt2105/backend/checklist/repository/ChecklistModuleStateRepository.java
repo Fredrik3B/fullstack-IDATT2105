@@ -14,5 +14,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface ChecklistModuleStateRepository extends JpaRepository<ChecklistModuleState, Long> {
 
-	Optional<ChecklistModuleState> findByOrganizationIdAndComplianceArea(UUID organizationId, ComplianceArea complianceArea);
+  Optional<ChecklistModuleState> findByOrganizationIdAndComplianceArea(UUID organizationId,
+      ComplianceArea complianceArea);
 }

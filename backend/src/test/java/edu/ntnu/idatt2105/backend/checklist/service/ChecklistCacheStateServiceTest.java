@@ -6,8 +6,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModuleState;
-import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistModuleStateRepository;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -22,23 +22,28 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ChecklistCacheStateServiceTest {
 
-  @Mock private ChecklistModuleStateRepository checklistModuleStateRepository;
+  @Mock
+  private ChecklistModuleStateRepository checklistModuleStateRepository;
 
-  @InjectMocks private ChecklistCacheStateService checklistCacheStateService;
+  @InjectMocks
+  private ChecklistCacheStateService checklistCacheStateService;
 
   @Test
   void getLastModified_bootstrapsStateWhenModuleHasNoExistingCacheRow() {
     UUID orgId = UUID.randomUUID();
 
-    when(checklistModuleStateRepository.findByOrganizationIdAndComplianceArea(orgId, ComplianceArea.IK_MAT))
+    when(checklistModuleStateRepository.findByOrganizationIdAndComplianceArea(orgId,
+        ComplianceArea.IK_MAT))
         .thenReturn(Optional.empty());
-    when(checklistModuleStateRepository.save(any(ChecklistModuleState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(checklistModuleStateRepository.save(any(ChecklistModuleState.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
 
     var lastModified = checklistCacheStateService.getLastModified(orgId, ComplianceArea.IK_MAT);
 
     assertThat(lastModified).isNotNull();
 
-    ArgumentCaptor<ChecklistModuleState> captor = ArgumentCaptor.forClass(ChecklistModuleState.class);
+    ArgumentCaptor<ChecklistModuleState> captor = ArgumentCaptor.forClass(
+        ChecklistModuleState.class);
     verify(checklistModuleStateRepository).save(captor.capture());
     assertThat(captor.getValue().getOrganizationId()).isEqualTo(orgId);
     assertThat(captor.getValue().getComplianceArea()).isEqualTo(ComplianceArea.IK_MAT);
@@ -54,13 +59,16 @@ class ChecklistCacheStateServiceTest {
     existing.setComplianceArea(ComplianceArea.IK_MAT);
     existing.setModifiedAt(previousModifiedAt);
 
-    when(checklistModuleStateRepository.findByOrganizationIdAndComplianceArea(orgId, ComplianceArea.IK_MAT))
+    when(checklistModuleStateRepository.findByOrganizationIdAndComplianceArea(orgId,
+        ComplianceArea.IK_MAT))
         .thenReturn(Optional.of(existing));
-    when(checklistModuleStateRepository.save(any(ChecklistModuleState.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(checklistModuleStateRepository.save(any(ChecklistModuleState.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
 
     checklistCacheStateService.touch(orgId, ComplianceArea.IK_MAT);
 
-    ArgumentCaptor<ChecklistModuleState> captor = ArgumentCaptor.forClass(ChecklistModuleState.class);
+    ArgumentCaptor<ChecklistModuleState> captor = ArgumentCaptor.forClass(
+        ChecklistModuleState.class);
     verify(checklistModuleStateRepository).save(captor.capture());
     assertThat(captor.getValue().getModifiedAt())
         .isAfterOrEqualTo(previousModifiedAt.plusSeconds(1));

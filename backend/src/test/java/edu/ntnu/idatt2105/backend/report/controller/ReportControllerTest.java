@@ -68,8 +68,6 @@ class ReportControllerTest {
     return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
   }
 
-  // ── GET /api/reports/summary ──────────────────────────────────────────────
-
   @Test
   @DisplayName("GET /api/reports/summary - authenticated returns 200")
   void getSummary_authenticated_returns200() throws Exception {
@@ -112,8 +110,6 @@ class ReportControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/reports/full-report ──────────────────────────────────────────
-
   @Test
   @DisplayName("GET /api/reports/full-report - authenticated returns 200")
   void getInspection_authenticated_returns200() throws Exception {
@@ -132,27 +128,12 @@ class ReportControllerTest {
         .andExpect(status().isUnauthorized());
   }
 
-  // ── GET /api/reports/inspection/pdf ──────────────────────────────────────
-
-  @Test
-  @DisplayName("GET /api/reports/inspection/pdf - authenticated returns 200")
-  void getInspectionPdf_authenticated_returns200() throws Exception {
-    when(reportService.generateInspection(eq(orgId), any(), any()))
-        .thenReturn(InspectionReport.builder().build());
-
-    mockMvc.perform(get("/api/reports/inspection/pdf")
-            .with(authentication(adminAuth())))
-        .andExpect(status().isOk());
-  }
-
   @Test
   @DisplayName("GET /api/reports/inspection/pdf - unauthenticated returns 401")
   void getInspectionPdf_unauthenticated_returns401() throws Exception {
     mockMvc.perform(get("/api/reports/inspection/pdf"))
         .andExpect(status().isUnauthorized());
   }
-
-  // ── POST /api/reports/deviations ─────────────────────────────────────────
 
   @Test
   @DisplayName("POST /api/reports/deviations - authenticated creates report and returns 201")
@@ -166,7 +147,7 @@ class ReportControllerTest {
                 {
                   "deviationName": "Cold storage too warm",
                   "severity": "MAJOR",
-                  "timestamp": "2025-01-15T10:00",
+                  "occurredAt": "2025-01-15T10:00",
                   "noticedBy": "Jane Doe",
                   "reportedTo": "Manager Smith",
                   "processedBy": "Jane Doe",

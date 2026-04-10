@@ -6,7 +6,6 @@ import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 import lombok.Builder;
-import lombok.Data;
 
 /**
  * Lightweight compliance summary DTO used for the internal dashboard widget.
@@ -29,4 +28,6 @@ public record InternalSummary(
 
     @Schema(description = "All currently unresolved tasks")
     List<UnresolvedItemDto> unresolvedItems
-) {}
+) {
+
+}

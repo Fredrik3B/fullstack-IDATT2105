@@ -15,15 +15,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * is deterministic and matches creation order.
  */
 public interface ChecklistRepository extends JpaRepository<ChecklistModel, Long> {
-	List<ChecklistModel> findAllByOrganization_IdOrderByIdAsc(UUID organizationId);
 
-	List<ChecklistModel> findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(
-		UUID organizationId,
-		ComplianceArea complianceArea
-	);
+  List<ChecklistModel> findAllByOrganization_IdOrderByIdAsc(UUID organizationId);
 
-	Optional<ChecklistModel> findByIdAndOrganization_Id(Long checklistId, UUID organizationId);
+  List<ChecklistModel> findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(
+      UUID organizationId,
+      ComplianceArea complianceArea
+  );
 
-	// TODO: fix relationsss
+  Optional<ChecklistModel> findByIdAndOrganization_Id(Long checklistId, UUID organizationId);
+
   List<ChecklistModel> findAllByOrganizationId(UUID orgId);
 }

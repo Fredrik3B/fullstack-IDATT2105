@@ -1,7 +1,6 @@
 package edu.ntnu.idatt2105.backend.user.repository;
 
 import edu.ntnu.idatt2105.backend.user.model.JoinRequestModel;
-import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import java.util.List;
@@ -24,7 +23,8 @@ public interface JoinRequestRepository extends JpaRepository<JoinRequestModel, U
   List<JoinRequestModel> findAllByUserAndStatus(UserModel user, JoinOrgStatus status);
 
   @Query("SELECT j FROM JoinRequestModel j JOIN FETCH j.user WHERE j.organization.id = :orgId AND j.status = :status")
-  List<JoinRequestModel> findAllByOrganizationIdAndStatusWithUser(@Param("orgId") UUID orgId, @Param("status") JoinOrgStatus status);
+  List<JoinRequestModel> findAllByOrganizationIdAndStatusWithUser(@Param("orgId") UUID orgId,
+      @Param("status") JoinOrgStatus status);
 
   @Query("SELECT j FROM JoinRequestModel j JOIN FETCH j.user WHERE j.organization.id = :orgId")
   List<JoinRequestModel> findAllByOrganizationIdWithUser(@Param("orgId") UUID orgId);

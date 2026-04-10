@@ -7,25 +7,23 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-
-import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureMeasurementRequest;
-import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
-import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
-import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.temperature.mapper.TemperatureMapper;
-import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
-import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
-import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.temperature.service.TemperatureMeasurementService;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureMeasurementRequest;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
+import edu.ntnu.idatt2105.backend.temperature.mapper.TemperatureMapper;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.temperature.service.TemperatureMeasurementService;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
@@ -33,6 +31,7 @@ import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,16 +45,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TemperatureMeasurementServiceImplTest {
 
-  @Mock private TemperatureMeasurementRepository temperatureMeasurementRepository;
-  @Mock private ChecklistRepository checklistRepository;
-  @Mock private TasksRepository tasksRepository;
-  @Mock private OrganizationRepository organizationRepository;
-  @Mock private UserRepository userRepository;
-  @Mock private ChecklistCacheStateService checklistCacheStateService;
+  @Mock
+  private TemperatureMeasurementRepository temperatureMeasurementRepository;
+  @Mock
+  private ChecklistRepository checklistRepository;
+  @Mock
+  private TasksRepository tasksRepository;
+  @Mock
+  private OrganizationRepository organizationRepository;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private ChecklistCacheStateService checklistCacheStateService;
   @Mock
   private TemperatureMapper temperatureMapper;
 
-  @InjectMocks private TemperatureMeasurementService temperatureMeasurementService;
+  @InjectMocks
+  private TemperatureMeasurementService temperatureMeasurementService;
 
   private UUID orgId;
   private UUID userId;
@@ -81,16 +87,18 @@ class TemperatureMeasurementServiceImplTest {
     user.setFirstName("Olivia");
     user.setLastName("Cook");
 
-    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(10L, 1L)).thenReturn(Optional.of(task));
-    when(organizationRepository.getReferenceById(orgId)).thenReturn(organization); // ✅ important
-    when(userRepository.getReferenceById(userId)).thenReturn(user); // ✅ important
+    when(organizationRepository.getReferenceById(orgId)).thenReturn(organization);
+    when(userRepository.getReferenceById(userId)).thenReturn(user);
 
-    when(temperatureMeasurementRepository.save(any(TemperatureMeasurementModel.class))).thenAnswer(invocation -> {
-      TemperatureMeasurementModel measurement = invocation.getArgument(0);
-      measurement.setId(500L);
-      return measurement;
-    });
+    when(temperatureMeasurementRepository.save(any(TemperatureMeasurementModel.class))).thenAnswer(
+        invocation -> {
+          TemperatureMeasurementModel measurement = invocation.getArgument(0);
+          measurement.setId(500L);
+          return measurement;
+        });
 
     when(temperatureMapper.toMeasurementResponse(any(), any())).thenReturn(
         new TemperatureMeasurementResponse(
@@ -117,7 +125,8 @@ class TemperatureMeasurementServiceImplTest {
         principal
     );
 
-    ArgumentCaptor<TemperatureMeasurementModel> captor = ArgumentCaptor.forClass(TemperatureMeasurementModel.class);
+    ArgumentCaptor<TemperatureMeasurementModel> captor = ArgumentCaptor.forClass(
+        TemperatureMeasurementModel.class);
     verify(temperatureMeasurementRepository).save(captor.capture());
     TemperatureMeasurementModel saved = captor.getValue();
 
@@ -133,7 +142,8 @@ class TemperatureMeasurementServiceImplTest {
     ChecklistModel checklist = checklist(1L, ComplianceArea.IK_MAT);
     TasksModel task = task(10L, checklist, temperatureTemplate(), "2026-04-07", true);
 
-    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(10L, 1L)).thenReturn(Optional.of(task));
 
     assertThatThrownBy(() -> temperatureMeasurementService.createMeasurement(
@@ -158,7 +168,8 @@ class TemperatureMeasurementServiceImplTest {
     template.setSectionType(SectionTypes.HYGIENE);
     TasksModel task = task(10L, checklist, template, "2026-04-07", true);
 
-    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(10L, 1L)).thenReturn(Optional.of(task));
 
     assertThatThrownBy(() -> temperatureMeasurementService.createMeasurement(
@@ -188,7 +199,7 @@ class TemperatureMeasurementServiceImplTest {
   @Test
   void fetchMeasurements_returnsAllMeasurementsInPeriod() {
     LocalDateTime from = LocalDateTime.of(2026, 4, 1, 0, 0);
-    LocalDateTime to   = LocalDateTime.of(2026, 4, 7, 23, 59);
+    LocalDateTime to = LocalDateTime.of(2026, 4, 7, 23, 59);
 
     TemperatureMeasurementModel m1 = new TemperatureMeasurementModel();
     m1.setId(1L);
@@ -217,7 +228,8 @@ class TemperatureMeasurementServiceImplTest {
   void fetchMeasurements_withNullFromAndTo_usesDefaults() {
     when(temperatureMeasurementRepository
         .findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(
-            eq(orgId), eq(ComplianceArea.IK_MAT), any(LocalDateTime.class), any(LocalDateTime.class)))
+            eq(orgId), eq(ComplianceArea.IK_MAT), any(LocalDateTime.class),
+            any(LocalDateTime.class)))
         .thenReturn(List.of());
 
     List<TemperatureMeasurementResponse> result = temperatureMeasurementService.fetchMeasurements(
@@ -226,7 +238,8 @@ class TemperatureMeasurementServiceImplTest {
     assertThat(result).isEmpty();
     verify(temperatureMeasurementRepository)
         .findAllByOrganization_IdAndComplianceAreaAndMeasuredAtBetweenOrderByMeasuredAtDesc(
-            eq(orgId), eq(ComplianceArea.IK_MAT), any(LocalDateTime.class), any(LocalDateTime.class));
+            eq(orgId), eq(ComplianceArea.IK_MAT), any(LocalDateTime.class),
+            any(LocalDateTime.class));
   }
 
   private ChecklistModel checklist(Long id, ComplianceArea area) {
@@ -249,7 +262,8 @@ class TemperatureMeasurementServiceImplTest {
     return template;
   }
 
-  private TasksModel task(Long id, ChecklistModel checklist, TaskTemplate template, String periodKey, boolean active) {
+  private TasksModel task(Long id, ChecklistModel checklist, TaskTemplate template,
+      String periodKey, boolean active) {
     TasksModel task = new TasksModel();
     task.setId(id);
     task.setChecklist(checklist);

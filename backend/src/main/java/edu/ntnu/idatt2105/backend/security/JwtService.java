@@ -19,8 +19,8 @@ import org.springframework.stereotype.Service;
  * Handles JWT creation, validation and extractions of claims.
  *
  * <p>Each token lives for 5 mins (set in env vars), and will carry the users identity,
- * organization and roles (used for permissions) stored as claims. This allows the {@link
- * JwtAuthFilter} to authenticate the user without a database call on every request</p>
+ * organization and roles (used for permissions) stored as claims. This allows the
+ * {@link JwtAuthFilter} to authenticate the user without a database call on every request</p>
  *
  * <p>Token structure:
  * <pre>
@@ -35,9 +35,9 @@ import org.springframework.stereotype.Service;
  * </pre>
  *
  * @author Fredrik Borbe
+ * @version 0.1
  * @see JwtAuthFilter
  * @see JwtAuthenticatedPrincipal
- * @version 0.1
  */
 @Service
 public class JwtService {
@@ -63,8 +63,8 @@ public class JwtService {
    * Generates an JWT containing user claims.
    *
    * <p>Roles are stored as authority strings (prefixed with "ROLE_") the user is granted,
-   * so the filter can create Spring Security authorities directly from the token. If the org
-   * is not set (like on signup), the field is set to null.</p>
+   * so the filter can create Spring Security authorities directly from the token. If the org is not
+   * set (like on signup), the field is set to null.</p>
    *
    * @param principal the authenticated user
    * @return a JWT string
@@ -92,8 +92,8 @@ public class JwtService {
    * Generates a refresh token
    *
    * <p>This token only carries the username, no other data. Is used to prove that a user has
-   * been previously authenticated, and can be used for getting a new JWT when it has expired.
-   * This token has 7 day expiration</p>
+   * been previously authenticated, and can be used for getting a new JWT when it has expired. This
+   * token has 7 day expiration</p>
    *
    * @param principal the authenticated user
    * @return a token
@@ -119,9 +119,9 @@ public class JwtService {
   }
 
   public String extractEmail(String token) {
-    return getClaims(token).getSubject();  // reads the "sub" field
+    return getClaims(token).getSubject();
   }
-  
+
   @SuppressWarnings("unchecked")
   public List<String> extractRoles(String token) {
     return getClaims(token).get("roles", List.class);

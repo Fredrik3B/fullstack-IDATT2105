@@ -16,23 +16,23 @@ import edu.ntnu.idatt2105.backend.checklist.dto.CreateChecklistCardRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.TaskCompletionRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.TaskFlagRequest;
 import edu.ntnu.idatt2105.backend.checklist.dto.UpdateChecklistCardRequest;
-import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.mapper.ChecklistMapper;
 import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
-import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
-import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
 import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistService;
+import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
 import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
-import edu.ntnu.idatt2105.backend.checklist.service.ChecklistService;
-import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import java.math.BigDecimal;
@@ -55,15 +55,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ChecklistServiceTest {
 
-  @Mock private ChecklistRepository checklistRepository;
-  @Mock private TaskTemplateRepository taskTemplateRepository;
-  @Mock private TasksRepository tasksRepository;
-  @Mock private TemperatureMeasurementRepository temperatureMeasurementRepository;
-  @Mock private OrganizationRepository organizationRepository;
-  @Mock private ChecklistCacheStateService checklistCacheStateService;
-  @Mock private ChecklistMapper checklistMapper;
+  @Mock
+  private ChecklistRepository checklistRepository;
+  @Mock
+  private TaskTemplateRepository taskTemplateRepository;
+  @Mock
+  private TasksRepository tasksRepository;
+  @Mock
+  private TemperatureMeasurementRepository temperatureMeasurementRepository;
+  @Mock
+  private OrganizationRepository organizationRepository;
+  @Mock
+  private ChecklistCacheStateService checklistCacheStateService;
+  @Mock
+  private ChecklistMapper checklistMapper;
 
-  @InjectMocks private ChecklistService checklistService;
+  @InjectMocks
+  private ChecklistService checklistService;
 
   private UUID orgId;
   private JwtAuthenticatedPrincipal principal;
@@ -71,14 +79,17 @@ class ChecklistServiceTest {
   @BeforeEach
   void setUp() {
     orgId = UUID.randomUUID();
-    principal = new JwtAuthenticatedPrincipal(UUID.randomUUID(), orgId, "tester", Collections.emptyList());
+    principal = new JwtAuthenticatedPrincipal(UUID.randomUUID(), orgId, "tester",
+        Collections.emptyList());
   }
 
   @Test
   void submitChecklist_marksIncompleteTasksFinishedAtEndOfPeriodAndDeactivatesThem() {
-    String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.WEEKLY, ZoneId.systemDefault());
+    String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.WEEKLY,
+        ZoneId.systemDefault());
     String nextPeriodKey = PeriodKeyUtil.nextPeriodKey(ChecklistFrequency.WEEKLY, currentPeriodKey);
-    LocalDateTime expectedEndedAt = PeriodKeyUtil.periodStartDate(ChecklistFrequency.WEEKLY, nextPeriodKey)
+    LocalDateTime expectedEndedAt = PeriodKeyUtil.periodStartDate(ChecklistFrequency.WEEKLY,
+            nextPeriodKey)
         .atStartOfDay()
         .minusSeconds(1);
 
@@ -90,10 +101,12 @@ class ChecklistServiceTest {
     incompleteTask.setCompleted(false);
     incompleteTask.setEndedAt(null);
 
-    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(1L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(1L, currentPeriodKey))
         .thenReturn(new java.util.ArrayList<>(List.of(incompleteTask)));
-    when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
     when(checklistMapper.toCardResponse(
         any(ChecklistModel.class),
         any(),
@@ -102,11 +115,10 @@ class ChecklistServiceTest {
         any(Boolean.class)))
         .thenAnswer(invocation -> {
           return new ChecklistCardResponse(
-              3L, "2026-04-08", "2026-W16",false, false, "Test",
-              null, null,false,null, null, 0, List.of()
+              3L, "2026-04-08", "2026-W16", false, false, "Test",
+              null, null, false, null, null, 0, List.of()
           );
         });
-
 
     var response = checklistService.submitChecklist(1L, principal);
 
@@ -121,12 +133,15 @@ class ChecklistServiceTest {
 
   @Test
   void submitChecklist_whenAlreadyAdvancedToNextPeriod_rejectsSecondSubmit() {
-    String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String currentPeriodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     String nextPeriodKey = PeriodKeyUtil.nextPeriodKey(ChecklistFrequency.DAILY, currentPeriodKey);
 
-    ChecklistModel checklist = checklist(2L, nextPeriodKey, false, true, template(21L, "Opening check"));
+    ChecklistModel checklist = checklist(2L, nextPeriodKey, false, true,
+        template(21L, "Opening check"));
 
-    when(checklistRepository.findByIdAndOrganization_Id(2L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(2L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(checklistMapper.taskTemplateComparator()).thenReturn(
         Comparator.comparing(TaskTemplate::getTitle)
     );
@@ -145,11 +160,14 @@ class ChecklistServiceTest {
         true,
         template(30L, "Close bar"));
 
-    TasksModel task = activatedTask(400L, checklist, checklist.getTaskTemplates().iterator().next(), checklist.getActivePeriodKey());
+    TasksModel task = activatedTask(400L, checklist, checklist.getTaskTemplates().iterator().next(),
+        checklist.getActivePeriodKey());
 
-    when(checklistRepository.findByIdAndOrganization_Id(3L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(3L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findAllByChecklist_Id(3L)).thenReturn(List.of(task));
-    when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
     when(checklistMapper.toCardResponse(
         any(ChecklistModel.class),
         any(),
@@ -158,8 +176,8 @@ class ChecklistServiceTest {
         any(Boolean.class)))
         .thenAnswer(invocation -> {
           return new ChecklistCardResponse(
-              3L, "2026-04-08", "2026-04-08",false, false, "Test",
-              null, null,false,null, null, 0, List.of()
+              3L, "2026-04-08", "2026-04-08", false, false, "Test",
+              null, null, false, null, null, 0, List.of()
           );
         });
 
@@ -175,7 +193,8 @@ class ChecklistServiceTest {
 
   @Test
   void setTaskCompletion_whenMarkedTodo_clearsEndedAtAndCompletionState() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(50L, "Check fridge");
     ChecklistModel checklist = checklist(4L, periodKey, true, true, template);
 
@@ -183,10 +202,13 @@ class ChecklistServiceTest {
     task.setCompleted(true);
     task.setEndedAt(LocalDateTime.now());
 
-    when(checklistRepository.findByIdAndOrganization_Id(4L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(4L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(500L, 4L)).thenReturn(Optional.of(task));
-    when(tasksRepository.save(any(TasksModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
-    when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(500L))).thenReturn(List.of());
+    when(tasksRepository.save(any(TasksModel.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
+    when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(
+        List.of(500L))).thenReturn(List.of());
     when(checklistMapper.toTaskItemResponse(any(TasksModel.class), any()))
         .thenAnswer(invocation -> {
           TasksModel t = invocation.getArgument(0);
@@ -222,15 +244,18 @@ class ChecklistServiceTest {
 
   @Test
   void setTaskCompletion_whenTemperatureTaskHasNoReading_rejectsCompletion() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(60L, "Check fridge");
     ChecklistModel checklist = checklist(5L, periodKey, true, true, template);
 
     TasksModel task = activatedTask(600L, checklist, template, periodKey);
 
-    when(checklistRepository.findByIdAndOrganization_Id(5L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(5L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(600L, 5L)).thenReturn(Optional.of(task));
-    when(temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(600L, periodKey)).thenReturn(false);
+    when(temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(600L, periodKey)).thenReturn(
+        false);
 
     assertThatThrownBy(() -> checklistService.setTaskCompletion(
         5L,
@@ -245,17 +270,21 @@ class ChecklistServiceTest {
 
   @Test
   void setTaskCompletion_whenTemperatureTaskHasReading_allowsCompletion() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(70L, "Check freezer");
     ChecklistModel checklist = checklist(6L, periodKey, true, true, template);
 
     TasksModel task = activatedTask(700L, checklist, template, periodKey);
     LocalDateTime completedAt = LocalDateTime.now();
 
-    when(checklistRepository.findByIdAndOrganization_Id(6L, orgId)).thenReturn(Optional.of(checklist));
+    when(checklistRepository.findByIdAndOrganization_Id(6L, orgId)).thenReturn(
+        Optional.of(checklist));
     when(tasksRepository.findByIdAndChecklist_Id(700L, 6L)).thenReturn(Optional.of(task));
-    when(temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(700L, periodKey)).thenReturn(true);
-    when(tasksRepository.save(any(TasksModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(temperatureMeasurementRepository.existsByTask_IdAndPeriodKey(700L, periodKey)).thenReturn(
+        true);
+    when(tasksRepository.save(any(TasksModel.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
     when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(700L)))
         .thenReturn(List.of(measurement(700L, periodKey, task)));
     when(checklistMapper.toTaskItemResponse(any(TasksModel.class), any()))
@@ -291,7 +320,8 @@ class ChecklistServiceTest {
     assertThat(response.state()).isEqualTo("completed");
   }
 
-  private ChecklistModel checklist(Long id, String periodKey, boolean recurring, boolean displayed, TaskTemplate template) {
+  private ChecklistModel checklist(Long id, String periodKey, boolean recurring, boolean displayed,
+      TaskTemplate template) {
     ChecklistModel checklist = new ChecklistModel();
     OrganizationModel organization = new OrganizationModel();
     organization.setId(orgId);
@@ -329,7 +359,8 @@ class ChecklistServiceTest {
     return template;
   }
 
-  private TasksModel activatedTask(Long id, ChecklistModel checklist, TaskTemplate template, String periodKey) {
+  private TasksModel activatedTask(Long id, ChecklistModel checklist, TaskTemplate template,
+      String periodKey) {
     TasksModel task = new TasksModel();
     task.setId(id);
     task.setChecklist(checklist);
@@ -352,21 +383,24 @@ class ChecklistServiceTest {
     return measurement;
   }
 
-  // ── fetchChecklists ───────────────────────────────────────────────────────
 
   @Test
   void fetchChecklists_returnsMappedResponseForEachChecklist() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(10L, "Opening check");
-    ChecklistModel cl = checklist(1L, periodKey, false, false, template); // displayedOnWorkbench=false → shouldLoad=false
+    ChecklistModel cl = checklist(1L, periodKey, false, false, template);
 
-    when(checklistRepository.findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(orgId, ComplianceArea.IK_MAT))
+    when(checklistRepository.findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(
+        orgId, ComplianceArea.IK_MAT))
         .thenReturn(List.of(cl));
-    when(checklistMapper.taskTemplateComparator()).thenReturn(Comparator.comparing(TaskTemplate::getTitle));
+    when(checklistMapper.taskTemplateComparator()).thenReturn(
+        Comparator.comparing(TaskTemplate::getTitle));
     when(checklistMapper.toCardResponse(any(), any(), any(), any(), any(Boolean.class)))
         .thenReturn(stubCard(1L));
 
-    List<ChecklistCardResponse> result = checklistService.fetchChecklists(IcModule.IC_FOOD, principal);
+    List<ChecklistCardResponse> result = checklistService.fetchChecklists(IcModule.IC_FOOD,
+        principal);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).id()).isEqualTo(1L);
@@ -374,27 +408,28 @@ class ChecklistServiceTest {
 
   @Test
   void fetchChecklists_returnsEmptyListWhenNoChecklistsExist() {
-    when(checklistRepository.findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(orgId, ComplianceArea.IK_MAT))
+    when(checklistRepository.findAllByOrganization_IdAndComplianceAreaAndActiveTrueOrderByIdAsc(
+        orgId, ComplianceArea.IK_MAT))
         .thenReturn(List.of());
 
-    List<ChecklistCardResponse> result = checklistService.fetchChecklists(IcModule.IC_FOOD, principal);
+    List<ChecklistCardResponse> result = checklistService.fetchChecklists(IcModule.IC_FOOD,
+        principal);
 
     assertThat(result).isEmpty();
   }
 
-  // ── fetchChecklistsLastModified ───────────────────────────────────────────
-
   @Test
   void fetchChecklistsLastModified_delegatesToCacheService() {
     java.time.Instant expected = java.time.Instant.now();
-    when(checklistCacheStateService.getLastModified(orgId, ComplianceArea.IK_MAT)).thenReturn(expected);
+    when(checklistCacheStateService.getLastModified(orgId, ComplianceArea.IK_MAT)).thenReturn(
+        expected);
 
-    java.time.Instant result = checklistService.fetchChecklistsLastModified(IcModule.IC_FOOD, principal);
+    java.time.Instant result = checklistService.fetchChecklistsLastModified(IcModule.IC_FOOD,
+        principal);
 
     assertThat(result).isEqualTo(expected);
   }
 
-  // ── createChecklist ───────────────────────────────────────────────────────
 
   @Test
   void createChecklist_savesNewChecklistAndTouchesCache() {
@@ -403,19 +438,22 @@ class ChecklistServiceTest {
     org.setId(orgId);
 
     when(organizationRepository.getReferenceById(orgId)).thenReturn(org);
-    when(taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(List.of(5L), orgId, ComplianceArea.IK_MAT))
+    when(taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(List.of(5L),
+        orgId, ComplianceArea.IK_MAT))
         .thenReturn(List.of(template));
     when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(inv -> {
       ChecklistModel saved = inv.getArgument(0);
       saved.setId(99L);
       return saved;
     });
-    when(checklistMapper.taskTemplateComparator()).thenReturn(Comparator.comparing(TaskTemplate::getTitle));
+    when(checklistMapper.taskTemplateComparator()).thenReturn(
+        Comparator.comparing(TaskTemplate::getTitle));
     when(checklistMapper.toCardResponse(any(), any(), any(), any(), any(Boolean.class)))
         .thenReturn(stubCard(99L));
 
     ChecklistCardResponse response = checklistService.createChecklist(
-        new CreateChecklistCardRequest(IcModule.IC_FOOD, "daily", "New Checklist", null, true, false, List.of(5L)),
+        new CreateChecklistCardRequest(IcModule.IC_FOOD, "daily", "New Checklist", null, true,
+            false, List.of(5L)),
         principal);
 
     assertThat(response.id()).isEqualTo(99L);
@@ -426,7 +464,8 @@ class ChecklistServiceTest {
   @Test
   void createChecklist_withEmptyTaskTemplateIds_throwsException() {
     assertThatThrownBy(() -> checklistService.createChecklist(
-        new CreateChecklistCardRequest(IcModule.IC_FOOD, "daily", "Bad", null, true, false, List.of()),
+        new CreateChecklistCardRequest(IcModule.IC_FOOD, "daily", "Bad", null, true, false,
+            List.of()),
         principal))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("taskTemplateIds must contain at least one task");
@@ -434,26 +473,27 @@ class ChecklistServiceTest {
     verify(checklistRepository, never()).save(any());
   }
 
-  // ── updateChecklist ───────────────────────────────────────────────────────
 
   @Test
   void updateChecklist_whenFrequencyChanges_deactivatesExistingActiveTasks() {
-    String dailyKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String dailyKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(6L, "Close bar");
-    ChecklistModel cl = checklist(10L, dailyKey, true, false, template); // starts as DAILY (from periodKey pattern)
+    ChecklistModel cl = checklist(10L, dailyKey, true, false, template);
 
     TasksModel activeTask = activatedTask(200L, cl, template, dailyKey);
 
     when(checklistRepository.findByIdAndOrganization_Id(10L, orgId)).thenReturn(Optional.of(cl));
-    when(taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(List.of(6L), orgId, ComplianceArea.IK_MAT))
+    when(taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(List.of(6L),
+        orgId, ComplianceArea.IK_MAT))
         .thenReturn(List.of(template));
     when(tasksRepository.findAllByChecklist_IdAndActiveTrue(10L)).thenReturn(List.of(activeTask));
     when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(checklistMapper.taskTemplateComparator()).thenReturn(Comparator.comparing(TaskTemplate::getTitle));
+    when(checklistMapper.taskTemplateComparator()).thenReturn(
+        Comparator.comparing(TaskTemplate::getTitle));
     when(checklistMapper.toCardResponse(any(), any(), any(), any(), any(Boolean.class)))
         .thenReturn(stubCard(10L));
 
-    // Change frequency from DAILY to WEEKLY
     checklistService.updateChecklist(10L,
         new UpdateChecklistCardRequest("weekly", "Updated", null, true, false, List.of(6L)),
         principal);
@@ -464,18 +504,21 @@ class ChecklistServiceTest {
 
   @Test
   void updateChecklist_whenWorkbenchHidden_deletesAllTasks() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(7L, "Sanitize");
-    ChecklistModel cl = checklist(11L, periodKey, true, true, template); // currently shown
+    ChecklistModel cl = checklist(11L, periodKey, true, true, template);
 
     TasksModel existingTask = activatedTask(300L, cl, template, periodKey);
 
     when(checklistRepository.findByIdAndOrganization_Id(11L, orgId)).thenReturn(Optional.of(cl));
-    when(taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(List.of(7L), orgId, ComplianceArea.IK_MAT))
+    when(taskTemplateRepository.findAllByIdInAndOrganisationIdAndComplianceAreaOrdered(List.of(7L),
+        orgId, ComplianceArea.IK_MAT))
         .thenReturn(List.of(template));
     when(tasksRepository.findAllByChecklist_Id(11L)).thenReturn(List.of(existingTask));
     when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(checklistMapper.taskTemplateComparator()).thenReturn(Comparator.comparing(TaskTemplate::getTitle));
+    when(checklistMapper.taskTemplateComparator()).thenReturn(
+        Comparator.comparing(TaskTemplate::getTitle));
     when(checklistMapper.toCardResponse(any(), any(), any(), any(), any(Boolean.class)))
         .thenReturn(stubCard(11L));
 
@@ -487,11 +530,10 @@ class ChecklistServiceTest {
     verify(tasksRepository).deleteAll(List.of(existingTask));
   }
 
-  // ── deleteChecklist ───────────────────────────────────────────────────────
-
   @Test
   void deleteChecklist_deletesChecklistAndTouchesCache() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(8L, "Close");
     ChecklistModel cl = checklist(20L, periodKey, false, false, template);
 
@@ -517,7 +559,8 @@ class ChecklistServiceTest {
 
   @Test
   void deleteChecklist_deletesAssociatedTasksAndMeasurementsFirst() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(9L, "Wash");
     ChecklistModel cl = checklist(21L, periodKey, false, false, template);
     TasksModel task = activatedTask(400L, cl, template, periodKey);
@@ -532,11 +575,10 @@ class ChecklistServiceTest {
     verify(checklistRepository).delete(cl);
   }
 
-  // ── setTaskFlag ───────────────────────────────────────────────────────────
-
   @Test
   void setTaskFlag_whenPending_flagsTaskAndClearsCompletion() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(40L, "Check fridge");
     ChecklistModel cl = checklist(30L, periodKey, true, true, template);
 
@@ -547,7 +589,8 @@ class ChecklistServiceTest {
     when(checklistRepository.findByIdAndOrganization_Id(30L, orgId)).thenReturn(Optional.of(cl));
     when(tasksRepository.findByIdAndChecklist_Id(800L, 30L)).thenReturn(Optional.of(task));
     when(tasksRepository.save(any(TasksModel.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(800L))).thenReturn(List.of());
+    when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(
+        List.of(800L))).thenReturn(List.of());
     when(checklistMapper.toTaskItemResponse(any(TasksModel.class), any()))
         .thenAnswer(inv -> {
           TasksModel t = inv.getArgument(0);
@@ -569,7 +612,8 @@ class ChecklistServiceTest {
 
   @Test
   void setTaskFlag_whenTodo_clearsFlag() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(41L, "Check freezer");
     ChecklistModel cl = checklist(31L, periodKey, true, true, template);
 
@@ -579,7 +623,8 @@ class ChecklistServiceTest {
     when(checklistRepository.findByIdAndOrganization_Id(31L, orgId)).thenReturn(Optional.of(cl));
     when(tasksRepository.findByIdAndChecklist_Id(810L, 31L)).thenReturn(Optional.of(task));
     when(tasksRepository.save(any(TasksModel.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(List.of(810L))).thenReturn(List.of());
+    when(temperatureMeasurementRepository.findAllByTask_IdInOrderByMeasuredAtDesc(
+        List.of(810L))).thenReturn(List.of());
     when(checklistMapper.toTaskItemResponse(any(TasksModel.class), any()))
         .thenAnswer(inv -> {
           TasksModel t = inv.getArgument(0);
@@ -598,7 +643,8 @@ class ChecklistServiceTest {
 
   @Test
   void setTaskFlag_invalidState_throwsException() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(42L, "Some task");
     ChecklistModel cl = checklist(32L, periodKey, true, true, template);
     TasksModel task = activatedTask(820L, cl, template, periodKey);
@@ -614,30 +660,29 @@ class ChecklistServiceTest {
     verify(tasksRepository, never()).save(any());
   }
 
-  // ── setChecklistWorkbenchState (show path) ────────────────────────────────
-
   @Test
   void setChecklistWorkbenchState_whenShown_doesNotDeleteTasks() {
-    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY, ZoneId.systemDefault());
+    String periodKey = PeriodKeyUtil.currentPeriodKey(ChecklistFrequency.DAILY,
+        ZoneId.systemDefault());
     TaskTemplate template = template(50L, "Open doors");
-    ChecklistModel cl = checklist(40L, periodKey, true, false, template); // currently hidden
+    ChecklistModel cl = checklist(40L, periodKey, true, false, template);
 
     when(checklistRepository.findByIdAndOrganization_Id(40L, orgId)).thenReturn(Optional.of(cl));
     when(checklistRepository.save(any(ChecklistModel.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(eq(40L), any())).thenReturn(new java.util.ArrayList<>());
-    when(checklistMapper.taskTemplateComparator()).thenReturn(Comparator.comparing(TaskTemplate::getTitle));
+    when(tasksRepository.findAllByChecklist_IdAndPeriodKeyAndActiveTrue(eq(40L), any())).thenReturn(
+        new java.util.ArrayList<>());
+    when(checklistMapper.taskTemplateComparator()).thenReturn(
+        Comparator.comparing(TaskTemplate::getTitle));
     when(checklistMapper.toCardResponse(any(), any(), any(), any(), any(Boolean.class)))
         .thenReturn(stubCard(40L));
 
     var response = checklistService.setChecklistWorkbenchState(40L,
         new ChecklistWorkbenchStateRequest(true), principal);
 
-    assertThat(response.displayedOnWorkbench()).isFalse(); // stub returns false, but key assertion is below
+    assertThat(response.displayedOnWorkbench()).isFalse();
     verify(tasksRepository, never()).deleteAll(anyList());
     verify(temperatureMeasurementRepository, never()).deleteAllByTaskIn(anyList());
   }
-
-  // ── helpers ───────────────────────────────────────────────────────────────
 
   private ChecklistCardResponse stubCard(Long id) {
     return new ChecklistCardResponse(id, "2026-04-09", "2026-04-09", false, false, "Stub",

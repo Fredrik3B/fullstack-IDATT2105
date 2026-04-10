@@ -17,7 +17,6 @@ class BackendApplicationTests {
     try {
       AbandonedConnectionCleanupThread.checkedShutdown();
     } catch (Throwable ignored) {
-      // Ignore: only needed when MySQL driver spawns a non-daemon cleanup thread.
     }
   }
 }

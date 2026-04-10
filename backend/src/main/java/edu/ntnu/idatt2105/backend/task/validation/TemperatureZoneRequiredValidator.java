@@ -5,7 +5,8 @@ import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class TemperatureZoneRequiredValidator implements ConstraintValidator<TemperatureZoneRequiredIfTemperature, CreateTaskRequest> {
+public class TemperatureZoneRequiredValidator implements
+    ConstraintValidator<TemperatureZoneRequiredIfTemperature, CreateTaskRequest> {
 
   @Override
   public boolean isValid(CreateTaskRequest req, ConstraintValidatorContext ctx) {

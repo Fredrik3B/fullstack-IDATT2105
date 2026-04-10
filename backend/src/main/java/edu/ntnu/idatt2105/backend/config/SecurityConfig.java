@@ -1,10 +1,10 @@
 package edu.ntnu.idatt2105.backend.config;
 
+import edu.ntnu.idatt2105.backend.security.JwtAuthFilter;
 import java.util.List;
-
+import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -19,17 +19,14 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import edu.ntnu.idatt2105.backend.security.JwtAuthFilter;
-import lombok.AllArgsConstructor;
-
 
 /**
  * Central security configuration for the backend.
  *
  * <p>Implements a stateless session, no server-side session storage, we only need the JWT to
  * authenticate each request. CSRF is disabled, since the authentication is token based, not relying
- * on sessions or cookies. Method-level security enabled via {@code @EnableMethodSecurity}
- * for {@code @PreAuthorize} checks in controllers.
+ * on sessions or cookies. Method-level security enabled via {@code @EnableMethodSecurity} for
+ * {@code @PreAuthorize} checks in controllers.
  *
  * <p>URL-level rules define broad access patterns. Individual endpoints
  * use {@code @PreAuthorize} for role-specific restrictions:
@@ -39,6 +36,7 @@ import lombok.AllArgsConstructor;
  * &#64;PostMapping("/templates")
  * public ResponseEntity&lt;T&gt; createTemplate(...) { }
  * </pre>
+ *
  * @author Fredrik Borbe
  * @version 0.1
  */
@@ -66,8 +64,8 @@ public class SecurityConfig {
    * Configures the HTTP security filter chain.
    *
    * <p>Registers the {@link JwtAuthFilter} before the default username/password filter,
-   * sets sessions to stateless, disables CSRF, and defines URL-level access rules.
-   * Auth and Swagger endpoints are publicly accessible; all other requests require authentication.
+   * sets sessions to stateless, disables CSRF, and defines URL-level access rules. Auth and Swagger
+   * endpoints are publicly accessible; all other requests require authentication.
    *
    * @param http the {@link HttpSecurity} builder
    * @return the built {@link SecurityFilterChain}
@@ -91,6 +89,7 @@ public class SecurityConfig {
         );
     return http.build();
   }
+
   /**
    * Configures CORS to allow requests from the frontend origins.
    *

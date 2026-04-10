@@ -2,7 +2,6 @@ package edu.ntnu.idatt2105.backend.report.dto.shared;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
-import lombok.Data;
 
 /**
  * Aggregated compliance statistics for a single compliance area within the report period.
@@ -33,4 +32,6 @@ public record ComplianceStats(
 
     @Schema(description = "Out of range rate as a percentage", example = "4.2")
     double outOfRangeRate
-) {}
+) {
+
+}

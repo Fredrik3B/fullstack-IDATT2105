@@ -12,18 +12,21 @@ import edu.ntnu.idatt2105.backend.task.model.TasksModel;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementSummaryResponse;
 import edu.ntnu.idatt2105.backend.temperature.mapper.TemperatureMapper;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.util.*;
 
 /**
  * Maps checklist and task entities to their response DTOs.
  *
  * <p>Groups task items into labelled sections based on their
- * {@link edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes}, and resolves
- * the human-readable status label and tone shown on each checklist card.
+ * {@link edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes}, and resolves the
+ * human-readable status label and tone shown on each checklist card.
  */
 @Component
 @RequiredArgsConstructor
@@ -78,7 +81,8 @@ public class ChecklistMapper {
    * @param measurement the most recent measurement for this task, or {@code null}
    * @return the task item response
    */
-  public ChecklistTaskItemResponse toTaskItemResponse(TasksModel task, TemperatureMeasurementModel measurement) {
+  public ChecklistTaskItemResponse toTaskItemResponse(TasksModel task,
+      TemperatureMeasurementModel measurement) {
     TaskTemplate template = task.getTaskTemplate();
     String state = "todo";
     String completedForPeriodKey = null;
@@ -141,8 +145,8 @@ public class ChecklistMapper {
   /**
    * Groups active task instances into labelled {@link ChecklistSectionResponse}s.
    *
-   * @param tasks                  the active task instances for the current period
-   * @param measurementsByTaskId   map of the latest temperature measurement keyed by task ID
+   * @param tasks                the active task instances for the current period
+   * @param measurementsByTaskId map of the latest temperature measurement keyed by task ID
    * @return the ordered list of section responses
    */
   public List<ChecklistSectionResponse> toSectionResponses(
@@ -151,13 +155,15 @@ public class ChecklistMapper {
   ) {
     Map<String, List<TasksModel>> grouped = new LinkedHashMap<>();
     for (TasksModel task : tasks) {
-      grouped.computeIfAbsent(sectionLabel(task.getTaskTemplate().getSectionType()), k -> new ArrayList<>()).add(task);
+      grouped.computeIfAbsent(sectionLabel(task.getTaskTemplate().getSectionType()),
+          k -> new ArrayList<>()).add(task);
     }
 
     return grouped.entrySet().stream()
         .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
         .map(entry -> {
-          entry.getValue().sort(Comparator.comparing(t -> t.getTaskTemplate().getTitle(), String.CASE_INSENSITIVE_ORDER));
+          entry.getValue().sort(Comparator.comparing(t -> t.getTaskTemplate().getTitle(),
+              String.CASE_INSENSITIVE_ORDER));
           return new ChecklistSectionResponse(
               entry.getKey(),
               entry.getValue().stream()
@@ -169,8 +175,8 @@ public class ChecklistMapper {
   }
 
   /**
-   * Groups the checklist's task templates into labelled sections for library view
-   * (no active task instances — all states default to {@code "todo"}).
+   * Groups the checklist's task templates into labelled sections for library view (no active task
+   * instances — all states default to {@code "todo"}).
    *
    * @param checklist the checklist whose templates to render
    * @return the ordered list of section responses
@@ -178,13 +184,15 @@ public class ChecklistMapper {
   public List<ChecklistSectionResponse> toTemplateSectionResponses(ChecklistModel checklist) {
     Map<String, List<TaskTemplate>> grouped = new LinkedHashMap<>();
     for (TaskTemplate template : checklist.getTaskTemplates()) {
-      grouped.computeIfAbsent(sectionLabel(template.getSectionType()), k -> new ArrayList<>()).add(template);
+      grouped.computeIfAbsent(sectionLabel(template.getSectionType()), k -> new ArrayList<>())
+          .add(template);
     }
 
     return grouped.entrySet().stream()
         .sorted(Map.Entry.comparingByKey(String.CASE_INSENSITIVE_ORDER))
         .map(entry -> {
-          entry.getValue().sort(Comparator.comparing(TaskTemplate::getTitle, String.CASE_INSENSITIVE_ORDER));
+          entry.getValue()
+              .sort(Comparator.comparing(TaskTemplate::getTitle, String.CASE_INSENSITIVE_ORDER));
           return new ChecklistSectionResponse(
               entry.getKey(),
               entry.getValue().stream().map(this::toTemplateTaskItemResponse).toList()
@@ -194,18 +202,20 @@ public class ChecklistMapper {
   }
 
   /**
-   * Returns a comparator that sorts task templates by section label then by title,
-   * both case-insensitive.
+   * Returns a comparator that sorts task templates by section label then by title, both
+   * case-insensitive.
    *
    * @return the task template comparator
    */
   public Comparator<TaskTemplate> taskTemplateComparator() {
     return Comparator
-        .comparing((TaskTemplate t) -> sectionLabel(t.getSectionType()), String.CASE_INSENSITIVE_ORDER)
+        .comparing((TaskTemplate t) -> sectionLabel(t.getSectionType()),
+            String.CASE_INSENSITIVE_ORDER)
         .thenComparing(TaskTemplate::getTitle, String.CASE_INSENSITIVE_ORDER);
   }
 
-  private TemperatureMeasurementSummaryResponse toMeasurementSummary(TemperatureMeasurementModel m) {
+  private TemperatureMeasurementSummaryResponse toMeasurementSummary(
+      TemperatureMeasurementModel m) {
     return m == null ? null : temperatureMapper.toSummaryResponse(m);
   }
 
@@ -214,18 +224,22 @@ public class ChecklistMapper {
   }
 
   /**
-   * Converts a {@link SectionTypes} constant to a human-readable title-case label.
-   * Returns {@code "Tasks"} for {@code null}.
+   * Converts a {@link SectionTypes} constant to a human-readable title-case label. Returns
+   * {@code "Tasks"} for {@code null}.
    *
    * @param sectionType the section type, may be {@code null}
    * @return the formatted section label
    */
   public String sectionLabel(SectionTypes sectionType) {
-    if (sectionType == null) return "Tasks";
+    if (sectionType == null) {
+      return "Tasks";
+    }
     String[] parts = sectionType.name().split("_");
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < parts.length; i++) {
-      if (i > 0) sb.append(' ');
+      if (i > 0) {
+        sb.append(' ');
+      }
       String p = parts[i].toLowerCase();
       sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1));
     }
@@ -233,13 +247,19 @@ public class ChecklistMapper {
   }
 
   private String resolveStatusLabel(ChecklistModel cl, boolean active, boolean completed) {
-    if (!cl.isDisplayedOnWorkbench()) return "In library";
-    if (!active) return "Waiting for next period";
+    if (!cl.isDisplayedOnWorkbench()) {
+      return "In library";
+    }
+    if (!active) {
+      return "Waiting for next period";
+    }
     return completed ? "Ready to submit" : "In progress";
   }
 
   private String resolveStatusTone(ChecklistModel cl, boolean active, boolean completed) {
-    if (!cl.isDisplayedOnWorkbench() || !active) return "muted";
+    if (!cl.isDisplayedOnWorkbench() || !active) {
+      return "muted";
+    }
     return completed ? "success" : "muted";
   }
 }

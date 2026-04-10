@@ -7,10 +7,16 @@ package edu.ntnu.idatt2105.backend.shared.enums;
  * alcohol-control data are kept separate.
  */
 public enum ComplianceArea {
-  /** Norwegian food-safety internal-control regulation (IK-mat). */
+  /**
+   * Norwegian food-safety internal-control regulation (IK-mat).
+   */
   IK_MAT,
-  /** Norwegian alcohol-control internal-control regulation (IK-alkohol). */
+  /**
+   * Norwegian alcohol-control internal-control regulation (IK-alkohol).
+   */
   IK_ALKOHOL,
-  /** Cross-cutting compliance items not tied to a specific regulation. */
+  /**
+   * Cross-cutting compliance items not tied to a specific regulation.
+   */
   GENERAL
 }

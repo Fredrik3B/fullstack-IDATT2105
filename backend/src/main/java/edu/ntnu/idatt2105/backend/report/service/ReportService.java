@@ -8,32 +8,24 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
-import edu.ntnu.idatt2105.backend.checklist.controller.ChecklistController;
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
 import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.document.service.DocumentService;
-import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
-import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.task.model.TasksModel;
-import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
-import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
-import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
+import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
+import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.shared.DeviationDayPoint;
-import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
-import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
 import edu.ntnu.idatt2105.backend.report.dto.shared.MissedTaskRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.OrgSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ReportPeriod;
@@ -41,6 +33,13 @@ import edu.ntnu.idatt2105.backend.report.dto.shared.TemperaturePoint;
 import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
 import edu.ntnu.idatt2105.backend.report.model.DeviationReportModel;
 import edu.ntnu.idatt2105.backend.report.repository.DeviationReportRepository;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
@@ -92,7 +91,8 @@ public class ReportService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ReportService.class);
 
-  private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to, ComplianceArea area) {
+  private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to,
+      ComplianceArea area) {
     int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
     int completed = tasksRepository.countCompletedInPeriod(orgId, from, to, area);
     int flagged = tasksRepository.countDeviatedInPeriod(orgId, from, to, area);
@@ -110,7 +110,8 @@ public class ReportService {
         .build();
   }
 
-  private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDateTime from, LocalDateTime to) {
+  private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDateTime from,
+      LocalDateTime to) {
     return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
         .map(taskMapper::toUnresolvedDto)
         .toList();
@@ -139,12 +140,14 @@ public class ReportService {
 
   private ChecklistSection buildChecklistSection(UUID orgId, LocalDateTime from, LocalDateTime to) {
     List<ChecklistModel> checklists = checklistRepository.findAllByOrganizationId(orgId);
-    List<TasksModel> tasksInPeriod = tasksRepository.findAllByOrgIdInPeriodWithRelations(orgId, from, to);
+    List<TasksModel> tasksInPeriod = tasksRepository.findAllByOrgIdInPeriodWithRelations(orgId,
+        from, to);
     Map<Long, List<TasksModel>> tasksByChecklist = tasksInPeriod.stream()
         .collect(Collectors.groupingBy(task -> task.getChecklist().getId()));
 
     List<ChecklistRecord> records = checklists.stream()
-        .map(cl -> buildChecklistRecord(cl, tasksByChecklist.getOrDefault(cl.getId(), List.of()), from, to))
+        .map(cl -> buildChecklistRecord(cl, tasksByChecklist.getOrDefault(cl.getId(), List.of()),
+            from, to))
         .filter(r -> r.completionsInPeriod() > 0)
         .sorted(Comparator.comparing(ChecklistRecord::name, String.CASE_INSENSITIVE_ORDER))
         .toList();
@@ -156,8 +159,10 @@ public class ReportService {
         .build();
   }
 
-  private ChecklistRecord buildChecklistRecord(ChecklistModel cl, List<TasksModel> tasks, LocalDateTime from, LocalDateTime to) {
-    Map<String, List<TasksModel>> byPeriod = tasks.stream().collect(Collectors.groupingBy(TasksModel::getPeriodKey));
+  private ChecklistRecord buildChecklistRecord(ChecklistModel cl, List<TasksModel> tasks,
+      LocalDateTime from, LocalDateTime to) {
+    Map<String, List<TasksModel>> byPeriod = tasks.stream()
+        .collect(Collectors.groupingBy(TasksModel::getPeriodKey));
     int total = tasks.size();
     int completed = (int) tasks.stream().filter(TasksModel::isCompleted).count();
     int deviated = (int) tasks.stream().filter(t -> !t.isCompleted() && !t.isActive()).count();
@@ -185,7 +190,8 @@ public class ReportService {
         .build();
   }
 
-  private int countExpectedRuns(ChecklistFrequency frequency, LocalDateTime from, LocalDateTime to) {
+  private int countExpectedRuns(ChecklistFrequency frequency, LocalDateTime from,
+      LocalDateTime to) {
     if (from == null || to == null || from.isAfter(to)) {
       return 0;
     }
@@ -205,7 +211,8 @@ public class ReportService {
     return count;
   }
 
-  private List<TemperaturePoint> buildTemperatureLog(UUID orgId, LocalDateTime from, LocalDateTime to) {
+  private List<TemperaturePoint> buildTemperatureLog(UUID orgId, LocalDateTime from,
+      LocalDateTime to) {
     return tempRepository.findByOrgAndPeriod(orgId, from, to).stream()
         .map(m -> {
           TaskTemplate template = m.getTask().getTaskTemplate();
@@ -239,7 +246,8 @@ public class ReportService {
   private List<DeviationDayPoint> buildDeviationsByDay(List<TasksModel> tasks) {
     return tasks.stream()
         .filter(task -> task.getEndedAt() != null)
-        .collect(Collectors.groupingBy(task -> task.getEndedAt().toLocalDate(), Collectors.counting()))
+        .collect(
+            Collectors.groupingBy(task -> task.getEndedAt().toLocalDate(), Collectors.counting()))
         .entrySet().stream()
         .sorted(Map.Entry.comparingByKey())
         .map(entry -> DeviationDayPoint.builder()
@@ -294,13 +302,15 @@ public class ReportService {
    * @param from  inclusive start of the period
    * @param to    inclusive end of the period
    * @return the inspection report DTO
-   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if the organisation is not found
+   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if the organisation is
+   *                                                                        not found
    */
   public InspectionReport generateInspection(UUID orgId, LocalDateTime from, LocalDateTime to) {
     OrganizationModel org = organizationRepository.findById(orgId)
         .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
 
-    List<TasksModel> deviatedTasks = tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to);
+    List<TasksModel> deviatedTasks = tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from,
+        to);
 
     return InspectionReport.builder()
         .period(new ReportPeriod(from, to))
@@ -314,7 +324,7 @@ public class ReportService {
         .foodStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
         .alcoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
         .build();
-    }
+  }
 
   /**
    * Persists a new deviation report filed by the given user.

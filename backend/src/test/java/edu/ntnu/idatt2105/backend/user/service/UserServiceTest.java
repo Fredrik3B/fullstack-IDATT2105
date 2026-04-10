@@ -1,6 +1,11 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException;
 import edu.ntnu.idatt2105.backend.security.JwtService;
@@ -28,22 +33,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
   @InjectMocks
   private UserService userService;
-  @Mock private UserRepository userRepository;
-  @Mock private RoleRepository roleRepository;
-  @Mock private PasswordEncoder passwordEncoder;
-  @Spy  private UserMapper userMapper;
-  @Mock private JwtService jwtService;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private RoleRepository roleRepository;
+  @Mock
+  private PasswordEncoder passwordEncoder;
+  @Spy
+  private UserMapper userMapper;
+  @Mock
+  private JwtService jwtService;
 
   private UUID userId;
   private RoleModel staffRole;

@@ -11,7 +11,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = TemperatureZoneRequiredValidator.class)
 public @interface TemperatureZoneRequiredIfTemperature {
+
   String message() default "temperatureZoneId is required when sectionType is TEMPERATURE_CONTROL";
+
   Class<?>[] groups() default {};
+
   Class<? extends Payload>[] payload() default {};
 }

@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * Centralised exception handler for all REST controllers.
  *
  * <p>Maps domain and framework exceptions to RFC 7807 {@link ProblemDetail} responses,
- * providing consistent JSON error bodies across the entire API without
- * requiring try/catch blocks in individual controllers.
+ * providing consistent JSON error bodies across the entire API without requiring try/catch blocks
+ * in individual controllers.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -100,7 +100,8 @@ public class GlobalExceptionHandler {
     Map<String, String> fieldErrors = e.getBindingResult().getFieldErrors().stream()
         .collect(Collectors.toMap(
             FieldError::getField,
-            error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value",
+            error -> error.getDefaultMessage() != null ? error.getDefaultMessage()
+                : "Invalid value",
             (existing, duplicate) -> existing
         ));
 
@@ -112,8 +113,12 @@ public class GlobalExceptionHandler {
         HttpStatus.BAD_REQUEST, "One or more fields failed validation.");
     problem.setTitle("Validation failed");
 
-    if (!fieldErrors.isEmpty()) problem.setProperty("errors", fieldErrors);
-    if (!globalErrors.isEmpty()) problem.setProperty("globalErrors", globalErrors);
+    if (!fieldErrors.isEmpty()) {
+      problem.setProperty("errors", fieldErrors);
+    }
+    if (!globalErrors.isEmpty()) {
+      problem.setProperty("globalErrors", globalErrors);
+    }
 
     return problem;
   }
@@ -132,8 +137,8 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Handles {@link OrganizationRequiredException} — returns 403 when a user
-   * attempts an organization-scoped action without belonging to one.
+   * Handles {@link OrganizationRequiredException} — returns 403 when a user attempts an
+   * organization-scoped action without belonging to one.
    *
    * @param e the exception
    * @return a 403 forbidden problem detail
