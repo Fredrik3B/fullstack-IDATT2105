@@ -5,6 +5,7 @@
 /** Shared token storage between setAuthState and visitAuthenticated. */
 let _currentTestToken = null
 let _currentSession = null
+const LAST_ACTIVE_KEY = 'iksystem_last_active'
 
 /**
  * Build a minimal, structurally-valid JWT for testing.
@@ -66,6 +67,8 @@ Cypress.Commands.add('visitAuthenticated', (url, visitOptions = {}) => {
       if (_currentSession) {
         win.localStorage.setItem('iksystem_session', JSON.stringify(_currentSession))
       }
+      // The router guard treats a missing activity timestamp as an expired session.
+      win.localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()))
       visitOptions.onBeforeLoad?.(win)
     },
   })
