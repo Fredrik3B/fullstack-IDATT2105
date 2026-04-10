@@ -1,16 +1,16 @@
 package edu.ntnu.idatt2105.backend.task.mapper;
 
+import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
 import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
-import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
 import org.springframework.stereotype.Component;
 
 /**
- * Maps {@link TaskTemplate} and {@link edu.ntnu.idatt2105.backend.task.model.TasksModel}
- * entities to their response DTOs.
+ * Maps {@link TaskTemplate} and {@link edu.ntnu.idatt2105.backend.task.model.TasksModel} entities
+ * to their response DTOs.
  */
 @Component
 public class TaskMapper {

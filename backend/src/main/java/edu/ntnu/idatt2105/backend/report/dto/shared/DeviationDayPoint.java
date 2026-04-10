@@ -3,7 +3,6 @@ package edu.ntnu.idatt2105.backend.report.dto.shared;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import lombok.Builder;
-import lombok.Data;
 
 /**
  * A single data point in the deviations-per-day time series used to render trend charts.
@@ -17,4 +16,6 @@ public record DeviationDayPoint(
 
     @Schema(description = "Number of deviations that day")
     int count
-) {}
+) {
+
+}

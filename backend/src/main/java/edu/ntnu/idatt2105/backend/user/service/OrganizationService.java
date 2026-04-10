@@ -7,10 +7,10 @@ import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
+import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinRequestResponse;
 import edu.ntnu.idatt2105.backend.user.dto.MemberDto;
 import edu.ntnu.idatt2105.backend.user.dto.OrganizationResponse;
-import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.mapper.OrganizationMapper;
 import edu.ntnu.idatt2105.backend.user.model.JoinRequestModel;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
@@ -33,13 +33,14 @@ import org.springframework.stereotype.Service;
  * Business logic for creating and managing organisations and their membership.
  *
  * <p>When a new organisation is created the founding user is promoted to ADMIN
- * and a set of default regulatory documents is seeded. Membership follows a
- * request/accept flow: users submit a join-code request which an ADMIN or MANAGER
- * must resolve before the user appears as a member.
+ * and a set of default regulatory documents is seeded. Membership follows a request/accept flow:
+ * users submit a join-code request which an ADMIN or MANAGER must resolve before the user appears
+ * as a member.
  */
 @Service
 @AllArgsConstructor
 public class OrganizationService {
+
   private final OrganizationRepository organizationRepository;
   private final UserRepository userRepository;
   private final RoleRepository roleRepository;
@@ -80,12 +81,14 @@ public class OrganizationService {
    * Deletes any pending join requests for the given user.
    *
    * @param userId the user withdrawing their request
-   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if no pending request exists
+   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if no pending request
+   *                                                                        exists
    */
   public void withdrawJoinRequest(UUID userId) {
     UserModel user = userRepository.findById(userId)
         .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    List<JoinRequestModel> pending = joinRequestRepository.findAllByUserAndStatus(user, JoinOrgStatus.PENDING);
+    List<JoinRequestModel> pending = joinRequestRepository.findAllByUserAndStatus(user,
+        JoinOrgStatus.PENDING);
     if (pending.isEmpty()) {
       throw new ResourceNotFoundException("No pending join request found");
     }
@@ -97,7 +100,8 @@ public class OrganizationService {
    *
    * @param code the join code entered by the user
    * @return the matching organisation
-   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if no organisation has that code
+   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if no organisation has
+   *                                                                        that code
    */
   public OrganizationResponse lookupByCode(String code) {
     OrganizationModel org = organizationRepository.findByJoinCode(code)
@@ -111,7 +115,8 @@ public class OrganizationService {
    * @param request contains the join code identifying the target organisation
    * @param userId  the user submitting the request
    * @return the organisation the user is requesting to join
-   * @throws IllegalStateException if the user already belongs to an organisation or has a pending request
+   * @throws IllegalStateException if the user already belongs to an organisation or has a pending
+   *                               request
    */
   public OrganizationResponse requestToJoin(JoinOrganizationRequest request, UUID userId) {
     OrganizationModel org = organizationRepository.findByJoinCode(request.getJoinCode())
@@ -148,15 +153,37 @@ public class OrganizationService {
    * @param creator the user who created the organisation (used as uploader)
    */
   private void seedDefaultDocuments(OrganizationModel org, UserModel creator) {
-    record Seed(String name, String description, DocumentCategory category, DocumentModule module, String url) {}
+    record Seed(String name, String description, DocumentCategory category, DocumentModule module,
+                String url) {
+
+    }
     List<Seed> defaults = List.of(
-        new Seed("Alkoholloven", "Lov om omsetning av alkoholholdig drikk (alkoholloven)", DocumentCategory.GUIDELINES, DocumentModule.IC_ALCOHOL, "https://lovdata.no/dokument/NL/lov/1989-06-02-27"),
-        new Seed("Serveringsloven", "Lov om serveringsvirksomhet – krav til serveringsbevilling og styrer", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://lovdata.no/dokument/NL/lov/1997-06-13-55"),
-        new Seed("Internkontrollforskriften", "Forskrift om systematisk HMS-arbeid i virksomheter", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://lovdata.no/dokument/SF/forskrift/1996-12-06-1127"),
-        new Seed("Internkontroll og HACCP – Mattilsynet", "Veiledning om internkontroll og HACCP-basert styringssystem for næringsmiddelvirksomheter", DocumentCategory.HACCP, DocumentModule.IC_FOOD, "https://mattilsynet.no/mat-og-drikke/startpakke-for-nye-matbedrifter#kap_6_internkontroll"),
-        new Seed("Krav til allergeninformasjon – Mattilsynet", "Regler for informasjon om allergener på meny og til gjester", DocumentCategory.GUIDELINES, DocumentModule.IC_FOOD, "https://www.mattilsynet.no/mat-og-drikke/merking-av-mat/slik-skal-allergenene-merkes"),
-        new Seed("Ansvarlig vertskap – Helsedirektoratet", "Kompetansekrav og kursinfo for ansvarlig alkoholservering", DocumentCategory.TRAINING, DocumentModule.IC_ALCOHOL, "https://www.helsedirektoratet.no/forebygging-diagnose-og-behandling/forebygging-og-levevaner/alkohol/ansvarlig-alkoholhandtering"),
-        new Seed("Bransjeveiviser – Arbeidstilsynet", "HMS-veiledning for serveringsbransjen: arbeidstid, ergonomi, kjemikalier", DocumentCategory.GUIDELINES, DocumentModule.SHARED, "https://arbeidsmiljohjelpen.arbeidstilsynet.no/bransje/servering/#:~:text=Arbeidstid%20*%20Skift.%20*%20Uforutsigbarhet.%20*%20Arbeidsplan.")
+        new Seed("Alkoholloven", "Lov om omsetning av alkoholholdig drikk (alkoholloven)",
+            DocumentCategory.GUIDELINES, DocumentModule.IC_ALCOHOL,
+            "https://lovdata.no/dokument/NL/lov/1989-06-02-27"),
+        new Seed("Serveringsloven",
+            "Lov om serveringsvirksomhet – krav til serveringsbevilling og styrer",
+            DocumentCategory.GUIDELINES, DocumentModule.SHARED,
+            "https://lovdata.no/dokument/NL/lov/1997-06-13-55"),
+        new Seed("Internkontrollforskriften", "Forskrift om systematisk HMS-arbeid i virksomheter",
+            DocumentCategory.GUIDELINES, DocumentModule.SHARED,
+            "https://lovdata.no/dokument/SF/forskrift/1996-12-06-1127"),
+        new Seed("Internkontroll og HACCP – Mattilsynet",
+            "Veiledning om internkontroll og HACCP-basert styringssystem for næringsmiddelvirksomheter",
+            DocumentCategory.HACCP, DocumentModule.IC_FOOD,
+            "https://mattilsynet.no/mat-og-drikke/startpakke-for-nye-matbedrifter#kap_6_internkontroll"),
+        new Seed("Krav til allergeninformasjon – Mattilsynet",
+            "Regler for informasjon om allergener på meny og til gjester",
+            DocumentCategory.GUIDELINES, DocumentModule.IC_FOOD,
+            "https://www.mattilsynet.no/mat-og-drikke/merking-av-mat/slik-skal-allergenene-merkes"),
+        new Seed("Ansvarlig vertskap – Helsedirektoratet",
+            "Kompetansekrav og kursinfo for ansvarlig alkoholservering", DocumentCategory.TRAINING,
+            DocumentModule.IC_ALCOHOL,
+            "https://www.helsedirektoratet.no/forebygging-diagnose-og-behandling/forebygging-og-levevaner/alkohol/ansvarlig-alkoholhandtering"),
+        new Seed("Bransjeveiviser – Arbeidstilsynet",
+            "HMS-veiledning for serveringsbransjen: arbeidstid, ergonomi, kjemikalier",
+            DocumentCategory.GUIDELINES, DocumentModule.SHARED,
+            "https://arbeidsmiljohjelpen.arbeidstilsynet.no/bransje/servering/#:~:text=Arbeidstid%20*%20Skift.%20*%20Uforutsigbarhet.%20*%20Arbeidsplan.")
     );
     List<DocumentModel> docs = defaults.stream().map(s -> {
       DocumentModel doc = new DocumentModel();
@@ -177,8 +204,8 @@ public class OrganizationService {
    * Generates a unique join code derived from the organisation name.
    *
    * <p>The code takes the form {@code ABC-1234} where the letters are the
-   * initials of the first three words (or the first three characters if the
-   * name has fewer than three words) and the digits are a random 4-digit number.
+   * initials of the first three words (or the first three characters if the name has fewer than
+   * three words) and the digits are a random 4-digit number.
    *
    * @param name the organisation name
    * @return the generated join code
@@ -187,8 +214,12 @@ public class OrganizationService {
     String[] words = name.trim().split("\\s+");
     StringBuilder prefix = new StringBuilder();
     for (String word : words) {
-      if (!word.isEmpty()) prefix.append(Character.toUpperCase(word.charAt(0)));
-      if (prefix.length() >= 3) break;
+      if (!word.isEmpty()) {
+        prefix.append(Character.toUpperCase(word.charAt(0)));
+      }
+      if (prefix.length() >= 3) {
+        break;
+      }
     }
     if (prefix.length() < 3) {
       String letters = name.replaceAll("\\s+", "").toUpperCase();
@@ -209,7 +240,8 @@ public class OrganizationService {
    * @param organizationId the organisation the resolver belongs to (ownership check)
    * @param action         {@link JoinOrgStatus#ACCEPTED} or {@link JoinOrgStatus#DECLINED}
    */
-  public void resolveRequest(UUID requestId, UUID userId, UUID organizationId, JoinOrgStatus action) {
+  public void resolveRequest(UUID requestId, UUID userId, UUID organizationId,
+      JoinOrgStatus action) {
     JoinRequestModel request = joinRequestRepository.findById(requestId)
         .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
@@ -229,7 +261,8 @@ public class OrganizationService {
       userRepository.save(requestUser);
     }
 
-    request.setStatus(action == JoinOrgStatus.ACCEPTED ? JoinOrgStatus.ACCEPTED : JoinOrgStatus.DECLINED);
+    request.setStatus(
+        action == JoinOrgStatus.ACCEPTED ? JoinOrgStatus.ACCEPTED : JoinOrgStatus.DECLINED);
     request.setResolvedAt(LocalDateTime.now());
     request.setResolvedBy(resolver);
     joinRequestRepository.save(request);
@@ -298,7 +331,8 @@ public class OrganizationService {
    * @param roleNames        the new role names to assign (must be valid {@link RoleEnum} names)
    * @throws IllegalStateException if the change would leave the organisation without an admin
    */
-  public void updateMemberRoles(UUID organizationId, UUID targetUserId, UUID requestingUserId, List<String> roleNames) {
+  public void updateMemberRoles(UUID organizationId, UUID targetUserId, UUID requestingUserId,
+      List<String> roleNames) {
     if (targetUserId.equals(requestingUserId)) {
       throw new IllegalStateException("Cannot change your own roles");
     }

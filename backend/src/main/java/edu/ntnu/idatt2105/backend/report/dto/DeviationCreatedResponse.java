@@ -3,8 +3,6 @@ package edu.ntnu.idatt2105.backend.report.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
 /**
  * Response DTO returned after successfully creating a deviation report.
@@ -19,4 +17,6 @@ public record DeviationCreatedResponse(
 
     @Schema(description = "When the deviation was created")
     LocalDateTime createdAt
-) {}
+) {
+
+}

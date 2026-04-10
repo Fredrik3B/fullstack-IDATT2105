@@ -2,8 +2,6 @@ package edu.ntnu.idatt2105.backend.report.dto.shared;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
 /**
  * DTO representing a task that ended without being completed (a deviation).
@@ -16,4 +14,6 @@ public record UnresolvedItemDto(
 
     @Schema(description = "Deadline that was missed")
     LocalDateTime notDoneBy
-) {}
+) {
+
+}

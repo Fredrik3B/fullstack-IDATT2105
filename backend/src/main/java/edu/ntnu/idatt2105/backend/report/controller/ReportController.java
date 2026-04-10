@@ -14,7 +14,6 @@ import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,9 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
  * REST controller for generating compliance reports and filing deviation reports.
  *
  * <p>Provides three report endpoints (internal summary, full inspection, PDF export)
- * and a deviation-report creation endpoint. All endpoints are scoped to the caller's
- * organisation. The {@code from}/{@code to} query parameters default to the last 30 days
- * when omitted.
+ * and a deviation-report creation endpoint. All endpoints are scoped to the caller's organisation.
+ * The {@code from}/{@code to} query parameters default to the last 30 days when omitted.
  */
 @Tag(name = "Reports")
 @RestController
@@ -48,8 +46,12 @@ public class ReportController {
   ) {
 
     UUID orgId = JwtAuthenticatedPrincipal.from(auth).requireOrganizationId();
-    if (from == null) from = LocalDateTime.now().minusMonths(1);
-    if (to == null) to = LocalDateTime.now();
+    if (from == null) {
+      from = LocalDateTime.now().minusMonths(1);
+    }
+    if (to == null) {
+      to = LocalDateTime.now();
+    }
     return ResponseEntity.ok(reportService.generateSummary(orgId, from, to));
   }
 
@@ -61,8 +63,12 @@ public class ReportController {
       Authentication auth
   ) {
     UUID orgId = JwtAuthenticatedPrincipal.from(auth).requireOrganizationId();
-    if (from == null) from = LocalDateTime.now().minusMonths(1);
-    if (to == null) to = LocalDateTime.now();
+    if (from == null) {
+      from = LocalDateTime.now().minusMonths(1);
+    }
+    if (to == null) {
+      to = LocalDateTime.now();
+    }
     return ResponseEntity.ok(reportService.generateInspection(orgId, from, to));
   }
 

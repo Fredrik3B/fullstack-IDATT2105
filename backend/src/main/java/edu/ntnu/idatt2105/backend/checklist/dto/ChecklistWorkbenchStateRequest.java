@@ -8,7 +8,9 @@ import jakarta.validation.constraints.NotNull;
  */
 @Schema(description = "Request to toggle a checklist's visibility on the workbench")
 public record ChecklistWorkbenchStateRequest(
-		@NotNull
-		@Schema(description = "Whether the checklist should be displayed on the workbench", example = "true")
-		Boolean displayedOnWorkbench
-) {}
+    @NotNull
+    @Schema(description = "Whether the checklist should be displayed on the workbench", example = "true")
+    Boolean displayedOnWorkbench
+) {
+
+}

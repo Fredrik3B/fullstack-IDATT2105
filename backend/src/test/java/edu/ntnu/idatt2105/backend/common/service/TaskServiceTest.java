@@ -8,25 +8,25 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
+import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
 import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
-import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
 import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
 import edu.ntnu.idatt2105.backend.task.model.TasksModel;
-import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
-import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
-import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
-import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
 import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
 import edu.ntnu.idatt2105.backend.task.service.TaskService;
-import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -43,15 +43,23 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
 
-  @Mock private TaskTemplateRepository taskTemplateRepository;
-  @Mock private ChecklistRepository checklistRepository;
-  @Mock private TasksRepository tasksRepository;
-  @Mock private TemperatureMeasurementRepository temperatureMeasurementRepository;
-  @Mock private TemperatureZoneRepository temperatureZoneRepository;
-  @Mock private ChecklistCacheStateService checklistCacheStateService;
-  @Mock private TaskMapper taskMapper;
+  @Mock
+  private TaskTemplateRepository taskTemplateRepository;
+  @Mock
+  private ChecklistRepository checklistRepository;
+  @Mock
+  private TasksRepository tasksRepository;
+  @Mock
+  private TemperatureMeasurementRepository temperatureMeasurementRepository;
+  @Mock
+  private TemperatureZoneRepository temperatureZoneRepository;
+  @Mock
+  private ChecklistCacheStateService checklistCacheStateService;
+  @Mock
+  private TaskMapper taskMapper;
 
-  @InjectMocks private TaskService taskService;
+  @InjectMocks
+  private TaskService taskService;
 
   private UUID orgId;
   private JwtAuthenticatedPrincipal principal;
@@ -59,7 +67,8 @@ class TaskServiceTest {
   @BeforeEach
   void setUp() {
     orgId = UUID.randomUUID();
-    principal = new JwtAuthenticatedPrincipal(UUID.randomUUID(), orgId, "tester", Collections.emptyList());
+    principal = new JwtAuthenticatedPrincipal(UUID.randomUUID(), orgId, "tester",
+        Collections.emptyList());
   }
 
   @Test
@@ -73,7 +82,8 @@ class TaskServiceTest {
     zone.setTargetMin(new BigDecimal("-20.00"));
     zone.setTargetMax(new BigDecimal("-15.00"));
 
-    when(temperatureZoneRepository.findByIdAndOrganizationIdAndComplianceArea(44L, orgId, ComplianceArea.IK_MAT))
+    when(temperatureZoneRepository.findByIdAndOrganizationIdAndComplianceArea(44L, orgId,
+        ComplianceArea.IK_MAT))
         .thenReturn(Optional.of(zone));
     when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(invocation -> {
       TaskTemplate template = invocation.getArgument(0);
@@ -155,7 +165,8 @@ class TaskServiceTest {
     activatedTask.setTaskTemplate(template);
 
     when(taskTemplateRepository.findById(9L)).thenReturn(Optional.of(template));
-    when(checklistRepository.findAllByOrganization_IdOrderByIdAsc(orgId)).thenReturn(List.of(checklist));
+    when(checklistRepository.findAllByOrganization_IdOrderByIdAsc(orgId)).thenReturn(
+        List.of(checklist));
     when(tasksRepository.findAllByTaskTemplate_Id(9L)).thenReturn(List.of(activatedTask));
 
     taskService.deleteTask(9L, principal);
@@ -184,7 +195,8 @@ class TaskServiceTest {
 
     when(taskTemplateRepository.findById(13L)).thenReturn(Optional.of(template));
     when(tasksRepository.findAllByTaskTemplate_Id(13L)).thenReturn(List.of(activatedTask));
-    when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
     when(taskMapper.toResponse(any(TaskTemplate.class)))
         .thenAnswer(invocation -> {
           TaskTemplate t = invocation.getArgument(0);
@@ -231,7 +243,9 @@ class TaskServiceTest {
     template.setComplianceArea(ComplianceArea.IK_MAT);
     template.setOrganisationId(orgId);
 
-    when(taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(orgId, ComplianceArea.IK_MAT))
+    when(
+        taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(
+            orgId, ComplianceArea.IK_MAT))
         .thenReturn(List.of(template));
     when(taskMapper.toResponse(template)).thenReturn(
         new TaskResponse(50L, IcModule.IC_FOOD, "Sanitize surfaces", null,
@@ -245,7 +259,9 @@ class TaskServiceTest {
 
   @Test
   void getAllTasks_returnsEmptyListWhenNoTasksExist() {
-    when(taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(orgId, ComplianceArea.IK_MAT))
+    when(
+        taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(
+            orgId, ComplianceArea.IK_MAT))
         .thenReturn(List.of());
 
     List<TaskResponse> result = taskService.getAllTasks(IcModule.IC_FOOD, principal);

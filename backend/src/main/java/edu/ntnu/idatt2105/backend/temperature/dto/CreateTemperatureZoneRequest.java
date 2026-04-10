@@ -18,28 +18,30 @@ import java.math.BigDecimal;
  */
 @Schema(description = "Request to create or update a temperature zone")
 public record CreateTemperatureZoneRequest(
-		@NotNull
-		@Schema(description = "Module this zone belongs to", example = "IC_FOOD")
-		IcModule module,
+    @NotNull
+    @Schema(description = "Module this zone belongs to", example = "IC_FOOD")
+    IcModule module,
 
-		@NotBlank
-		@Size(max = 120)
-		@Schema(description = "Display name of the zone")
-		String name,
+    @NotBlank
+    @Size(max = 120)
+    @Schema(description = "Display name of the zone")
+    String name,
 
-		@NotNull
-		@Schema(description = "Type of temperature zone", example = "FRIDGE")
-		TemperatureZone zoneType,
+    @NotNull
+    @Schema(description = "Type of temperature zone", example = "FRIDGE")
+    TemperatureZone zoneType,
 
-		@NotNull
-		@DecimalMin("-999.99")
-		@DecimalMax("999.99")
-		@Schema(description = "Minimum allowed temperature in Celsius", example = "2.0")
-		BigDecimal targetMin,
+    @NotNull
+    @DecimalMin("-999.99")
+    @DecimalMax("999.99")
+    @Schema(description = "Minimum allowed temperature in Celsius", example = "2.0")
+    BigDecimal targetMin,
 
-		@NotNull
-		@DecimalMin("-999.99")
-		@DecimalMax("999.99")
-		@Schema(description = "Maximum allowed temperature in Celsius", example = "8.0")
-		BigDecimal targetMax
-) {}
+    @NotNull
+    @DecimalMin("-999.99")
+    @DecimalMax("999.99")
+    @Schema(description = "Maximum allowed temperature in Celsius", example = "8.0")
+    BigDecimal targetMax
+) {
+
+}

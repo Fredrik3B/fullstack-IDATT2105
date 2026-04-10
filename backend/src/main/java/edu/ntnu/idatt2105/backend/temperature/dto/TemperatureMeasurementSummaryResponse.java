@@ -13,18 +13,20 @@ import java.time.LocalDateTime;
 @Schema(description = "Compact temperature measurement summary used in reports and task cards")
 public record TemperatureMeasurementSummaryResponse(
 
-		@Schema(description = "Measurement ID")
-		Long id,
+    @Schema(description = "Measurement ID")
+    Long id,
 
-		@Schema(description = "Measured temperature in Celsius", example = "3.5")
-		BigDecimal valueC,
+    @Schema(description = "Measured temperature in Celsius", example = "3.5")
+    BigDecimal valueC,
 
-		@Schema(description = "When the measurement was taken")
-		LocalDateTime measuredAt,
+    @Schema(description = "When the measurement was taken")
+    LocalDateTime measuredAt,
 
-		@Schema(description = "Period key this measurement belongs to", example = "2026-W15")
-		String periodKey,
+    @Schema(description = "Period key this measurement belongs to", example = "2026-W15")
+    String periodKey,
 
-		@Schema(description = "Whether the measurement is outside the allowed range")
-		Boolean deviation
-) {}
+    @Schema(description = "Whether the measurement is outside the allowed range")
+    Boolean deviation
+) {
+
+}

@@ -15,8 +15,8 @@ import org.springframework.security.core.userdetails.UserDetails;
  * Adapts the {@link UserModel} entity to Spring Security's {@link UserDetails}.
  *
  * <p>Used only during login to verify credentials and extract roles
- * for JWT generation. Not used on subsequent requests — those use
- * {@link JwtAuthenticatedPrincipal} instead.
+ * for JWT generation. Not used on subsequent requests — those use {@link JwtAuthenticatedPrincipal}
+ * instead.
  *
  * <p>Translates the user's {@link edu.ntnu.idatt2105.backend.user.model.RoleModel} entities into
  * Spring Security authorities with the "ROLE_" prefix required by {@code hasRole()} checks.

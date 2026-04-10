@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.config;
 
-import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
+import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -11,9 +11,8 @@ import org.springframework.stereotype.Component;
  * Seeds required reference data into the database on application startup.
  *
  * <p>Inserts any missing {@link edu.ntnu.idatt2105.backend.user.model.RoleModel} entries
- * for all values of {@link edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum}.
- * This ensures the role table is always populated before any user registration occurs,
- * even on a fresh database.
+ * for all values of {@link edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum}. This ensures the
+ * role table is always populated before any user registration occurs, even on a fresh database.
  */
 @Component
 @AllArgsConstructor

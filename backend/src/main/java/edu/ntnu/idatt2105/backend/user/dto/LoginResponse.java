@@ -1,11 +1,9 @@
 package edu.ntnu.idatt2105.backend.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -35,6 +33,7 @@ public class LoginResponse {
   @AllArgsConstructor
   @Schema(description = "Compact user summary embedded in the login response")
   public static class UserInfo {
+
     @Schema(description = "User's email address", example = "john.doe@example.com")
     private String email;
 
@@ -46,6 +45,7 @@ public class LoginResponse {
   @AllArgsConstructor
   @Schema(description = "Organisation info embedded in the login response")
   public static class RestaurantInfo {
+
     @Schema(description = "Organisation ID")
     UUID id;
 

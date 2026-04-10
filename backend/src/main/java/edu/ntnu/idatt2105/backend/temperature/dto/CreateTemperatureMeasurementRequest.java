@@ -14,25 +14,27 @@ import java.time.LocalDateTime;
  */
 @Schema(description = "Request to log a temperature measurement against an active checklist task")
 public record CreateTemperatureMeasurementRequest(
-		@NotNull
-		@Schema(description = "Module this measurement belongs to", example = "IC_FOOD")
-		IcModule module,
+    @NotNull
+    @Schema(description = "Module this measurement belongs to", example = "IC_FOOD")
+    IcModule module,
 
-		@NotNull
-		@Schema(description = "ID of the checklist this task belongs to")
-		Long checklistId,
+    @NotNull
+    @Schema(description = "ID of the checklist this task belongs to")
+    Long checklistId,
 
-		@NotNull
-		@Schema(description = "ID of the activated task to log against")
-		Long taskId,
+    @NotNull
+    @Schema(description = "ID of the activated task to log against")
+    Long taskId,
 
-		@NotNull
-		@Schema(description = "Measured temperature in Celsius", example = "3.5")
-		BigDecimal valueC,
+    @NotNull
+    @Schema(description = "Measured temperature in Celsius", example = "3.5")
+    BigDecimal valueC,
 
-		@Schema(description = "When the measurement was taken, defaults to now if omitted")
-		LocalDateTime measuredAt,
+    @Schema(description = "When the measurement was taken, defaults to now if omitted")
+    LocalDateTime measuredAt,
 
-		@Schema(description = "Period key to log against, defaults to the task's period key if omitted", example = "2026-W15")
-		String periodKey
-) {}
+    @Schema(description = "Period key to log against, defaults to the task's period key if omitted", example = "2026-W15")
+    String periodKey
+) {
+
+}

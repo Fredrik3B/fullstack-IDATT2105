@@ -26,23 +26,23 @@ import lombok.Setter;
 @Getter
 @Entity
 @Table(
-	name = "checklist_module_state",
-	uniqueConstraints = @UniqueConstraint(columnNames = { "organization_id", "compliance_area" })
+    name = "checklist_module_state",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"organization_id", "compliance_area"})
 )
 public class ChecklistModuleState {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-	@Column(name = "organization_id", nullable = false)
-	private UUID organizationId;
+  @Column(name = "organization_id", nullable = false)
+  private UUID organizationId;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "compliance_area", nullable = false, length = 30)
-	private ComplianceArea complianceArea;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "compliance_area", nullable = false, length = 30)
+  private ComplianceArea complianceArea;
 
-	@Column(name = "modified_at", nullable = false)
-	private LocalDateTime modifiedAt;
+  @Column(name = "modified_at", nullable = false)
+  private LocalDateTime modifiedAt;
 
 }

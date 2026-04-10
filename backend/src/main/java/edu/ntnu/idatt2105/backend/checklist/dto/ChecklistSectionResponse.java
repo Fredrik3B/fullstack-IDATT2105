@@ -9,9 +9,11 @@ import java.util.List;
 @Schema(description = "A named section within a checklist, grouping related tasks")
 public record ChecklistSectionResponse(
 
-		@Schema(description = "Section title", example = "Temperature Checks")
-		String title,
+    @Schema(description = "Section title", example = "Temperature Checks")
+    String title,
 
-		@Schema(description = "List of tasks in this section")
-		List<ChecklistTaskItemResponse> items
-) {}
+    @Schema(description = "List of tasks in this section")
+    List<ChecklistTaskItemResponse> items
+) {
+
+}

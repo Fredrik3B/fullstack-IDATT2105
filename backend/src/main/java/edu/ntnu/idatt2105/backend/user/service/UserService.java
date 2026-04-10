@@ -1,39 +1,36 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
-import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
-import java.util.Set;
-
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import edu.ntnu.idatt2105.backend.exception.UserAlreadyExistsException;
 import edu.ntnu.idatt2105.backend.security.JwtService;
 import edu.ntnu.idatt2105.backend.security.UserPrincipal;
 import edu.ntnu.idatt2105.backend.user.dto.CreateUserRequest;
 import edu.ntnu.idatt2105.backend.user.dto.LoginRequest;
+import edu.ntnu.idatt2105.backend.user.dto.LoginResponse;
 import edu.ntnu.idatt2105.backend.user.mapper.UserMapper;
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
-import edu.ntnu.idatt2105.backend.user.repository.JoinRequestRepository;
-import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.RoleRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import java.util.Set;
 import lombok.AllArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 /**
  * Handles user registration, login, and token refresh.
  *
  * <p>All authentication flows produce a {@link LoginResponse} containing a short-lived
- * access token and a refresh token. The controller is responsible for moving the
- * refresh token into an HttpOnly cookie before sending the response to the client.
+ * access token and a refresh token. The controller is responsible for moving the refresh token into
+ * an HttpOnly cookie before sending the response to the client.
  *
  * @see edu.ntnu.idatt2105.backend.user.controller.UserController
  */
 @Service
 @AllArgsConstructor
 public class UserService {
+
   private final UserRepository userRepository;
   private final RoleRepository roleRepository;
   private final PasswordEncoder passwordEncoder;
@@ -62,7 +59,6 @@ public class UserService {
     user.setLastName(request.getLastName());
     user.setRoles(Set.of(staffRole));
 
-
     UserModel savedUser = userRepository.save(user);
     return buildLoginResponse(savedUser);
 
@@ -73,7 +69,8 @@ public class UserService {
    *
    * @param request the login credentials
    * @return login response with access and refresh tokens
-   * @throws org.springframework.security.authentication.BadCredentialsException if credentials are invalid
+   * @throws org.springframework.security.authentication.BadCredentialsException if credentials are
+   *                                                                             invalid
    */
   public LoginResponse login(LoginRequest request) {
     UserModel user = userRepository.findByEmail(request.getEmail())
@@ -91,7 +88,9 @@ public class UserService {
    *
    * @param refreshToken the refresh token from the HttpOnly cookie
    * @return new login response with fresh access and refresh tokens
-   * @throws org.springframework.security.authentication.BadCredentialsException if the token is invalid or the user no longer exists
+   * @throws org.springframework.security.authentication.BadCredentialsException if the token is
+   *                                                                             invalid or the user
+   *                                                                             no longer exists
    */
   public LoginResponse refreshToken(String refreshToken) {
     String email = jwtService.extractEmail(refreshToken);
@@ -102,8 +101,8 @@ public class UserService {
   }
 
   /**
-   * Builds a LoginResponse with fresh tokens for the given user.
-   * The refresh token is included here but the controller moves it to an HttpOnly cookie.
+   * Builds a LoginResponse with fresh tokens for the given user. The refresh token is included here
+   * but the controller moves it to an HttpOnly cookie.
    */
   private LoginResponse buildLoginResponse(UserModel user) {
     UserPrincipal principal = new UserPrincipal(user);

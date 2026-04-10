@@ -1,8 +1,8 @@
 package edu.ntnu.idatt2105.backend.temperature.mapper;
 
 import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
-import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementResponse;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureMeasurementSummaryResponse;
 import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
 import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
@@ -31,6 +31,7 @@ public class TemperatureMapper {
         zone.getTargetMax()
     );
   }
+
   /**
    * Maps a {@link TemperatureMeasurementModel} to a {@link TemperatureMeasurementResponse}.
    *
@@ -38,7 +39,8 @@ public class TemperatureMapper {
    * @param module the IC module the measurement belongs to
    * @return the measurement response DTO with a computed {@code deviation} flag
    */
-  public TemperatureMeasurementResponse toMeasurementResponse(TemperatureMeasurementModel model, IcModule module) {
+  public TemperatureMeasurementResponse toMeasurementResponse(TemperatureMeasurementModel model,
+      IcModule module) {
     return new TemperatureMeasurementResponse(
         model.getId(),
         module,
@@ -52,13 +54,14 @@ public class TemperatureMapper {
   }
 
   /**
-   * Maps a {@link TemperatureMeasurementModel} to a compact {@link TemperatureMeasurementSummaryResponse}
-   * used in inspection report sections.
+   * Maps a {@link TemperatureMeasurementModel} to a compact
+   * {@link TemperatureMeasurementSummaryResponse} used in inspection report sections.
    *
    * @param model the measurement entity
    * @return the summary response DTO with a computed {@code deviation} flag
    */
-  public TemperatureMeasurementSummaryResponse toSummaryResponse(TemperatureMeasurementModel model) {
+  public TemperatureMeasurementSummaryResponse toSummaryResponse(
+      TemperatureMeasurementModel model) {
     return new TemperatureMeasurementSummaryResponse(
         model.getId(),
         model.getValueC(),
@@ -78,9 +81,13 @@ public class TemperatureMapper {
    * @return {@code true} if the value is out of range, {@code false} otherwise
    */
   public boolean isDeviation(TemperatureMeasurementModel m) {
-    if (m == null || m.getTask() == null || m.getTask().getTaskTemplate() == null) return false;
+    if (m == null || m.getTask() == null || m.getTask().getTaskTemplate() == null) {
+      return false;
+    }
     TaskTemplate t = m.getTask().getTaskTemplate();
-    if (t.getTargetMin() != null && m.getValueC().compareTo(t.getTargetMin()) < 0) return true;
+    if (t.getTargetMin() != null && m.getValueC().compareTo(t.getTargetMin()) < 0) {
+      return true;
+    }
     return t.getTargetMax() != null && m.getValueC().compareTo(t.getTargetMax()) > 0;
   }
 }

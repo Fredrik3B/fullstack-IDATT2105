@@ -21,8 +21,7 @@ import lombok.Setter;
  * JPA entity representing a registered user.
  *
  * <p>Users can belong to at most one {@link OrganizationModel} and hold
- * one or more {@link RoleModel} roles that govern their permissions
- * within the application.
+ * one or more {@link RoleModel} roles that govern their permissions within the application.
  */
 @Entity
 @Getter

@@ -12,19 +12,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Builder;
-import lombok.Data;
 
 
 /**
- * Full inspection report DTO aggregating compliance statistics, checklist activity,
- * temperature readings, deviations, and organisation metadata for a given time period.
+ * Full inspection report DTO aggregating compliance statistics, checklist activity, temperature
+ * readings, deviations, and organisation metadata for a given time period.
  *
- * <p>Generated on demand by {@link edu.ntnu.idatt2105.backend.report.service.ReportService#generateInspection}
+ * <p>Generated on demand by
+ * {@link edu.ntnu.idatt2105.backend.report.service.ReportService#generateInspection}
  * and intended for export to PDF or display in the management dashboard.
  */
 @Builder
 @Schema(description = "Full inspection report for regulatory authorities")
-public record InspectionReport (
+public record InspectionReport(
 
     @Schema(description = "Report time period")
     ReportPeriod period,
@@ -55,4 +55,6 @@ public record InspectionReport (
 
     @Schema(description = "Alcohol compliance statistics")
     ComplianceStats alcoholStats
-) {}
+) {
+
+}

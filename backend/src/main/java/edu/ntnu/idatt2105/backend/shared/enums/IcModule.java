@@ -7,9 +7,13 @@ package edu.ntnu.idatt2105.backend.shared.enums;
  * module without needing to know the Norwegian-language {@link ComplianceArea} constants.
  */
 public enum IcModule {
-  /** Food-safety internal control module (maps to {@link ComplianceArea#IK_MAT}). */
+  /**
+   * Food-safety internal control module (maps to {@link ComplianceArea#IK_MAT}).
+   */
   IC_FOOD,
-  /** Alcohol-control internal control module (maps to {@link ComplianceArea#IK_ALKOHOL}). */
+  /**
+   * Alcohol-control internal control module (maps to {@link ComplianceArea#IK_ALKOHOL}).
+   */
   IC_ALCOHOL;
 
   /**

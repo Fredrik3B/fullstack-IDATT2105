@@ -18,8 +18,8 @@ import lombok.Setter;
 @MappedSuperclass
 public abstract class AuditableEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
 }

@@ -1,7 +1,6 @@
 package edu.ntnu.idatt2105.backend.temperature.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -79,7 +78,8 @@ class TemperatureMeasurementControllerTest {
   @Test
   @DisplayName("POST /api/temperature-measurements - staff creates measurement and returns 201")
   void createMeasurement_asStaff_returns201() throws Exception {
-    when(temperatureMeasurementService.createMeasurement(any(), any())).thenReturn(sampleMeasurement());
+    when(temperatureMeasurementService.createMeasurement(any(), any())).thenReturn(
+        sampleMeasurement());
 
     mockMvc.perform(post("/api/temperature-measurements")
             .contentType(MediaType.APPLICATION_JSON)
@@ -99,7 +99,8 @@ class TemperatureMeasurementControllerTest {
   @Test
   @DisplayName("POST /api/temperature-measurements - admin creates measurement and returns 201")
   void createMeasurement_asAdmin_returns201() throws Exception {
-    when(temperatureMeasurementService.createMeasurement(any(), any())).thenReturn(sampleMeasurement());
+    when(temperatureMeasurementService.createMeasurement(any(), any())).thenReturn(
+        sampleMeasurement());
 
     mockMvc.perform(post("/api/temperature-measurements")
             .contentType(MediaType.APPLICATION_JSON)

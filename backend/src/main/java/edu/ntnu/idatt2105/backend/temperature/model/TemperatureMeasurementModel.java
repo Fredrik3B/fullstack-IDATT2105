@@ -26,11 +26,12 @@ import lombok.Setter;
 /**
  * JPA entity representing a single temperature reading logged against an active checklist task.
  *
- * <p>Each measurement is scoped to a {@link edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel},
+ * <p>Each measurement is scoped to a
+ * {@link edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel},
  * a specific activated {@link edu.ntnu.idatt2105.backend.task.model.TasksModel}, and the
  * organisation that owns the checklist. The {@code measuredAt} timestamp defaults to
- * {@link java.time.LocalDateTime#now()} via a {@link jakarta.persistence.PrePersist} callback
- * if not supplied by the caller.
+ * {@link java.time.LocalDateTime#now()} via a {@link jakarta.persistence.PrePersist} callback if
+ * not supplied by the caller.
  */
 @Entity
 @Getter
@@ -41,42 +42,43 @@ import lombok.Setter;
 @Table(name = "temperature_measurements")
 public class TemperatureMeasurementModel extends AuditableEntity {
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "compliance_area", nullable = false, length = 30)
-	private ComplianceArea complianceArea;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "compliance_area", nullable = false, length = 30)
+  private ComplianceArea complianceArea;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "checklist_id", nullable = false)
-	private ChecklistModel checklist;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "checklist_id", nullable = false)
+  private ChecklistModel checklist;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "task_id", nullable = false)
-	private TasksModel task;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "task_id", nullable = false)
+  private TasksModel task;
 
-	@Column(name = "period_key", length = 16)
-	private String periodKey;
+  @Column(name = "period_key", length = 16)
+  private String periodKey;
 
-	@Column(name = "value_c", nullable = false, precision = 6, scale = 2)
-	private BigDecimal valueC;
+  @Column(name = "value_c", nullable = false, precision = 6, scale = 2)
+  private BigDecimal valueC;
 
-	@Column(name = "measured_at", nullable = false)
-	private LocalDateTime measuredAt;
+  @Column(name = "measured_at", nullable = false)
+  private LocalDateTime measuredAt;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "organization_id", nullable = false)
-	private OrganizationModel organization;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "organization_id", nullable = false)
+  private OrganizationModel organization;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "recorded_by_user_id", nullable = false)
-	private UserModel recordedBy;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "recorded_by_user_id", nullable = false)
+  private UserModel recordedBy;
 
-	/**
-	 * Sets {@code measuredAt} to the current timestamp before insert if the caller did not supply one.
-	 */
-	@PrePersist
-	public void setDefaultMeasuredAt() {
-		if (measuredAt == null) {
-			measuredAt = LocalDateTime.now();
-		}
-	}
+  /**
+   * Sets {@code measuredAt} to the current timestamp before insert if the caller did not supply
+   * one.
+   */
+  @PrePersist
+  public void setDefaultMeasuredAt() {
+    if (measuredAt == null) {
+      measuredAt = LocalDateTime.now();
+    }
+  }
 }

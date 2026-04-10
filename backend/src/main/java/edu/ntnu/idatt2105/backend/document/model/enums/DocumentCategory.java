@@ -5,24 +5,38 @@ package edu.ntnu.idatt2105.backend.document.model.enums;
  */
 public enum DocumentCategory {
 
-	/** Operational guidelines and standard procedures. */
-	GUIDELINES,
+  /**
+   * Operational guidelines and standard procedures.
+   */
+  GUIDELINES,
 
-	/** Training materials and learning resources. */
-	TRAINING,
+  /**
+   * Training materials and learning resources.
+   */
+  TRAINING,
 
-	/** Official certificates (e.g. hygiene certifications, licences). */
-	CERTIFICATE,
+  /**
+   * Official certificates (e.g. hygiene certifications, licences).
+   */
+  CERTIFICATE,
 
-	/** Audit reports from internal or external inspections. */
-	AUDIT_REPORT,
+  /**
+   * Audit reports from internal or external inspections.
+   */
+  AUDIT_REPORT,
 
-	/** HACCP (Hazard Analysis and Critical Control Points) documentation. */
-	HACCP,
+  /**
+   * HACCP (Hazard Analysis and Critical Control Points) documentation.
+   */
+  HACCP,
 
-	/** Emergency plans and incident response procedures. */
-	EMERGENCY,
+  /**
+   * Emergency plans and incident response procedures.
+   */
+  EMERGENCY,
 
-  /** Created deviation reports */
+  /**
+   * Created deviation reports
+   */
   DEVIATION_REPORT
 }

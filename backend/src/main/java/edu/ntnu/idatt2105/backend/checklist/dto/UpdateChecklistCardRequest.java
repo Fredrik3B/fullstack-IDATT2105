@@ -11,24 +11,26 @@ import java.util.List;
 @Schema(description = "Request to update an existing checklist card's metadata and task selection")
 public record UpdateChecklistCardRequest(
 
-		@NotBlank
-		@Schema(description = "Display period for the checklist", example = "Week 15")
-		String period,
+    @NotBlank
+    @Schema(description = "Display period for the checklist", example = "Week 15")
+    String period,
 
-		@NotBlank
-		@Schema(description = "Checklist title", example = "Daily Kitchen Hygiene")
-		String title,
+    @NotBlank
+    @Schema(description = "Checklist title", example = "Daily Kitchen Hygiene")
+    String title,
 
-		@Schema(description = "Optional subtitle or description")
-		String subtitle,
+    @Schema(description = "Optional subtitle or description")
+    String subtitle,
 
-		@Schema(description = "Whether the checklist recurs automatically")
-		Boolean recurring,
+    @Schema(description = "Whether the checklist recurs automatically")
+    Boolean recurring,
 
-		@Schema(description = "Whether the checklist is shown on the workbench")
-		Boolean displayedOnWorkbench,
+    @Schema(description = "Whether the checklist is shown on the workbench")
+    Boolean displayedOnWorkbench,
 
-		@NotEmpty
-		@Schema(description = "Updated list of task template IDs to include")
-		List<Long> taskTemplateIds
-) {}
+    @NotEmpty
+    @Schema(description = "Updated list of task template IDs to include")
+    List<Long> taskTemplateIds
+) {
+
+}

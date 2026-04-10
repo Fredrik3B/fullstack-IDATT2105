@@ -1,37 +1,34 @@
 package edu.ntnu.idatt2105.backend.security;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
-
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Extracts and validates the JWT from every request Authorization header.
  *
  * <p>Stateless authentication, all data is extracted from
- * the token claims. No database call is made. The resulting
- * {@link JwtAuthenticatedPrincipal} is placed in the SecurityContext
- * for the duration of the request period only.
+ * the token claims. No database call is made. The resulting {@link JwtAuthenticatedPrincipal} is
+ * placed in the SecurityContext for the duration of the request period only.
  *
  * <p>If the token is missing, invalid, or expired, the filter skips authentication and lets
  * Spring Security's authorization rules handle it via {@link JwtAuthenticationEntryPoint}.
  *
- * @see JwtService
- * @see JwtAuthenticatedPrincipal
  * @author Fredrik Borbe
  * @version 0.1
+ * @see JwtService
+ * @see JwtAuthenticatedPrincipal
  */
 @Component
 @AllArgsConstructor
@@ -43,11 +40,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
   /**
    * Finds the Authorization header field and extracts the jwt string from here.
    *
-   * @param request the incoming HTTP request
+   * @param request  the incoming HTTP request
    * @param response the response object
-   * @param chain the cain of filers for the request
+   * @param chain    the cain of filers for the request
    * @throws ServletException an error occurs during the processing of the request
-  * @throws IOException an I/O error occurs during the processing of the request
+   * @throws IOException      an I/O error occurs during the processing of the request
    */
   @Override
   protected void doFilterInternal(
@@ -94,8 +91,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
           SecurityContextHolder.getContext().setAuthentication(authToken);
         }
       }
-    }  /** will send a 401 unless path is whitelisted in config */
-    catch (JwtException ignored) {
+    }  /** will send a 401 unless path is whitelisted in config */ catch (JwtException ignored) {
     }
   }
 }

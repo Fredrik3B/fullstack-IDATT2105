@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.user.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Builder;

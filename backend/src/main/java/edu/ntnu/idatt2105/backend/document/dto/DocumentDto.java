@@ -2,7 +2,6 @@ package edu.ntnu.idatt2105.backend.document.dto;
 
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
 import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -51,4 +50,6 @@ public record DocumentDto(
 
     @Schema(description = "Full name of the user who uploaded the document")
     String uploadedByName
-) {}
+) {
+
+}

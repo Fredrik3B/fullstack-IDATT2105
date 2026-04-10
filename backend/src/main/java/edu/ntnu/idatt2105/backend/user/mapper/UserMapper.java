@@ -43,14 +43,16 @@ public class UserMapper {
   }
 
   /**
-   * Maps an {@link OrganizationModel} to a {@link LoginResponse.RestaurantInfo} summary,
-   * or returns {@code null} if the user has not yet joined an organisation.
+   * Maps an {@link OrganizationModel} to a {@link LoginResponse.RestaurantInfo} summary, or returns
+   * {@code null} if the user has not yet joined an organisation.
    *
    * @param org the organisation entity, may be {@code null}
    * @return the restaurant info DTO, or {@code null}
    */
   public LoginResponse.RestaurantInfo toRestaurantInfo(OrganizationModel org) {
-    if (org == null) return null;
+    if (org == null) {
+      return null;
+    }
     return new LoginResponse.RestaurantInfo(org.getId(), org.getName(), org.getJoinCode());
   }
 }

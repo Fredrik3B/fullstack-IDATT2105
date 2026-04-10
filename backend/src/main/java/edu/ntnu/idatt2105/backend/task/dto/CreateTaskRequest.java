@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.task.dto;
 
-import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
 import edu.ntnu.idatt2105.backend.task.validation.TemperatureZoneRequiredIfTemperature;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.DecimalMax;
@@ -20,33 +20,35 @@ import java.math.BigDecimal;
 @TemperatureZoneRequiredIfTemperature
 @Schema(description = "Request to create a new task")
 public record CreateTaskRequest(
-		@NotNull
-		@Schema(description = "Module this task belongs to", example = "IC_FOOD")
-		IcModule module,
+    @NotNull
+    @Schema(description = "Module this task belongs to", example = "IC_FOOD")
+    IcModule module,
 
-		@NotBlank
-		@Size(max = 120)
-		@Schema(description = "Task title", example = "Check fridge temperature")
-		String title,
+    @NotBlank
+    @Size(max = 120)
+    @Schema(description = "Task title", example = "Check fridge temperature")
+    String title,
 
-		@Size(max = 255)
-		@Schema(description = "Additional metadata or instructions")
-		String meta,
+    @Size(max = 255)
+    @Schema(description = "Additional metadata or instructions")
+    String meta,
 
-		@NotNull
-		@Schema(description = "Section type for the task", example = "CLEANING_SANITATION")
-		SectionTypes sectionType,
+    @NotNull
+    @Schema(description = "Section type for the task", example = "CLEANING_SANITATION")
+    SectionTypes sectionType,
 
-		@Schema(description = "ID of the temperature zone, required if sectionType is TEMPERATURE_CONTROL")
-		Long temperatureZoneId,
+    @Schema(description = "ID of the temperature zone, required if sectionType is TEMPERATURE_CONTROL")
+    Long temperatureZoneId,
 
-		@DecimalMin("-999.99")
-		@DecimalMax("999.99")
-		@Schema(description = "Minimum target temperature", example = "2.0")
-		BigDecimal targetMin,
+    @DecimalMin("-999.99")
+    @DecimalMax("999.99")
+    @Schema(description = "Minimum target temperature", example = "2.0")
+    BigDecimal targetMin,
 
-		@DecimalMin("-999.99")
-		@DecimalMax("999.99")
-		@Schema(description = "Maximum target temperature", example = "8.0")
-		BigDecimal targetMax
-) {}
+    @DecimalMin("-999.99")
+    @DecimalMax("999.99")
+    @Schema(description = "Maximum target temperature", example = "8.0")
+    BigDecimal targetMax
+) {
+
+}
