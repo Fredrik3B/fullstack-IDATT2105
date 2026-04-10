@@ -33,7 +33,7 @@ jobs:
           npm ci
           echo "VITE_API_BASE_URL=${{ secrets.VPS_DOMAIN }}" > .env.production
           npm run build
-        working-directory: ./frontend/restaurantapp-frontend
+        working-directory: ./frontend
 
       - name: Copy backend JAR
         uses: appleboy/scp-action@v0.1.7
