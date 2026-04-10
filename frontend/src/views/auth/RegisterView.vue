@@ -137,7 +137,13 @@ function clearError(field) {
 
 function validate() {
   let valid = true
-  if (!form.name.trim()) { errors.name = 'Full name is required'; valid = false }
+  if (!form.name.trim()) {
+    errors.name = 'Full name is required'
+    valid = false
+  } else if (!form.name.trim().includes(' ') || form.name.trim().split(/\s+/).length < 2 || form.name.trim().split(/\s+/).some(part => part.length < 1)) {
+    errors.name = 'Please enter both your first and last name'
+    valid = false
+  }
   if (!form.email.trim()) { errors.email = 'Email is required'; valid = false }
   if (!form.password) { errors.password = 'Password is required'; valid = false }
   else if (form.password.length < 8) { errors.password = 'Password must be at least 8 characters'; valid = false }
