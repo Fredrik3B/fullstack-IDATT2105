@@ -146,7 +146,11 @@ class OrganizationControllerTest {
     mockMvc.perform(post("/api/organizations/join")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                {"joinCode":"TES-1234"}
+                {
+                  "joinCode": "TES-1234",
+                  "firstName": "John",
+                  "lastName": "Doe"
+                }
                 """)
             .with(authentication(staffAuth())))
         .andExpect(status().isOk())

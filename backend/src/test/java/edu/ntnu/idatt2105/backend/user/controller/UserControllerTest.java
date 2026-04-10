@@ -64,7 +64,7 @@ class UserControllerTest {
     mockMvc.perform(post("/api/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                {"email":"user@test.com","password":"pass123","firstName":"Test","lastName":"User"}
+                {"email":"user@test.com","password":"pass1234","firstName":"Test","lastName":"User"}
                 """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.accessToken").value("access-token"))
@@ -81,7 +81,7 @@ class UserControllerTest {
     mockMvc.perform(post("/api/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                {"email":"user@test.com","password":"pass","firstName":"A","lastName":"B"}
+                {"email":"user@test.com","password":"pass1234","firstName":"A","lastName":"B"}
                 """))
         .andExpect(status().isConflict());
   }

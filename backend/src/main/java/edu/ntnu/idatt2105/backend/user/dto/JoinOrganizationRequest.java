@@ -24,6 +24,6 @@ public class JoinOrganizationRequest {
   private String lastName;
 
   @NotBlank
-  @Schema(description = "Join code for the organisation", example = "ABC123")
+  @Schema(description = "Join code for the organisation", example = "ABC-3123")
   private String joinCode;
 }
