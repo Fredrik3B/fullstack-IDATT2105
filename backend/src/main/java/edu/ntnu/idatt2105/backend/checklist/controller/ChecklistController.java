@@ -106,6 +106,8 @@ public class ChecklistController {
 				module
 			);
 			return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
+				.header(HttpHeaders.VARY, HttpHeaders.AUTHORIZATION)
+				.header(HttpHeaders.CACHE_CONTROL, "private, no-cache, must-revalidate")
 				.lastModified(lastModifiedMillis)
 				.build();
 		}
@@ -118,7 +120,8 @@ public class ChecklistController {
 		List<ChecklistCardResponse> cards = checklistService.fetchChecklists(module, principal);
 		LOGGER.info("IC fetch checklists: returned {} cards", cards.size());
 		return ResponseEntity.ok()
-			.header(HttpHeaders.CACHE_CONTROL, "private, max-age=0, must-revalidate")
+			.header(HttpHeaders.VARY, HttpHeaders.AUTHORIZATION)
+			.header(HttpHeaders.CACHE_CONTROL, "private, no-cache, must-revalidate")
 			.lastModified(lastModifiedMillis)
 			.body(cards);
 	}
