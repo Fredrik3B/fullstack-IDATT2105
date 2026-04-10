@@ -10,7 +10,9 @@ import { useAuthStore } from '@/stores/auth'
 
 /** @type {import('axios').AxiosInstance} */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
+  // Default to same-origin `/api` requests so local dev can use the Vite proxy
+  // without hitting browser CORS restrictions.
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
   withCredentials: true,

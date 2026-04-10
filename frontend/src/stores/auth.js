@@ -307,7 +307,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshAccessToken() {
     // Use plain axios instead of the intercepted `api` client to avoid
     // recursive interceptor calls if refresh itself fails.
-    const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+    const baseURL = import.meta.env.VITE_API_BASE_URL ?? ''
     const { data } = await axios.post(`${baseURL}/api/auth/refresh`, null, {
       withCredentials: true,
     })
