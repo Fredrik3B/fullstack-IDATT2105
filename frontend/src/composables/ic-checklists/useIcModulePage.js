@@ -11,8 +11,6 @@ import {
 import { normalizePeriodEnum, periodEnumToLabel } from './recurrence'
 import { useChecklistDashboard } from './useChecklistDashboard'
 
-const CHECKLIST_SCREEN_CACHE = new Map()
-
 /**
  * Normalize card id fields and nested task ids to string values.
  *
@@ -55,41 +53,6 @@ function normalizeChecklistCardIds(card) {
         }))
       : card.sections,
   }
-}
-
-/**
- * Read cached module entry.
- *
- * @param {string} module
- * @returns {any|null}
- */
-function getCacheEntry(module) {
-  return CHECKLIST_SCREEN_CACHE.get(module) ?? null
-}
-
-/**
- * Write cached module entry.
- *
- * @param {string} module
- * @param {any} entry
- * @returns {void}
- */
-function setCacheEntry(module, entry) {
-  CHECKLIST_SCREEN_CACHE.set(module, entry)
-}
-
-/**
- * Determine whether cached checklist payload can be reused for immediate render.
- *
- * @param {any} entry
- * @returns {boolean}
- */
-function hasUsableCachedCards(entry) {
-  return Boolean(
-    entry &&
-      Array.isArray(entry.cards) &&
-      (entry.cards.length > 0 || entry.lastModified),
-  )
 }
 
 /**
@@ -195,15 +158,6 @@ export function useIcModulePage({ module, moduleLabel }) {
     }).format(now.value),
   )
 
-  watch(activePeriod, (nextPeriod) => {
-    const cached = getCacheEntry(module)
-    if (!cached) return
-    setCacheEntry(module, {
-      ...cached,
-      activePeriod: nextPeriod,
-    })
-  })
-
   function isChecklistMissing(err) {
     const message = String(
       err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? '',
@@ -212,18 +166,14 @@ export function useIcModulePage({ module, moduleLabel }) {
   }
 
   /**
-   * Reload checklists for current module, with cache/304-aware behavior.
+   * Reload checklists for current module.
    *
    * @param {{background?: boolean, force?: boolean}} [options]
    * @returns {Promise<void>|Promise<any>}
    */
-  async function reloadChecklists({ background = false, force = false } = {}) {
-    const cached = getCacheEntry(module)
-    if (cached?.promise) return cached.promise
-
-    const hasCachedState = hasUsableCachedCards(cached)
+  async function reloadChecklists({ background = false } = {}) {
     const hasVisibleCards = Array.isArray(cards.value) && cards.value.length > 0
-    if (background && (hasVisibleCards || hasCachedState)) {
+    if (background && hasVisibleCards) {
       isRefreshing.value = true
     } else {
       isLoading.value = true
@@ -232,29 +182,14 @@ export function useIcModulePage({ module, moduleLabel }) {
 
     const request = fetchChecklists({
       module,
-      ifModifiedSince: force ? null : cached?.lastModified,
     })
       .then((response) => {
-        if (response.status === 304 && cached) {
-          setCacheEntry(module, {
-            ...cached,
-            promise: null,
-          })
-          return
-        }
-
         const nextCards = Array.isArray(response.data)
           ? response.data.map(normalizeChecklistCardIds)
           : []
 
         cards.value = nextCards
-        activePeriod.value = pickAvailablePeriod(nextCards, activePeriod.value ?? cached?.activePeriod)
-        setCacheEntry(module, {
-          cards: nextCards,
-          lastModified: response.lastModified,
-          activePeriod: activePeriod.value,
-          promise: null,
-        })
+        activePeriod.value = pickAvailablePeriod(nextCards, activePeriod.value)
       })
       .catch((err) => {
         console.error(`Failed to fetch ${moduleLabel} checklists`, err)
@@ -269,33 +204,12 @@ export function useIcModulePage({ module, moduleLabel }) {
       .finally(() => {
         isLoading.value = false
         isRefreshing.value = false
-        const latest = getCacheEntry(module)
-        if (latest?.promise === request) {
-          setCacheEntry(module, {
-            ...latest,
-            promise: null,
-          })
-        }
       })
-
-    setCacheEntry(module, {
-      cards: cached?.cards ?? [],
-      lastModified: cached?.lastModified ?? null,
-      activePeriod: cached?.activePeriod ?? activePeriod.value,
-      promise: request,
-    })
 
     return request
   }
 
   onMounted(async () => {
-    const cached = getCacheEntry(module)
-    if (hasUsableCachedCards(cached)) {
-      cards.value = cached.cards
-      activePeriod.value = pickAvailablePeriod(cached.cards, cached.activePeriod)
-      await reloadChecklists({ background: true })
-      return
-    }
     await reloadChecklists()
   })
 
@@ -350,16 +264,25 @@ export function useIcModulePage({ module, moduleLabel }) {
 
     isCreatingChecklist.value = true
     try {
-      await createChecklist({
-        module,
-        period: newCard?.period,
-        title: newCard?.title,
-        subtitle: newCard?.subtitle,
-        recurring: newCard?.recurring,
-        displayedOnWorkbench: newCard?.displayedOnWorkbench,
-        taskTemplateIds: newCard?.taskTemplateIds,
-      })
-      await reloadChecklists({ force: true })
+      const created = normalizeChecklistCardIds(
+        await createChecklist({
+          module,
+          period: newCard?.period,
+          title: newCard?.title,
+          subtitle: newCard?.subtitle,
+          recurring: newCard?.recurring,
+          displayedOnWorkbench: newCard?.displayedOnWorkbench,
+          taskTemplateIds: newCard?.taskTemplateIds,
+        }),
+      )
+
+      if (created?.id != null) {
+        cards.value = [
+          created,
+          ...cards.value.filter((card) => String(card?.id ?? '') !== String(created.id)),
+        ]
+      }
+
       isCreateOpen.value = false
     } catch (err) {
       console.error('Failed to create checklist', err)
