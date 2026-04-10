@@ -94,9 +94,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
           SecurityContextHolder.getContext().setAuthentication(authToken);
         }
       }
-    } catch (JwtException ignored) {
-      // Expired or malformed token — skip authentication and let Spring Security
-      // handle access control. permitAll endpoints will still be reachable.
+    }  /** will send a 401 unless path is whitelisted in config */
+    catch (JwtException ignored) {
     }
   }
 }
