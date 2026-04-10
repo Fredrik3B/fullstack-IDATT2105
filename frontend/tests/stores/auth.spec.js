@@ -31,6 +31,12 @@ import axios from 'axios'
 
 const ACCESS_TOKEN_KEY = 'iksystem_access_token'
 const SESSION_KEY = 'iksystem_session'
+const LAST_ACTIVE_KEY = 'iksystem_last_active'
+
+/** Set the last-active timestamp to "just now" so idle check passes. */
+function stampActive() {
+  localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()))
+}
 
 function makeAuthResponse(overrides = {}) {
   return {
@@ -288,6 +294,7 @@ describe('useAuthStore', () => {
     })
 
     it('restores state from persisted local session', async () => {
+      stampActive()
       localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         user: { id: 1, email: 'test@example.com', name: 'Test User' },
@@ -304,6 +311,7 @@ describe('useAuthStore', () => {
     })
 
     it('hydrates pending request when logged in without restaurant', async () => {
+      stampActive()
       localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         user: { id: 1, email: 'test@example.com', name: 'Test User' },
@@ -321,6 +329,7 @@ describe('useAuthStore', () => {
     })
 
     it('refreshes an expired persisted token before hydrating state', async () => {
+      stampActive()
       localStorage.setItem(
         ACCESS_TOKEN_KEY,
         makeJwt({ exp: Math.floor(Date.now() / 1000) - 60, roles: ['ROLE_STAFF'] }),
@@ -345,6 +354,7 @@ describe('useAuthStore', () => {
     })
 
     it('clears session when persisted token is expired and refresh fails', async () => {
+      stampActive()
       localStorage.setItem(
         ACCESS_TOKEN_KEY,
         makeJwt({ exp: Math.floor(Date.now() / 1000) - 60, roles: ['ROLE_STAFF'] }),
@@ -364,6 +374,25 @@ describe('useAuthStore', () => {
       expect(localStorage.getItem(SESSION_KEY)).toBeNull()
     })
 
+    it('clears session when idle for more than 5 minutes', async () => {
+      // Stamp activity 6 minutes ago — exceeds the 5-minute idle limit
+      localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now() - 6 * 60 * 1000))
+      localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        user: { id: 1, email: 'test@example.com', name: 'Test User' },
+        restaurant: { id: 5, name: 'Pizza Palace', joinCode: 'PIZ-1234' },
+      }))
+
+      const auth = useAuthStore()
+      await auth.initAuth()
+
+      expect(auth.accessToken).toBeNull()
+      expect(auth.user).toBeNull()
+      expect(localStorage.getItem(ACCESS_TOKEN_KEY)).toBeNull()
+      expect(localStorage.getItem(SESSION_KEY)).toBeNull()
+      expect(localStorage.getItem(LAST_ACTIVE_KEY)).toBeNull()
+    })
+
     it('clears state when persisted session JSON is malformed', async () => {
       localStorage.setItem(ACCESS_TOKEN_KEY, 'expired-token')
       localStorage.setItem(SESSION_KEY, '{bad-json')
@@ -381,6 +410,7 @@ describe('useAuthStore', () => {
       // Use a session WITHOUT a restaurant so fetchPendingRequest is triggered on
       // the first initAuth call. If _initDone guard is missing, a second call would
       // trigger fetchPendingRequest again — making api.get called twice instead of once.
+      stampActive()
       localStorage.setItem(ACCESS_TOKEN_KEY, 'valid-token')
       localStorage.setItem(SESSION_KEY, JSON.stringify({
         user: { id: 1, email: 'test@example.com', name: 'Test User' },
