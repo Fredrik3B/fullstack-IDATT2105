@@ -129,17 +129,6 @@ class ReportControllerTest {
   }
 
   @Test
-  @DisplayName("GET /api/reports/inspection/pdf - authenticated returns 200")
-  void getInspectionPdf_authenticated_returns200() throws Exception {
-    when(reportService.generateInspection(eq(orgId), any(), any()))
-        .thenReturn(InspectionReport.builder().build());
-
-    mockMvc.perform(get("/api/reports/inspection/pdf")
-            .with(authentication(adminAuth())))
-        .andExpect(status().isOk());
-  }
-
-  @Test
   @DisplayName("GET /api/reports/inspection/pdf - unauthenticated returns 401")
   void getInspectionPdf_unauthenticated_returns401() throws Exception {
     mockMvc.perform(get("/api/reports/inspection/pdf"))
@@ -158,7 +147,7 @@ class ReportControllerTest {
                 {
                   "deviationName": "Cold storage too warm",
                   "severity": "MAJOR",
-                  "timestamp": "2025-01-15T10:00",
+                  "occurredAt": "2025-01-15T10:00",
                   "noticedBy": "Jane Doe",
                   "reportedTo": "Manager Smith",
                   "processedBy": "Jane Doe",

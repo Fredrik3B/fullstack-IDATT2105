@@ -40,7 +40,6 @@ public class ReportController {
   private final ReportService reportService;
 
   @Operation(summary = "Internal compliance summary")
-  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
   @GetMapping("/summary")
   public ResponseEntity<InternalSummary> getSummary(
       @RequestParam(required = false) LocalDateTime from,
@@ -55,7 +54,6 @@ public class ReportController {
   }
 
   @Operation(summary = "Full inspection report data")
-  @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
   @GetMapping("/full-report")
   public ResponseEntity<InspectionReport> getInspection(
       @RequestParam(required = false) LocalDateTime from,
