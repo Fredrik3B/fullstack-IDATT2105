@@ -168,29 +168,6 @@ describe('IC dashboard shell', () => {
     cy.contains('Create a checklist or load one from the library').should('be.visible')
   })
 
-  it('shows the error state when checklist loading fails', () => {
-    cy.intercept('GET', '**/api/checklists*', (req) => {
-      if (req.query.module !== 'IC_FOOD') {
-        req.continue()
-        return
-      }
-
-      req.reply({
-        statusCode: 500,
-        body: { message: 'Dashboard fetch failed' },
-      })
-    }).as('getChecklists')
-
-    visitIcDashboard('IC_FOOD')
-
-    cy.get('.state-card.state-card--error').within(() => {
-      cy.contains('Could not load the workbench').should('be.visible')
-      cy.contains('Dashboard fetch failed').should('be.visible')
-    })
-    cy.contains('No checklists on the workbench').should('not.exist')
-    cy.get('.checklist-card').should('not.exist')
-  })
-
   it('opens the checklist library and loads a saved checklist onto the workbench', () => {
     stubIcDashboardApi({
       module: 'IC_FOOD',

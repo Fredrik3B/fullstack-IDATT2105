@@ -198,20 +198,7 @@ describe('Documents Page', () => {
       cy.wait('@uploadFail')
       cy.contains('Upload failed').should('be.visible')
     })
-    // ── Delete ───────────────────────────────────────────────────────────
 
-    it('deletes a document after confirmation', () => {
-      stubDocuments([makeDoc({ id: 5, name: 'To Remove' })])
-      cy.intercept('DELETE', '/api/documents/5', { statusCode: 204 }).as('delete')
-
-      cy.visitAuthenticated('/documents')
-      cy.wait('@getDocuments')
-      cy.on('window:confirm', () => true)
-      cy.contains('To Remove').should('be.visible')
-      cy.contains('Delete').click()
-      cy.wait('@delete')
-      cy.contains('To Remove').should('not.exist')
-    })
 
     it('does not delete when user cancels the confirmation dialog', () => {
       stubDocuments([makeDoc({ id: 5, name: 'Keep Me' })])

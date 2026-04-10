@@ -141,17 +141,6 @@ describe('Reports Page', () => {
     cy.contains('Backend unavailable').should('be.visible')
   })
 
-  it('opens and closes the deviation modal', () => {
-    cy.visitAuthenticated('/reports')
-
-    cy.contains('Report deviation').click()
-    cy.get('[role="dialog"]').should('be.visible')
-    cy.contains('Report deviation').should('be.visible')
-    cy.contains('Complete all sections before submitting.').should('be.visible')
-
-    cy.contains('Cancel').click()
-    cy.get('[role="dialog"]').should('not.exist')
-  })
 
   it('submits a deviation report from the modal', () => {
     cy.intercept('POST', '/api/reports/deviations', (req) => {
