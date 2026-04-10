@@ -219,7 +219,15 @@ export function useIcModulePage({ module, moduleLabel }) {
    */
   async function reloadChecklists({ background = false, force = false } = {}) {
     const cached = getCacheEntry(module)
-    if (cached?.promise) return cached.promise
+    if (cached?.promise && !force) return cached.promise
+
+    if (force && cached?.promise) {
+      try {
+        await cached.promise
+      } catch {
+        // Ignore the previous request result and continue with a fresh fetch.
+      }
+    }
 
     const hasCachedState = hasUsableCachedCards(cached)
     const hasVisibleCards = Array.isArray(cards.value) && cards.value.length > 0
@@ -350,7 +358,8 @@ export function useIcModulePage({ module, moduleLabel }) {
 
     isCreatingChecklist.value = true
     try {
-      await createChecklist({
+      const created = normalizeChecklistCardIds(
+        await createChecklist({
         module,
         period: newCard?.period,
         title: newCard?.title,
@@ -358,8 +367,22 @@ export function useIcModulePage({ module, moduleLabel }) {
         recurring: newCard?.recurring,
         displayedOnWorkbench: newCard?.displayedOnWorkbench,
         taskTemplateIds: newCard?.taskTemplateIds,
-      })
-      await reloadChecklists({ force: true })
+        }),
+      )
+
+      if (created?.id != null) {
+        cards.value = [
+          created,
+          ...cards.value.filter((card) => String(card?.id ?? '') !== String(created.id)),
+        ]
+        setCacheEntry(module, {
+          cards: cards.value,
+          lastModified: null,
+          activePeriod: activePeriod.value,
+          promise: null,
+        })
+      }
+
       isCreateOpen.value = false
     } catch (err) {
       console.error('Failed to create checklist', err)

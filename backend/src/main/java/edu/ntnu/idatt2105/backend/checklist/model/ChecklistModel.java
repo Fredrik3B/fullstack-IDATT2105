@@ -1,9 +1,12 @@
 package edu.ntnu.idatt2105.backend.checklist.model;
 
-import edu.ntnu.idatt2105.backend.shared.model.AuditableEntity;
-import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
 import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.model.AuditableEntity;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -16,8 +19,6 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -60,12 +61,15 @@ public class ChecklistModel extends AuditableEntity {
 	private String activePeriodKey;
 
 	@Column(name = "recurring", nullable = false)
+	@Builder.Default
 	private boolean recurring = true;
 
 	@Column(name = "displayed_on_workbench", nullable = false)
+	@Builder.Default
 	private boolean displayedOnWorkbench = true;
 
 	@Column(nullable = false)
+	@Builder.Default
 	private boolean active = true;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -78,6 +82,7 @@ public class ChecklistModel extends AuditableEntity {
 		joinColumns = @JoinColumn(name = "checklist_id"),
 		inverseJoinColumns = @JoinColumn(name = "task_template_id")
 	)
+	@Builder.Default
 	private Set<TaskTemplate> taskTemplates = new LinkedHashSet<>();
 
 }
