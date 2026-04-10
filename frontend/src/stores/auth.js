@@ -314,7 +314,9 @@ export const useAuthStore = defineStore('auth', () => {
   * @throws {Error} Propagates join request failures.
    */
   async function joinRestaurant(joinCode) {
-    await api.post('/api/organizations/join', { joinCode })
+    const [firstName, ...rest] = (user.value?.name ?? '').trim().split(/\s+/)
+    const lastName = rest.join(' ') || firstName
+    await api.post('/api/organizations/join', { joinCode, firstName, lastName, email: user.value?.email })
     await fetchPendingRequest()
   }
 
