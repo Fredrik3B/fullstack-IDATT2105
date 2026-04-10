@@ -1,5 +1,8 @@
 package edu.ntnu.idatt2105.backend.report.service;
 
+import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -12,9 +15,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -58,6 +64,8 @@ class ReportServiceTest {
   @Mock private OrganizationRepository organizationRepository;
   @Mock private TaskMapper taskMapper;
   @Mock private DeviationReportRepository deviationReportRepository;
+  @Mock private DocumentService documentService;
+  @Mock private DocumentRepository documentRepository;
 
   @InjectMocks
   private ReportService reportService;
@@ -388,6 +396,11 @@ class ReportServiceTest {
       m.setCreatedAt(createdAt);
       return m;
     });
+
+    when(documentService.storeFile(any(), any(), anyString()))
+        .thenReturn("/some/path/deviation-report.pdf");
+    when(documentRepository.save(any(DocumentModel.class)))
+        .thenReturn(mock(DocumentModel.class));
 
     DeviationCreatedResponse response = reportService.createDeviationReport(request, userId, orgId);
 
