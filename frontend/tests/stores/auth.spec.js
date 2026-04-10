@@ -535,19 +535,19 @@ describe('useAuthStore', () => {
   // ── joinRestaurant ─────────────────────────────────────────────────────
 
   describe('joinRestaurant', () => {
-    it('posts to /api/organizations/join with the code and user details', async () => {
+    it('posts to /api/organizations/join with the user details and code', async () => {
       api.post.mockResolvedValueOnce({})
       api.get.mockResolvedValueOnce({ status: 204, data: null })
       const auth = useAuthStore()
-      auth.user = { id: 1, name: 'Test User', email: 'test@example.com' }
+      auth.user = { name: 'Everest User', email: 'everest@example.com' }
 
       await auth.joinRestaurant('EVR-1234')
 
       expect(api.post).toHaveBeenCalledWith('/api/organizations/join', {
         joinCode: 'EVR-1234',
-        firstName: 'Test',
+        firstName: 'Everest',
         lastName: 'User',
-        email: 'test@example.com',
+        email: 'everest@example.com',
       })
     })
 
