@@ -1,26 +1,31 @@
 package edu.ntnu.idatt2105.backend.report.service;
 
 
-import edu.ntnu.idatt2105.backend.common.mapper.TaskMapper;
-import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.model.TasksModel;
-import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
+import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Paragraph;
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentCategory;
+import edu.ntnu.idatt2105.backend.document.model.enums.DocumentModule;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
 import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
+import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
+import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ChecklistSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.shared.DeviationDayPoint;
-import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
-import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
 import edu.ntnu.idatt2105.backend.report.dto.shared.MissedTaskRecord;
 import edu.ntnu.idatt2105.backend.report.dto.shared.OrgSection;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ReportPeriod;
@@ -28,11 +33,19 @@ import edu.ntnu.idatt2105.backend.report.dto.shared.TemperaturePoint;
 import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
 import edu.ntnu.idatt2105.backend.report.model.DeviationReportModel;
 import edu.ntnu.idatt2105.backend.report.repository.DeviationReportRepository;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.model.enums.RoleEnum;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
 import edu.ntnu.idatt2105.backend.user.repository.UserRepository;
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -43,8 +56,24 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * Service for generating compliance reports and persisting deviation reports.
+ *
+ * <p>The two main report types are:
+ * <ul>
+ *   <li>{@link #generateSummary} — a lightweight dashboard summary with task and temperature statistics</li>
+ *   <li>{@link #generateInspection} — a full inspection report including checklist records,
+ *       temperature log, missed-task breakdown, and per-day deviation counts</li>
+ * </ul>
+ * All report data is derived from existing task, temperature, checklist, and user records.
+ * No data is written during report generation.
+ */
 @Service
 @AllArgsConstructor
 public class ReportService {
@@ -56,8 +85,14 @@ public class ReportService {
   private final OrganizationRepository organizationRepository;
   private final TaskMapper taskMapper;
   private final DeviationReportRepository deviationReportRepository;
+  private final DocumentRepository documentRepository;
+  private final DocumentService documentService;
 
-  private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to, ComplianceArea area) {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReportService.class);
+
+  private ComplianceStats buildStats(UUID orgId, LocalDateTime from, LocalDateTime to,
+      ComplianceArea area) {
     int total = tasksRepository.contTaskInPeriod(orgId, from, to, area);
     int completed = tasksRepository.countCompletedInPeriod(orgId, from, to, area);
     int flagged = tasksRepository.countDeviatedInPeriod(orgId, from, to, area);
@@ -75,7 +110,8 @@ public class ReportService {
         .build();
   }
 
-  private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDateTime from, LocalDateTime to) {
+  private List<UnresolvedItemDto> getUnresolvedItems(UUID orgId, LocalDateTime from,
+      LocalDateTime to) {
     return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
         .map(taskMapper::toUnresolvedDto)
         .toList();
@@ -104,48 +140,16 @@ public class ReportService {
 
   private ChecklistSection buildChecklistSection(UUID orgId, LocalDateTime from, LocalDateTime to) {
     List<ChecklistModel> checklists = checklistRepository.findAllByOrganizationId(orgId);
-    List<TasksModel> tasksInPeriod = tasksRepository.findAllByOrgIdInPeriodWithRelations(orgId, from, to);
+    List<TasksModel> tasksInPeriod = tasksRepository.findAllByOrgIdInPeriodWithRelations(orgId,
+        from, to);
     Map<Long, List<TasksModel>> tasksByChecklist = tasksInPeriod.stream()
         .collect(Collectors.groupingBy(task -> task.getChecklist().getId()));
 
     List<ChecklistRecord> records = checklists.stream()
-        .map(cl -> {
-          List<TasksModel> checklistTasks = tasksByChecklist.getOrDefault(cl.getId(), List.of());
-          Map<String, List<TasksModel>> tasksByPeriod = checklistTasks.stream()
-              .collect(Collectors.groupingBy(TasksModel::getPeriodKey));
-          int total = checklistTasks.size();
-          int completed = (int) checklistTasks.stream().filter(TasksModel::isCompleted).count();
-          int deviated = (int) checklistTasks.stream()
-              .filter(task -> !task.isCompleted() && !task.isActive())
-              .count();
-          int completionsInPeriod = tasksByPeriod.size();
-          int expectedRuns = countExpectedRuns(cl.getFrequency(), from, to);
-          double averageCompletionRate = tasksByPeriod.isEmpty()
-              ? 0.0
-              : tasksByPeriod.values().stream()
-                  .mapToDouble(tasks -> {
-                    long completedInRun = tasks.stream().filter(TasksModel::isCompleted).count();
-                    return tasks.isEmpty() ? 0.0 : (double) completedInRun / tasks.size() * 100;
-                  })
-                  .average()
-                  .orElse(0.0);
-
-          return ChecklistRecord.builder()
-              .name(cl.getName())
-              .description(cl.getDescription())
-              .frequency(cl.getFrequency().name())
-              .complianceArea(cl.getComplianceArea())
-              .completionsInPeriod(completionsInPeriod)
-              .expectedRuns(expectedRuns)
-              .totalTasks(total)
-              .completedTasks(completed)
-              .deviatedTasks(deviated)
-              .completionRate(total > 0 ? (double) completed / total * 100 : 0.0)
-              .averageCompletionRate(averageCompletionRate)
-              .build();
-        })
-        .filter(record -> record.getCompletionsInPeriod() > 0)
-        .sorted(Comparator.comparing(ChecklistRecord::getName, String.CASE_INSENSITIVE_ORDER))
+        .map(cl -> buildChecklistRecord(cl, tasksByChecklist.getOrDefault(cl.getId(), List.of()),
+            from, to))
+        .filter(r -> r.completionsInPeriod() > 0)
+        .sorted(Comparator.comparing(ChecklistRecord::name, String.CASE_INSENSITIVE_ORDER))
         .toList();
 
     return ChecklistSection.builder()
@@ -155,7 +159,39 @@ public class ReportService {
         .build();
   }
 
-  private int countExpectedRuns(ChecklistFrequency frequency, LocalDateTime from, LocalDateTime to) {
+  private ChecklistRecord buildChecklistRecord(ChecklistModel cl, List<TasksModel> tasks,
+      LocalDateTime from, LocalDateTime to) {
+    Map<String, List<TasksModel>> byPeriod = tasks.stream()
+        .collect(Collectors.groupingBy(TasksModel::getPeriodKey));
+    int total = tasks.size();
+    int completed = (int) tasks.stream().filter(TasksModel::isCompleted).count();
+    int deviated = (int) tasks.stream().filter(t -> !t.isCompleted() && !t.isActive()).count();
+
+    double avgRate = byPeriod.isEmpty() ? 0.0
+        : byPeriod.values().stream()
+            .mapToDouble(run -> {
+              long done = run.stream().filter(TasksModel::isCompleted).count();
+              return run.isEmpty() ? 0.0 : (double) done / run.size() * 100;
+            })
+            .average().orElse(0.0);
+
+    return ChecklistRecord.builder()
+        .name(cl.getName())
+        .description(cl.getDescription())
+        .frequency(cl.getFrequency().name())
+        .complianceArea(cl.getComplianceArea())
+        .completionsInPeriod(byPeriod.size())
+        .expectedRuns(countExpectedRuns(cl.getFrequency(), from, to))
+        .totalTasks(total)
+        .completedTasks(completed)
+        .deviatedTasks(deviated)
+        .completionRate(total > 0 ? (double) completed / total * 100 : 0.0)
+        .averageCompletionRate(avgRate)
+        .build();
+  }
+
+  private int countExpectedRuns(ChecklistFrequency frequency, LocalDateTime from,
+      LocalDateTime to) {
     if (from == null || to == null || from.isAfter(to)) {
       return 0;
     }
@@ -175,14 +211,14 @@ public class ReportService {
     return count;
   }
 
-  private List<TemperaturePoint> buildTemperatureLog(UUID orgId, LocalDateTime from, LocalDateTime to) {
+  private List<TemperaturePoint> buildTemperatureLog(UUID orgId, LocalDateTime from,
+      LocalDateTime to) {
     return tempRepository.findByOrgAndPeriod(orgId, from, to).stream()
         .map(m -> {
           TaskTemplate template = m.getTask().getTaskTemplate();
           TemperatureZoneModel zone = template.getTemperatureZone();
           BigDecimal min = template.getTargetMin();
           BigDecimal max = template.getTargetMax();
-          BigDecimal value = m.getValueC();
 
           return TemperaturePoint.builder()
               .measuredAt(m.getMeasuredAt())
@@ -190,7 +226,7 @@ public class ReportService {
               .zoneName(zone != null ? zone.getName() : template.getTitle())
               .zoneType(zone != null ? zone.getZoneType() : null)
               .taskName(template.getTitle())
-              .valueC(value)
+              .valueC(m.getValueC())
               .targetMin(min)
               .targetMax(max)
               .withinRange((min == null || m.getValueC().compareTo(min) >= 0) &&
@@ -201,16 +237,17 @@ public class ReportService {
         .toList();
   }
 
-  private List<UnresolvedItemDto> buildDeviations(UUID orgId, LocalDateTime from, LocalDateTime to) {
-    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+  private List<UnresolvedItemDto> buildDeviations(List<TasksModel> tasks) {
+    return tasks.stream()
         .map(t -> new UnresolvedItemDto(t.getTaskTemplate().getTitle(), t.getEndedAt()))
         .toList();
   }
 
-  private List<DeviationDayPoint> buildDeviationsByDay(UUID orgId, LocalDateTime from, LocalDateTime to) {
-    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+  private List<DeviationDayPoint> buildDeviationsByDay(List<TasksModel> tasks) {
+    return tasks.stream()
         .filter(task -> task.getEndedAt() != null)
-        .collect(Collectors.groupingBy(task -> task.getEndedAt().toLocalDate(), Collectors.counting()))
+        .collect(
+            Collectors.groupingBy(task -> task.getEndedAt().toLocalDate(), Collectors.counting()))
         .entrySet().stream()
         .sorted(Map.Entry.comparingByKey())
         .map(entry -> DeviationDayPoint.builder()
@@ -220,12 +257,12 @@ public class ReportService {
         .toList();
   }
 
-  private List<MissedTaskRecord> buildMissedTasks(UUID orgId, LocalDateTime from, LocalDateTime to) {
-    return tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from, to).stream()
+  private List<MissedTaskRecord> buildMissedTasks(List<TasksModel> missedTasks) {
+    return missedTasks.stream()
         .collect(Collectors.groupingBy(
             task -> task.getChecklist().getName() + "::" + task.getTaskTemplate().getTitle(),
             Collectors.collectingAndThen(Collectors.toList(), tasks -> {
-              TasksModel sample = tasks.get(0);
+              TasksModel sample = tasks.getFirst();
               return MissedTaskRecord.builder()
                   .taskName(sample.getTaskTemplate().getTitle())
                   .checklistName(sample.getChecklist().getName())
@@ -235,12 +272,20 @@ public class ReportService {
             })
         ))
         .values().stream()
-        .sorted(Comparator.comparing(MissedTaskRecord::getMissedCount).reversed()
-            .thenComparing(MissedTaskRecord::getTaskName, String.CASE_INSENSITIVE_ORDER))
+        .sorted(Comparator.comparing(MissedTaskRecord::missedCount).reversed()
+            .thenComparing(MissedTaskRecord::taskName, String.CASE_INSENSITIVE_ORDER))
         .limit(8)
         .toList();
   }
 
+  /**
+   * Generates a lightweight internal compliance summary for the given organisation and period.
+   *
+   * @param orgId the organisation to generate the summary for
+   * @param from  inclusive start of the period
+   * @param to    inclusive end of the period
+   * @return the internal summary DTO
+   */
   public InternalSummary generateSummary(UUID orgId, LocalDateTime from, LocalDateTime to) {
     return InternalSummary.builder()
         .period(new ReportPeriod(from, to))
@@ -250,9 +295,22 @@ public class ReportService {
         .build();
   }
 
+  /**
+   * Generates a full inspection report for the given organisation and period.
+   *
+   * @param orgId the organisation to generate the report for
+   * @param from  inclusive start of the period
+   * @param to    inclusive end of the period
+   * @return the inspection report DTO
+   * @throws edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException if the organisation is
+   *                                                                        not found
+   */
   public InspectionReport generateInspection(UUID orgId, LocalDateTime from, LocalDateTime to) {
     OrganizationModel org = organizationRepository.findById(orgId)
         .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+
+    List<TasksModel> deviatedTasks = tasksRepository.findDeviatedTaskByOrgIdInPeriod(orgId, from,
+        to);
 
     return InspectionReport.builder()
         .period(new ReportPeriod(from, to))
@@ -260,38 +318,106 @@ public class ReportService {
         .organization(buildOrgSection(org))
         .checklists(buildChecklistSection(orgId, from, to))
         .temperatureLog(buildTemperatureLog(orgId, from, to))
-        .deviationsByDay(buildDeviationsByDay(orgId, from, to))
-        .missedTasks(buildMissedTasks(orgId, from, to))
-        .deviations(buildDeviations(orgId, from, to))
+        .deviationsByDay(buildDeviationsByDay(deviatedTasks))
+        .missedTasks(buildMissedTasks(deviatedTasks))
+        .deviations(buildDeviations(deviatedTasks))
         .foodStats(buildStats(orgId, from, to, ComplianceArea.IK_MAT))
         .alcoholStats(buildStats(orgId, from, to, ComplianceArea.IK_ALKOHOL))
         .build();
   }
 
+  /**
+   * Persists a new deviation report filed by the given user.
+   *
+   * @param request        the deviation report data
+   * @param userId         ID of the user filing the report
+   * @param organizationId ID of the organisation the report belongs to
+   * @return the created response containing the new report's UUID and creation timestamp
+   */
   public DeviationCreatedResponse createDeviationReport(
       DeviationReport request, UUID userId, UUID organizationId
   ) {
-    OrganizationModel org = organizationRepository.findById(organizationId)
-        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-    UserModel user = userRepository.findById(userId)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-    DeviationReportModel entity = new DeviationReportModel();
-    entity.setOrganization(org);
-    entity.setReportedByUser(user);
-    entity.setDeviationName(request.getDeviationName());
-    entity.setSeverity(request.getSeverity());
-    entity.setOccurredAt(request.getOccurredAt());
-    entity.setNoticedBy(request.getNoticedBy());
-    entity.setReportedTo(request.getReportedTo());
-    entity.setProcessedBy(request.getProcessedBy());
-    entity.setDescription(request.getDescription());
-    entity.setImmediateAction(request.getImmediateAction());
-    entity.setBelievedCause(request.getBelievedCause());
-    entity.setCorrectiveMeasures(request.getCorrectiveMeasures());
-    entity.setCorrectiveMeasuresDone(request.getCorrectiveMeasuresDone());
+    DeviationReportModel entity = DeviationReportModel.builder()
+        .organization(organizationRepository.getReferenceById(organizationId))
+        .reportedByUser(userRepository.getReferenceById(userId))
+        .deviationName(request.getDeviationName())
+        .severity(request.getSeverity())
+        .occurredAt(request.getOccurredAt())
+        .noticedBy(request.getNoticedBy())
+        .reportedTo(request.getReportedTo())
+        .processedBy(request.getProcessedBy())
+        .description(request.getDescription())
+        .immediateAction(request.getImmediateAction())
+        .believedCause(request.getBelievedCause())
+        .correctiveMeasures(request.getCorrectiveMeasures())
+        .correctiveMeasuresDone(request.getCorrectiveMeasuresDone())
+        .build();
 
     DeviationReportModel saved = deviationReportRepository.save(entity);
+
+    byte[] pdf = generateDeviationReportPdf(saved);
+    saveDeviationReportAsDocument(pdf, saved);
+
     return new DeviationCreatedResponse(saved.getId(), saved.getCreatedAt());
   }
+
+  private void saveDeviationReportAsDocument(byte[] pdf, DeviationReportModel report) {
+    String fileName = "deviation-report-" + report.getId() + ".pdf";
+    String path = documentService.storeFile(pdf, report.getOrganization().getId(), fileName);
+    DocumentModel document = DocumentModel.builder()
+        .name("Deviation Report - " + report.getDeviationName())
+        .description("Auto-generated deviation report filed on " + report.getCreatedAt())
+        .category(DocumentCategory.DEVIATION_REPORT)
+        .module(DocumentModule.SHARED)
+        .originalFileName(fileName)
+        .fileType("application/pdf")
+        .fileSize((long) pdf.length)
+        .storagePath(path)
+        .uploadedBy(report.getReportedByUser())
+        .organization(report.getOrganization())
+        .build();
+
+    documentRepository.save(document);
+  }
+
+  private byte[] generateDeviationReportPdf(DeviationReportModel report) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    try {
+      PdfWriter writer = new PdfWriter(out);
+      PdfDocument pdf = new PdfDocument(writer);
+      Document document = new Document(pdf);
+
+      PdfFont bold = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+
+      document.add(new Paragraph("Deviation Report")
+          .setFontSize(20).setFont(bold));
+      document.add(new Paragraph(" "));
+
+      document.add(new Paragraph("Incident Details").setFontSize(14).setFont(bold));
+      document.add(new Paragraph("Deviation: " + report.getDeviationName()));
+      document.add(new Paragraph("Severity: " + report.getSeverity()));
+      document.add(new Paragraph("Occurred at: " + report.getOccurredAt()));
+      document.add(new Paragraph("Description: " + report.getDescription()));
+      document.add(new Paragraph(" "));
+
+      document.add(new Paragraph("People Involved").setFontSize(14).setFont(bold));
+      document.add(new Paragraph("Noticed by: " + report.getNoticedBy()));
+      document.add(new Paragraph("Reported to: " + report.getReportedTo()));
+      document.add(new Paragraph("Handled by: " + report.getProcessedBy()));
+      document.add(new Paragraph(" "));
+
+      document.add(new Paragraph("Response and Prevention").setFontSize(14).setFont(bold));
+      document.add(new Paragraph("Immediate action: " + report.getImmediateAction()));
+      document.add(new Paragraph("Believed cause: " + report.getBelievedCause()));
+      document.add(new Paragraph("Corrective measures: " + report.getCorrectiveMeasures()));
+      document.add(new Paragraph("Measures done: " + report.getCorrectiveMeasuresDone()));
+
+      document.close();
+    } catch (Exception e) {
+      LOGGER.error("Failed to generate deviation report PDF: {}", e.getMessage());
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to generate PDF");
+    }
+    return out.toByteArray();
+  }
+
 }

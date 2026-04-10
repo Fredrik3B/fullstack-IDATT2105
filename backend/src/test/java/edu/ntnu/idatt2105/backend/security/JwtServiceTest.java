@@ -1,7 +1,7 @@
 package edu.ntnu.idatt2105.backend.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
 
 import edu.ntnu.idatt2105.backend.user.model.RoleModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
@@ -14,18 +14,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 class JwtServiceTest {
+
   UserPrincipal principal;
   JwtService jwtService;
 
   @BeforeEach
-  void setUp() {
+  public void setUp() {
     jwtService = new JwtService();
     ReflectionTestUtils.setField(jwtService, "secret",
         "dGhpcyBpcyBhIHZlcnkgc2VjcmV0IGtleSBmb3IgdGVzdGluZyBwdXJwb3Nlcw==");
     ReflectionTestUtils.setField(jwtService, "expiration", 100000000L);
+    ReflectionTestUtils.setField(jwtService, "refreshExpiration", 604800000L);
 
     UserModel user = new UserModel();
     user.setId(UUID.randomUUID());
@@ -68,17 +68,6 @@ class JwtServiceTest {
     UUID orgId = jwtService.extractOrganizationId(token);
     assertThat(orgId).isNull();
   }
-
-//  @Test
-//  void generateToken_withOrgId_extractsCorrectly() {
-//    UserModel user = principal.getUser();
-//    user.setOrganization(UUID.randomUUID());
-//    UserPrincipal withOrg = new UserPrincipal(user);
-//
-//    String token = jwtService.generateToken(withOrg);
-//    UUID orgId = jwtService.extractOrganizationId(token);
-//    assertThat(orgId).isEqualTo(user.getOrganizationId());
-//  }
 
   @Test
   void validateValidToken() {

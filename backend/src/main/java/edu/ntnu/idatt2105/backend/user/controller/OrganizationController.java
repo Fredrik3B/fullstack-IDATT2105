@@ -31,11 +31,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for organisation management — create, join, and administer organisations.
+ *
+ * <p>Most endpoints require the caller to be an authenticated member of an organisation.
+ * Admin-only and manager-only operations are protected with {@code @PreAuthorize}.
+ *
+ * @see edu.ntnu.idatt2105.backend.user.service.OrganizationService
+ */
 @Tag(name = "Organizations", description = "Create, join, and manage organizations")
 @RestController
 @AllArgsConstructor
 @RequestMapping("/organizations")
 public class OrganizationController {
+
   private final OrganizationService organizationService;
 
   @Operation(summary = "Create a new organization",
@@ -45,7 +54,7 @@ public class OrganizationController {
       @RequestBody @Valid CreateOrganizationRequest request, Authentication auth
   ) {
     JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
-    OrganizationResponse resp =  organizationService.create(request, principal.getUserId());
+    OrganizationResponse resp = organizationService.create(request, principal.getUserId());
     return ResponseEntity.ok(resp);
   }
 
@@ -134,7 +143,8 @@ public class OrganizationController {
   @PreAuthorize("hasRole('ADMIN')")
   @PutMapping("/members/{userId}/roles")
   public ResponseEntity<Void> updateMemberRoles(
-      @PathVariable UUID userId, @RequestBody @Valid UpdateMemberRolesRequest request, Authentication auth
+      @PathVariable UUID userId, @RequestBody @Valid UpdateMemberRolesRequest request,
+      Authentication auth
   ) {
     JwtAuthenticatedPrincipal principal = JwtAuthenticatedPrincipal.from(auth);
     organizationService.updateMemberRoles(

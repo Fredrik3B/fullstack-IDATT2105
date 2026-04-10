@@ -1,0 +1,345 @@
+package edu.ntnu.idatt2105.backend.common.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
+import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.task.dto.CreateTaskRequest;
+import edu.ntnu.idatt2105.backend.task.dto.TaskResponse;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
+import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.task.service.TaskService;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class TaskServiceTest {
+
+  @Mock
+  private TaskTemplateRepository taskTemplateRepository;
+  @Mock
+  private ChecklistRepository checklistRepository;
+  @Mock
+  private TasksRepository tasksRepository;
+  @Mock
+  private TemperatureMeasurementRepository temperatureMeasurementRepository;
+  @Mock
+  private TemperatureZoneRepository temperatureZoneRepository;
+  @Mock
+  private ChecklistCacheStateService checklistCacheStateService;
+  @Mock
+  private TaskMapper taskMapper;
+
+  @InjectMocks
+  private TaskService taskService;
+
+  private UUID orgId;
+  private JwtAuthenticatedPrincipal principal;
+
+  @BeforeEach
+  void setUp() {
+    orgId = UUID.randomUUID();
+    principal = new JwtAuthenticatedPrincipal(UUID.randomUUID(), orgId, "tester",
+        Collections.emptyList());
+  }
+
+  @Test
+  void createTask_temperatureControlCopiesRangeAndZoneFromSelectedTemperatureItem() {
+    TemperatureZoneModel zone = new TemperatureZoneModel();
+    zone.setId(44L);
+    zone.setName("Main freezer");
+    zone.setZoneType(TemperatureZone.FREEZER);
+    zone.setComplianceArea(ComplianceArea.IK_MAT);
+    zone.setOrganizationId(orgId);
+    zone.setTargetMin(new BigDecimal("-20.00"));
+    zone.setTargetMax(new BigDecimal("-15.00"));
+
+    when(temperatureZoneRepository.findByIdAndOrganizationIdAndComplianceArea(44L, orgId,
+        ComplianceArea.IK_MAT))
+        .thenReturn(Optional.of(zone));
+    when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(invocation -> {
+      TaskTemplate template = invocation.getArgument(0);
+      template.setId(77L);
+      return template;
+    });
+    when(taskMapper.toResponse(any(TaskTemplate.class)))
+        .thenAnswer(invocation -> {
+          TaskTemplate t = invocation.getArgument(0);
+          return new TaskResponse(
+              t.getId(),
+              IcModule.IC_FOOD,
+              t.getTitle(),
+              t.getMeta(),
+              t.getSectionType(),
+              44L,
+              "Main freezer",
+              TemperatureZone.FREEZER,
+              "C",
+              BigDecimal.valueOf(-20.00),
+              BigDecimal.valueOf(-15.00)
+          );
+        });
+
+    TaskResponse response = taskService.createTask(
+        new CreateTaskRequest(
+            IcModule.IC_FOOD,
+            "Check freezer at opening",
+            "Use calibrated thermometer",
+            SectionTypes.TEMPERATURE_CONTROL,
+            44L,
+            null,
+            null),
+        principal);
+
+    ArgumentCaptor<TaskTemplate> captor = ArgumentCaptor.forClass(TaskTemplate.class);
+    verify(taskTemplateRepository).save(captor.capture());
+    TaskTemplate saved = captor.getValue();
+
+    assertThat(saved.getTemperatureZone()).isSameAs(zone);
+    assertThat(saved.getUnit()).isEqualTo("C");
+    assertThat(saved.getTargetMin()).isEqualByComparingTo("-20.00");
+    assertThat(saved.getTargetMax()).isEqualByComparingTo("-15.00");
+    assertThat(response.temperatureZoneId()).isEqualTo(44L);
+    assertThat(response.temperatureZoneName()).isEqualTo("Main freezer");
+  }
+
+  @Test
+  void createTask_temperatureControlWithoutTemperatureZoneIsRejected() {
+    CreateTaskRequest request = new CreateTaskRequest(
+        IcModule.IC_FOOD,
+        "Check fridge",
+        null,
+        SectionTypes.TEMPERATURE_CONTROL,
+        null,
+        null,
+        null);
+
+    assertThatThrownBy(() -> taskService.createTask(request, principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("temperatureZoneId is required");
+
+    verify(taskTemplateRepository, never()).save(any(TaskTemplate.class));
+  }
+
+  @Test
+  void deleteTask_removesTaskFromChecklistsAndDeletesActivatedTaskData() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(9L);
+    template.setOrganisationId(orgId);
+    template.setComplianceArea(ComplianceArea.IK_MAT);
+    template.setTitle("Wash hands");
+
+    ChecklistModel checklist = new ChecklistModel();
+    checklist.setTaskTemplates(new java.util.LinkedHashSet<>(List.of(template)));
+
+    TasksModel activatedTask = new TasksModel();
+    activatedTask.setId(101L);
+    activatedTask.setTaskTemplate(template);
+
+    when(taskTemplateRepository.findById(9L)).thenReturn(Optional.of(template));
+    when(checklistRepository.findAllByOrganization_IdOrderByIdAsc(orgId)).thenReturn(
+        List.of(checklist));
+    when(tasksRepository.findAllByTaskTemplate_Id(9L)).thenReturn(List.of(activatedTask));
+
+    taskService.deleteTask(9L, principal);
+
+    assertThat(checklist.getTaskTemplates()).isEmpty();
+    verify(checklistRepository).save(checklist);
+    verify(temperatureMeasurementRepository).deleteAllByTaskIn(List.of(activatedTask));
+    verify(tasksRepository).deleteAll(List.of(activatedTask));
+    verify(taskTemplateRepository).delete(template);
+  }
+
+  @Test
+  void updateTask_updatesExistingActivatedTaskMetaToMatchTemplateMeta() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(13L);
+    template.setOrganisationId(orgId);
+    template.setComplianceArea(ComplianceArea.IK_MAT);
+    template.setSectionType(SectionTypes.HYGIENE);
+    template.setTitle("Old title");
+    template.setMeta("old meta");
+
+    TasksModel activatedTask = new TasksModel();
+    activatedTask.setId(300L);
+    activatedTask.setTaskTemplate(template);
+    activatedTask.setMeta("old meta");
+
+    when(taskTemplateRepository.findById(13L)).thenReturn(Optional.of(template));
+    when(tasksRepository.findAllByTaskTemplate_Id(13L)).thenReturn(List.of(activatedTask));
+    when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
+    when(taskMapper.toResponse(any(TaskTemplate.class)))
+        .thenAnswer(invocation -> {
+          TaskTemplate t = invocation.getArgument(0);
+          return new TaskResponse(
+              t.getId(),
+              IcModule.IC_FOOD,
+              t.getTitle(),
+              t.getMeta(),
+              t.getSectionType(),
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+          );
+        });
+
+    TaskResponse response = taskService.updateTask(
+        13L,
+        new CreateTaskRequest(
+            IcModule.IC_FOOD,
+            "Updated hygiene task",
+            "new meta",
+            SectionTypes.HYGIENE,
+            null,
+            null,
+            null),
+        principal);
+
+    assertThat(activatedTask.getMeta()).isEqualTo("new meta");
+    verify(tasksRepository).saveAll(eq(List.of(activatedTask)));
+    assertThat(response.meta()).isEqualTo("new meta");
+    assertThat(response.title()).isEqualTo("Updated hygiene task");
+  }
+
+
+  @Test
+  void getAllTasks_returnsMappedTasksForModule() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(50L);
+    template.setTitle("Sanitize surfaces");
+    template.setSectionType(SectionTypes.HYGIENE);
+    template.setComplianceArea(ComplianceArea.IK_MAT);
+    template.setOrganisationId(orgId);
+
+    when(
+        taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(
+            orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of(template));
+    when(taskMapper.toResponse(template)).thenReturn(
+        new TaskResponse(50L, IcModule.IC_FOOD, "Sanitize surfaces", null,
+            SectionTypes.HYGIENE, null, null, null, null, null, null));
+
+    List<TaskResponse> result = taskService.getAllTasks(IcModule.IC_FOOD, principal);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).title()).isEqualTo("Sanitize surfaces");
+  }
+
+  @Test
+  void getAllTasks_returnsEmptyListWhenNoTasksExist() {
+    when(
+        taskTemplateRepository.findAllByOrganisationIdAndComplianceAreaOrderBySectionTypeAscTitleAsc(
+            orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of());
+
+    List<TaskResponse> result = taskService.getAllTasks(IcModule.IC_FOOD, principal);
+
+    assertThat(result).isEmpty();
+  }
+
+
+  @Test
+  void getTaskById_returnsTaskWhenOwnedByOrg() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(60L);
+    template.setOrganisationId(orgId);
+    template.setTitle("Check freezer");
+    template.setSectionType(SectionTypes.TEMPERATURE_CONTROL);
+    template.setComplianceArea(ComplianceArea.IK_MAT);
+
+    when(taskTemplateRepository.findById(60L)).thenReturn(Optional.of(template));
+    when(taskMapper.toResponse(template)).thenReturn(
+        new TaskResponse(60L, IcModule.IC_FOOD, "Check freezer", null,
+            SectionTypes.TEMPERATURE_CONTROL, null, null, null, null, null, null));
+
+    TaskResponse result = taskService.getTaskById(60L, principal);
+
+    assertThat(result.id()).isEqualTo(60L);
+    assertThat(result.title()).isEqualTo("Check freezer");
+  }
+
+  @Test
+  void getTaskById_whenNotFound_throwsException() {
+    when(taskTemplateRepository.findById(99L)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> taskService.getTaskById(99L, principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Task not found");
+  }
+
+  @Test
+  void getTaskById_whenOwnedByDifferentOrg_throwsException() {
+    TaskTemplate template = new TaskTemplate();
+    template.setId(70L);
+    template.setOrganisationId(UUID.randomUUID());
+    template.setTitle("Foreign task");
+
+    when(taskTemplateRepository.findById(70L)).thenReturn(Optional.of(template));
+
+    assertThatThrownBy(() -> taskService.getTaskById(70L, principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Task not found");
+  }
+
+
+  @Test
+  void createTask_nonTemperatureSectionType_savesWithoutZoneOrRange() {
+    when(taskTemplateRepository.save(any(TaskTemplate.class))).thenAnswer(inv -> {
+      TaskTemplate t = inv.getArgument(0);
+      t.setId(80L);
+      return t;
+    });
+    when(taskMapper.toResponse(any(TaskTemplate.class))).thenAnswer(inv -> {
+      TaskTemplate t = inv.getArgument(0);
+      return new TaskResponse(t.getId(), IcModule.IC_FOOD, t.getTitle(), t.getMeta(),
+          t.getSectionType(), null, null, null, null, null, null);
+    });
+
+    TaskResponse response = taskService.createTask(
+        new CreateTaskRequest(IcModule.IC_FOOD, "Wash hands", "Before food handling",
+            SectionTypes.HYGIENE, null, null, null),
+        principal);
+
+    ArgumentCaptor<TaskTemplate> captor = ArgumentCaptor.forClass(TaskTemplate.class);
+    verify(taskTemplateRepository).save(captor.capture());
+    TaskTemplate saved = captor.getValue();
+
+    assertThat(saved.getTemperatureZone()).isNull();
+    assertThat(saved.getUnit()).isNull();
+    assertThat(saved.getTargetMin()).isNull();
+    assertThat(saved.getTargetMax()).isNull();
+    assertThat(response.title()).isEqualTo("Wash hands");
+  }
+}

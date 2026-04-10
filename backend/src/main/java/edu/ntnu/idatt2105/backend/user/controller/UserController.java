@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -19,12 +20,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.beans.factory.annotation.Value;
 
+/**
+ * REST controller for user authentication — register, login, token refresh, and logout.
+ *
+ * <p>The refresh token is stored in an HttpOnly cookie ({@code refreshToken}) to prevent
+ * JavaScript access. All endpoints are publicly accessible (no JWT required).
+ *
+ * @see edu.ntnu.idatt2105.backend.user.service.UserService
+ */
 @Tag(name = "Authentication", description = "Register, login, refresh token, and logout")
 @RestController
-@RequestMapping("/auth")
 @RequiredArgsConstructor
+@RequestMapping("/auth")
 public class UserController {
 
   @Value("${app.cookie-secure:true}")
@@ -73,6 +81,12 @@ public class UserController {
         .build();
   }
 
+  /**
+   * Attaches the refresh token as an HttpOnly cookie and clears it from the response body.
+   *
+   * @param response the login response produced by the service
+   * @return the response entity with the Set-Cookie header
+   */
   private ResponseEntity<LoginResponse> sendWithCookie(LoginResponse response) {
     ResponseCookie cookie = ResponseCookie.from("refreshToken", response.getRefreshToken())
         .httpOnly(true).secure(cookieSecure)
@@ -83,15 +97,5 @@ public class UserController {
     return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, cookie.toString())
         .body(response);
-  }
-
-  private ResponseCookie createRefreshTokenCookie(String refreshToken) {
-    return ResponseCookie.from("refreshToken", refreshToken)
-        .httpOnly(true)
-        .secure(cookieSecure)
-        .path("/api/auth/refresh")
-        .maxAge(Duration.ofDays(7))
-        .sameSite("Lax")
-        .build();
   }
 }

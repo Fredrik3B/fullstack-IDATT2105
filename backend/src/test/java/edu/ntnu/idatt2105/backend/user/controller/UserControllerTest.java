@@ -21,11 +21,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockCookie;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 
 @SpringBootTest
 @DisplayName("UserController (/api/auth)")
@@ -64,7 +64,7 @@ class UserControllerTest {
     mockMvc.perform(post("/api/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                {"email":"user@test.com","password":"pass123","firstName":"Test","lastName":"User"}
+                {"email":"user@test.com","password":"pass1234","firstName":"Test","lastName":"User"}
                 """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.accessToken").value("access-token"))
@@ -81,7 +81,7 @@ class UserControllerTest {
     mockMvc.perform(post("/api/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""
-                {"email":"user@test.com","password":"pass","firstName":"A","lastName":"B"}
+                {"email":"user@test.com","password":"pass1234","firstName":"A","lastName":"B"}
                 """))
         .andExpect(status().isConflict());
   }

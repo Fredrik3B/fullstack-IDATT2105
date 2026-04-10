@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "target": "es5",
+    "lib": ["es5", "dom"],
+    "types": ["cypress"]
+  },
+  "include": ["./e2e/**/*", "./support/**/*"],
+  "exclude": ["./support/component.*"]
+}

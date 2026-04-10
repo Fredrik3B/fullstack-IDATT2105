@@ -1,121 +1,175 @@
-# fullstack-IDATT2105
-Restaurant management application
+# Restaurant Management Application
 
-## Backend Structure
+A full-stack application developed to help restaurants manage daily operations, internal control routines, documentation, and team administration in one system.
 
-The backend foundation is centered on a simple tenant-aware domain model.
-`Organization` isolates each restaurant's data, while operational entities such as checklists, logs,
-deviations, and alcohol compliance records are linked back to both the organization and the user when relevant.
+Live website: `https://internkontroll.site`
 
-Key relationships:
-- One `Organization` owns many `User`, `Checklist`, `TemperatureLog`, `Deviation`, and `AlcoholCompliance` records.
-- One `Checklist` contains many `Task` entries.
-- One `Task` can have many `TaskLog` records.
-- A `User` can create operational records such as task logs, temperature logs, deviations, and alcohol compliance entries.
+## What The App Does
 
-```mermaid
-classDiagram
+The application helps restaurants manage daily routines and internal control tasks in one place. Users can register, join or create a restaurant organization, complete checklists, log temperatures, manage documents, and get detailed reports on checklist completion and temperature tracking. The system is designed to support safer operations, clearer responsibilities, and better documentation of internal routines.
 
-class AuditableEntity {
-  Long id
-  LocalDateTime createdAt
-  LocalDateTime updatedAt
-}
+The project is available both as a locally runnable development setup and as a deployed website for real usage and demonstration.
 
-class Organization {
-  String name
-  String organizationNumber
-}
+## Main Features
 
-class Checklist {
-  String name
-  String description
-  ChecklistFrequency frequency
-  ComplianceArea complianceArea
-  boolean active
-}
+- Authentication for registering and logging in users
+- Create or join a restaurant
+- Role-based access control for managing permissions
+- Checklist management for daily/weekly/monthly routines
+- Temperature logging and compliance tracking
+- Document management for storing restaurant files
+- Deviation reporting for registering and following up incidents
+- Reporting and dashboard views for operational insight
 
-class Task {
-  String title
-  String description
-  int orderIndex
-  boolean requiredTask
-  boolean active
-}
+## Tech Stack
 
-class TaskLog {
-  boolean completed
-  String notes
-  LocalDateTime timestamp
-}
+- Frontend: Vue 3, Vue Router, Pinia, Axios
+- Backend: Java, Spring Boot, Spring Security, Spring Data JPA
+- Database: MySQL, with H2 available for development/testing support
+- Testing: Vitest, Cypress, JUnit, Mockito
+- Documentation: Swagger / OpenAPI
 
-class TemperatureLog {
-  String location
-  BigDecimal value
-  TemperatureZone temperatureZone
-  BigDecimal minimumAllowed
-  BigDecimal maximumAllowed
-  LocalDateTime timestamp
-}
+## Project Structure
 
-class Deviation {
-  String title
-  String description
-  DeviationSeverity severity
-  DeviationStatus status
-  ComplianceArea complianceArea
-  LocalDateTime reportedAt
-  LocalDateTime resolvedAt
-}
+The project is divided into a frontend and a backend:
 
-class AlcoholCompliance {
-  AlcoholComplianceType complianceType
-  boolean compliant
-  String details
-  String notes
-  LocalDateTime performedAt
-}
+- `frontend` contains the Vue application, including views, components, stores, API modules, and tests.
+- `backend` contains the Spring Boot application, including controllers, services, repositories, models, DTOs, security, and tests.
 
-class User {
-  String username
-  String fullName
-  String email
-  String passwordHash
-  Role role
-  boolean active
-}
+Main backend packages:
+- `common` for shared domain models such as checklists, tasks, documents, and temperature measurements
+- `user` for authentication, organizations, roles, and join requests
+- `report` for deviation reporting and report-related logic
+- `security` for JWT authentication and access control
+- `config` for application configuration
 
+Main frontend folders:
+- `src/views` for page-level views
+- `src/components` for reusable UI and feature components
+- `src/stores` for Pinia state management
+- `src/api` for communication with backend endpoints
+- `src/composables` for reusable frontend logic
+- `src/__tests__` for frontend tests
 
+## Prerequisites
 
-AuditableEntity <|-- Organization
-AuditableEntity <|-- User
-AuditableEntity <|-- Checklist
-AuditableEntity <|-- Task
-AuditableEntity <|-- TaskLog
-AuditableEntity <|-- TemperatureLog
-AuditableEntity <|-- Deviation
-AuditableEntity <|-- AlcoholCompliance
+Before running the project locally, make sure you have:
 
-Organization "1" --> "*" User
-Organization "1" --> "*" Checklist
-Organization "1" --> "*" TemperatureLog
-Organization "1" --> "*" Deviation
-Organization "1" --> "*" AlcoholCompliance
+- Java 25
+- Maven
+- Node.js 20.19 or newer
+- npm
+- MySQL
 
-Checklist "1" --> "*" Task
-Task "1" --> "*" TaskLog
+## Setup And Installation
 
-User "1" --> "*" TaskLog
-User "1" --> "*" TemperatureLog
-User "1" --> "*" Deviation
-User "1" --> "*" AlcoholCompliance
+1. Clone the repository.
+2. Start a MySQL database locally, or use the provided [compose.yaml](/Users/oliver/BIDATA/Fullstack/fullstack-IDATT2105/compose.yaml).
+3. Create a root `.env` file for backend configuration.
+4. Install frontend dependencies.
 
-User "*" --> "1" Organization
-Checklist "*" --> "1" Organization
-TemperatureLog "*" --> "1" Organization
-Deviation "*" --> "1" Organization
-AlcoholCompliance "*" --> "1" Organization
-Task "*" --> "1" Checklist
-TaskLog "*" --> "1" Task
-TaskLog "*" --> "1" User
+Frontend installation:
+
+```bash
+cd frontend
+npm install
 ```
+
+Backend installation:
+
+```bash
+cd backend
+./mvnw clean install
+```
+
+If the Maven wrapper is not available in your environment, use:
+
+```bash
+mvn clean install
+```
+
+
+
+## Running The Application
+
+Start the backend:
+
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+
+Or:
+
+```bash
+mvn spring-boot:run
+```
+
+Start the frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Default local URLs:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8080`
+
+Deployed website:
+- `https://internkontroll.site`
+
+## Testing
+
+Frontend unit tests:
+
+```bash
+cd frontend
+npm run test:unit
+```
+
+Frontend end-to-end tests:
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+Backend tests:
+
+```bash
+cd backend
+./mvnw test
+```
+
+Or:
+
+```bash
+mvn test
+```
+
+## API Documentation
+
+The backend includes Swagger / OpenAPI support through Springdoc.
+
+When the backend is running, API documentation should be available at:
+
+- `http://localhost:8080/swagger-ui/index.html`
+
+## Example User Flow
+
+1. Register a user account.
+2. Create a restaurant organization or join one using a join code.
+3. Log in and access the dashboard.
+4. Manage checklists and activated tasks.
+5. Record temperature measurements and upload documents.
+6. Create deviation reports and review reports or admin data.
+
+
+## Contributors
+
+- Fredrik Borbe
+- Oliver Higgins
+- Christian Remman
+- Marius Kiplesund
+

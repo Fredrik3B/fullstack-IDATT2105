@@ -7,17 +7,19 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.common.dto.icchecklist.IcModule;
-import edu.ntnu.idatt2105.backend.common.dto.temperaturezone.CreateTemperatureZoneRequest;
-import edu.ntnu.idatt2105.backend.common.dto.temperaturezone.TemperatureZoneResponse;
-import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
-import edu.ntnu.idatt2105.backend.common.repository.TaskTemplateRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TemperatureZoneRepository;
-import edu.ntnu.idatt2105.backend.common.service.impl.TemperatureZoneServiceImpl;
+import edu.ntnu.idatt2105.backend.checklist.service.ChecklistCacheStateService;
 import edu.ntnu.idatt2105.backend.security.JwtAuthenticatedPrincipal;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.IcModule;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.repository.TaskTemplateRepository;
+import edu.ntnu.idatt2105.backend.temperature.dto.CreateTemperatureZoneRequest;
+import edu.ntnu.idatt2105.backend.temperature.dto.TemperatureZoneResponse;
+import edu.ntnu.idatt2105.backend.temperature.mapper.TemperatureMapper;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureZoneRepository;
+import edu.ntnu.idatt2105.backend.temperature.service.TemperatureZoneService;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
@@ -34,11 +36,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TemperatureZoneServiceImplTest {
 
-  @Mock private TemperatureZoneRepository temperatureZoneRepository;
-  @Mock private TaskTemplateRepository taskTemplateRepository;
-  @Mock private ChecklistCacheStateService checklistCacheStateService;
+  @Mock
+  private TemperatureZoneRepository temperatureZoneRepository;
+  @Mock
+  private TaskTemplateRepository taskTemplateRepository;
+  @Mock
+  private ChecklistCacheStateService checklistCacheStateService;
+  @Mock
+  private TemperatureMapper temperatureMapper;
 
-  @InjectMocks private TemperatureZoneServiceImpl temperatureZoneService;
+  @InjectMocks
+  private TemperatureZoneService temperatureZoneService;
 
   private UUID orgId;
   private JwtAuthenticatedPrincipal principal;
@@ -46,7 +54,8 @@ class TemperatureZoneServiceImplTest {
   @BeforeEach
   void setUp() {
     orgId = UUID.randomUUID();
-    principal = new JwtAuthenticatedPrincipal(UUID.randomUUID(), orgId, "tester", Collections.emptyList());
+    principal = new JwtAuthenticatedPrincipal(UUID.randomUUID(), orgId, "tester",
+        Collections.emptyList());
   }
 
   @Test
@@ -57,6 +66,19 @@ class TemperatureZoneServiceImplTest {
       return zone;
     });
 
+    when(temperatureMapper.toZoneResponse(any(TemperatureZoneModel.class))).thenAnswer(
+        invocation -> {
+          TemperatureZoneModel z = invocation.getArgument(0);
+          return new TemperatureZoneResponse(
+              z.getId(),
+              IcModule.IC_ALCOHOL,
+              z.getName(),
+              z.getZoneType(),
+              z.getTargetMin(),
+              z.getTargetMax()
+          );
+        });
+
     TemperatureZoneResponse response = temperatureZoneService.createZone(
         new CreateTemperatureZoneRequest(
             IcModule.IC_ALCOHOL,
@@ -66,7 +88,8 @@ class TemperatureZoneServiceImplTest {
             new BigDecimal("6.0")),
         principal);
 
-    ArgumentCaptor<TemperatureZoneModel> captor = ArgumentCaptor.forClass(TemperatureZoneModel.class);
+    ArgumentCaptor<TemperatureZoneModel> captor = ArgumentCaptor.forClass(
+        TemperatureZoneModel.class);
     verify(temperatureZoneRepository).save(captor.capture());
     TemperatureZoneModel saved = captor.getValue();
 
@@ -91,9 +114,23 @@ class TemperatureZoneServiceImplTest {
     template.setTargetMin(new BigDecimal("1.0"));
     template.setTargetMax(new BigDecimal("4.0"));
 
-    when(temperatureZoneRepository.findByIdAndOrganizationId(8L, orgId)).thenReturn(Optional.of(zone));
-    when(temperatureZoneRepository.save(any(TemperatureZoneModel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    when(temperatureZoneRepository.findByIdAndOrganizationId(8L, orgId)).thenReturn(
+        Optional.of(zone));
+    when(temperatureZoneRepository.save(any(TemperatureZoneModel.class))).thenAnswer(
+        invocation -> invocation.getArgument(0));
     when(taskTemplateRepository.findAllByTemperatureZone_Id(8L)).thenReturn(List.of(template));
+    when(temperatureMapper.toZoneResponse(any(TemperatureZoneModel.class)))
+        .thenAnswer(invocation -> {
+          TemperatureZoneModel z = invocation.getArgument(0);
+          return new TemperatureZoneResponse(
+              z.getId(),
+              IcModule.IC_FOOD,
+              z.getName(),
+              z.getZoneType(),
+              z.getTargetMin(),
+              z.getTargetMax()
+          );
+        });
 
     TemperatureZoneResponse response = temperatureZoneService.updateZone(
         8L,
@@ -117,8 +154,10 @@ class TemperatureZoneServiceImplTest {
     zone.setId(9L);
     zone.setOrganizationId(orgId);
 
-    when(temperatureZoneRepository.findByIdAndOrganizationId(9L, orgId)).thenReturn(Optional.of(zone));
-    when(taskTemplateRepository.findAllByTemperatureZone_Id(9L)).thenReturn(List.of(new TaskTemplate()));
+    when(temperatureZoneRepository.findByIdAndOrganizationId(9L, orgId)).thenReturn(
+        Optional.of(zone));
+    when(taskTemplateRepository.findAllByTemperatureZone_Id(9L)).thenReturn(
+        List.of(new TaskTemplate()));
 
     assertThatThrownBy(() -> temperatureZoneService.deleteZone(9L, principal))
         .isInstanceOf(IllegalArgumentException.class)
@@ -139,5 +178,85 @@ class TemperatureZoneServiceImplTest {
         principal))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("targetMin cannot be greater");
+  }
+
+  @Test
+  void getAllZones_returnsMappedZonesForModule() {
+    TemperatureZoneModel zone = new TemperatureZoneModel();
+    zone.setId(1L);
+    zone.setName("Walk-in fridge");
+    zone.setZoneType(TemperatureZone.FRIDGE);
+    zone.setComplianceArea(ComplianceArea.IK_MAT);
+    zone.setOrganizationId(orgId);
+
+    when(
+        temperatureZoneRepository.findAllByOrganizationIdAndComplianceAreaOrderByZoneTypeAscNameAsc(
+            orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of(zone));
+    when(temperatureMapper.toZoneResponse(zone)).thenReturn(
+        new TemperatureZoneResponse(1L, IcModule.IC_FOOD, "Walk-in fridge", TemperatureZone.FRIDGE,
+            new BigDecimal("2.0"), new BigDecimal("5.0")));
+
+    List<TemperatureZoneResponse> result = temperatureZoneService.getAllZones(IcModule.IC_FOOD,
+        principal);
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).name()).isEqualTo("Walk-in fridge");
+  }
+
+  @Test
+  void getAllZones_returnsEmptyListWhenNoZonesExist() {
+    when(
+        temperatureZoneRepository.findAllByOrganizationIdAndComplianceAreaOrderByZoneTypeAscNameAsc(
+            orgId, ComplianceArea.IK_MAT))
+        .thenReturn(List.of());
+
+    List<TemperatureZoneResponse> result = temperatureZoneService.getAllZones(IcModule.IC_FOOD,
+        principal);
+
+    assertThat(result).isEmpty();
+  }
+
+
+  @Test
+  void deleteZone_whenNotUsedByAnyTask_deletesZoneAndTouchesCache() {
+    TemperatureZoneModel zone = new TemperatureZoneModel();
+    zone.setId(5L);
+    zone.setOrganizationId(orgId);
+    zone.setComplianceArea(ComplianceArea.IK_MAT);
+
+    when(temperatureZoneRepository.findByIdAndOrganizationId(5L, orgId)).thenReturn(
+        Optional.of(zone));
+    when(taskTemplateRepository.findAllByTemperatureZone_Id(5L)).thenReturn(List.of());
+
+    temperatureZoneService.deleteZone(5L, principal);
+
+    verify(temperatureZoneRepository).delete(zone);
+    verify(checklistCacheStateService).touch(orgId, ComplianceArea.IK_MAT);
+  }
+
+  @Test
+  void deleteZone_whenZoneNotFound_throwsException() {
+    when(temperatureZoneRepository.findByIdAndOrganizationId(99L, orgId)).thenReturn(
+        Optional.empty());
+
+    assertThatThrownBy(() -> temperatureZoneService.deleteZone(99L, principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Temperature zone not found");
+
+    verify(temperatureZoneRepository, never()).delete(any());
+  }
+
+  @Test
+  void updateZone_whenZoneNotFound_throwsException() {
+    when(temperatureZoneRepository.findByIdAndOrganizationId(99L, orgId)).thenReturn(
+        Optional.empty());
+
+    assertThatThrownBy(() -> temperatureZoneService.updateZone(99L,
+        new CreateTemperatureZoneRequest(IcModule.IC_FOOD, "Missing", TemperatureZone.FRIDGE,
+            new BigDecimal("2.0"), new BigDecimal("5.0")),
+        principal))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Temperature zone not found");
   }
 }

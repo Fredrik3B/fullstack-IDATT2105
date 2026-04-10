@@ -2,29 +2,38 @@ package edu.ntnu.idatt2105.backend.report.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.common.mapper.TaskMapper;
-import edu.ntnu.idatt2105.backend.common.model.ChecklistModel;
-import edu.ntnu.idatt2105.backend.common.model.TaskTemplate;
-import edu.ntnu.idatt2105.backend.common.model.TemperatureMeasurementModel;
-import edu.ntnu.idatt2105.backend.common.model.TemperatureZoneModel;
-import edu.ntnu.idatt2105.backend.common.model.TasksModel;
-import edu.ntnu.idatt2105.backend.common.model.enums.ChecklistFrequency;
-import edu.ntnu.idatt2105.backend.common.model.enums.ComplianceArea;
-import edu.ntnu.idatt2105.backend.common.model.enums.SectionTypes;
-import edu.ntnu.idatt2105.backend.common.model.enums.TemperatureZone;
-import edu.ntnu.idatt2105.backend.common.repository.ChecklistRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TasksRepository;
-import edu.ntnu.idatt2105.backend.common.repository.TemperatureMeasurementRepository;
-import edu.ntnu.idatt2105.backend.common.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.checklist.model.ChecklistModel;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.ChecklistFrequency;
+import edu.ntnu.idatt2105.backend.checklist.model.enums.SectionTypes;
+import edu.ntnu.idatt2105.backend.checklist.repository.ChecklistRepository;
+import edu.ntnu.idatt2105.backend.checklist.service.icchecklist.PeriodKeyUtil;
+import edu.ntnu.idatt2105.backend.document.model.DocumentModel;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.service.DocumentService;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationCreatedResponse;
+import edu.ntnu.idatt2105.backend.report.dto.DeviationReport;
 import edu.ntnu.idatt2105.backend.report.dto.InspectionReport;
 import edu.ntnu.idatt2105.backend.report.dto.InternalSummary;
 import edu.ntnu.idatt2105.backend.report.dto.shared.ComplianceStats;
 import edu.ntnu.idatt2105.backend.report.dto.shared.UnresolvedItemDto;
+import edu.ntnu.idatt2105.backend.report.model.DeviationReportModel;
 import edu.ntnu.idatt2105.backend.report.repository.DeviationReportRepository;
+import edu.ntnu.idatt2105.backend.shared.enums.ComplianceArea;
+import edu.ntnu.idatt2105.backend.shared.enums.DeviationSeverity;
+import edu.ntnu.idatt2105.backend.task.mapper.TaskMapper;
+import edu.ntnu.idatt2105.backend.task.model.TaskTemplate;
+import edu.ntnu.idatt2105.backend.task.model.TasksModel;
+import edu.ntnu.idatt2105.backend.task.repository.TasksRepository;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureMeasurementModel;
+import edu.ntnu.idatt2105.backend.temperature.model.TemperatureZoneModel;
+import edu.ntnu.idatt2105.backend.temperature.model.enums.TemperatureZone;
+import edu.ntnu.idatt2105.backend.temperature.repository.TemperatureMeasurementRepository;
 import edu.ntnu.idatt2105.backend.user.model.OrganizationModel;
 import edu.ntnu.idatt2105.backend.user.model.UserModel;
 import edu.ntnu.idatt2105.backend.user.repository.OrganizationRepository;
@@ -34,7 +43,6 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,13 +55,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ReportServiceTest {
 
-  @Mock private TasksRepository tasksRepository;
-  @Mock private TemperatureMeasurementRepository tempRepository;
-  @Mock private ChecklistRepository checklistRepository;
-  @Mock private UserRepository userRepository;
-  @Mock private OrganizationRepository organizationRepository;
-  @Mock private TaskMapper taskMapper;
-  @Mock private DeviationReportRepository deviationReportRepository;
+  @Mock
+  private TasksRepository tasksRepository;
+  @Mock
+  private TemperatureMeasurementRepository tempRepository;
+  @Mock
+  private ChecklistRepository checklistRepository;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private OrganizationRepository organizationRepository;
+  @Mock
+  private TaskMapper taskMapper;
+  @Mock
+  private DeviationReportRepository deviationReportRepository;
+  @Mock
+  private DocumentService documentService;
+  @Mock
+  private DocumentRepository documentRepository;
 
   @InjectMocks
   private ReportService reportService;
@@ -65,41 +84,47 @@ class ReportServiceTest {
   @BeforeEach
   void setUp() {
     orgId = UUID.randomUUID();
-    from = LocalDateTime.now().minusMonths(1);
-    to = LocalDateTime.now();
+    from = LocalDateTime.of(2026, 3, 1, 10, 0);
+    to = LocalDateTime.of(2026, 3, 31, 10, 0);
   }
 
-  // --- generateSummary ---
 
   @Test
   void generateSummary_withData_returnsCorrectStats() {
-    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_MAT))).thenReturn(10);
-    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_MAT))).thenReturn(8);
-    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_MAT))).thenReturn(2);
+    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_MAT))).thenReturn(10);
+    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_MAT))).thenReturn(8);
+    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_MAT))).thenReturn(2);
     when(tempRepository.countReadingsInPeriod(eq(orgId), any(), any())).thenReturn(20);
     when(tempRepository.countOutOfRangeInPeriod(eq(orgId), any(), any())).thenReturn(3);
 
-    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(5);
-    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(5);
-    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
+    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(5);
+    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(5);
+    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
 
-    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(eq(orgId), any(), any())).thenReturn(List.of());
+    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(eq(orgId), any(), any())).thenReturn(
+        List.of());
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    ComplianceStats foodStats = summary.getFoodStats();
-    assertThat(foodStats.getTotalTasks()).isEqualTo(10);
-    assertThat(foodStats.getCompletedTasks()).isEqualTo(8);
-    assertThat(foodStats.getDeviatedTasks()).isEqualTo(2);
-    assertThat(foodStats.getCompletionRate()).isEqualTo(80.0);
-    assertThat(foodStats.getTemperatureReadings()).isEqualTo(20);
-    assertThat(foodStats.getOutOfRangeReadings()).isEqualTo(3);
+    ComplianceStats foodStats = summary.foodStats();
+    assertThat(foodStats.totalTasks()).isEqualTo(10);
+    assertThat(foodStats.completedTasks()).isEqualTo(8);
+    assertThat(foodStats.deviatedTasks()).isEqualTo(2);
+    assertThat(foodStats.completionRate()).isEqualTo(80.0);
+    assertThat(foodStats.temperatureReadings()).isEqualTo(20);
+    assertThat(foodStats.outOfRangeReadings()).isEqualTo(3);
 
-    ComplianceStats alcStats = summary.getAlcoholStats();
-    assertThat(alcStats.getTotalTasks()).isEqualTo(5);
-    assertThat(alcStats.getCompletedTasks()).isEqualTo(5);
-    assertThat(alcStats.getCompletionRate()).isEqualTo(100.0);
-    assertThat(alcStats.getDeviatedTasks()).isEqualTo(0);
+    ComplianceStats alcStats = summary.alcoholStats();
+    assertThat(alcStats.totalTasks()).isEqualTo(5);
+    assertThat(alcStats.completedTasks()).isEqualTo(5);
+    assertThat(alcStats.completionRate()).isEqualTo(100.0);
+    assertThat(alcStats.deviatedTasks()).isEqualTo(0);
   }
 
   @Test
@@ -109,12 +134,13 @@ class ReportServiceTest {
     when(tasksRepository.countDeviatedInPeriod(any(), any(), any(), any())).thenReturn(0);
     when(tempRepository.countReadingsInPeriod(any(), any(), any())).thenReturn(0);
     when(tempRepository.countOutOfRangeInPeriod(any(), any(), any())).thenReturn(0);
-    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(List.of());
+    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(
+        List.of());
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getCompletionRate()).isEqualTo(0.0);
-    assertThat(summary.getAlcoholStats().getCompletionRate()).isEqualTo(0.0);
+    assertThat(summary.foodStats().completionRate()).isEqualTo(0.0);
+    assertThat(summary.alcoholStats().completionRate()).isEqualTo(0.0);
   }
 
   @Test
@@ -124,11 +150,12 @@ class ReportServiceTest {
     when(tasksRepository.countDeviatedInPeriod(any(), any(), any(), any())).thenReturn(0);
     when(tempRepository.countReadingsInPeriod(any(), any(), any())).thenReturn(0);
     when(tempRepository.countOutOfRangeInPeriod(any(), any(), any())).thenReturn(0);
-    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(List.of());
+    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(
+        List.of());
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getOutOfRangeRate()).isEqualTo(0.0);
+    assertThat(summary.foodStats().outOfRangeRate()).isEqualTo(0.0);
   }
 
   @Test
@@ -138,12 +165,13 @@ class ReportServiceTest {
     when(tasksRepository.countDeviatedInPeriod(any(), any(), any(), any())).thenReturn(0);
     when(tempRepository.countReadingsInPeriod(any(), any(), any())).thenReturn(0);
     when(tempRepository.countOutOfRangeInPeriod(any(), any(), any())).thenReturn(0);
-    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(List.of());
+    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(
+        List.of());
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getPeriod().getFrom()).isEqualTo(from);
-    assertThat(summary.getPeriod().getTo()).isEqualTo(to);
+    assertThat(summary.period().from()).isEqualTo(from);
+    assertThat(summary.period().to()).isEqualTo(to);
   }
 
   @Test
@@ -163,47 +191,63 @@ class ReportServiceTest {
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getUnresolvedItems()).hasSize(1);
-    assertThat(summary.getUnresolvedItems().get(0).getName()).isEqualTo("Fridge temperature check");
+    assertThat(summary.unresolvedItems()).hasSize(1);
+    assertThat(summary.unresolvedItems().get(0).name()).isEqualTo("Fridge temperature check");
     verify(taskMapper).toUnresolvedDto(deviatedTask);
   }
 
   @Test
   void generateSummary_allTasksCompleted_fullCompletionRate() {
-    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_MAT))).thenReturn(5);
-    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_MAT))).thenReturn(5);
-    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_MAT))).thenReturn(0);
-    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
-    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
-    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
+    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_MAT))).thenReturn(5);
+    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_MAT))).thenReturn(5);
+    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_MAT))).thenReturn(0);
+    when(tasksRepository.contTaskInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
+    when(tasksRepository.countCompletedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
+    when(tasksRepository.countDeviatedInPeriod(eq(orgId), any(), any(),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
     when(tempRepository.countReadingsInPeriod(any(), any(), any())).thenReturn(0);
     when(tempRepository.countOutOfRangeInPeriod(any(), any(), any())).thenReturn(0);
-    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(List.of());
+    when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(any(), any(), any())).thenReturn(
+        List.of());
 
     InternalSummary summary = reportService.generateSummary(orgId, from, to);
 
-    assertThat(summary.getFoodStats().getCompletionRate()).isEqualTo(100.0);
+    assertThat(summary.foodStats().completionRate()).isEqualTo(100.0);
   }
 
   @Test
   void generateInspection_aggregatesChecklistPerformanceAndSkipsChecklistsWithoutRuns() {
     OrganizationModel org = organization("North Kitchen");
 
-    ChecklistModel weeklyChecklist = checklist(1L, "Weekly food safety", ComplianceArea.IK_MAT, ChecklistFrequency.WEEKLY);
-    ChecklistModel dailyChecklist = checklist(2L, "Daily opening", ComplianceArea.IK_MAT, ChecklistFrequency.DAILY);
-    ChecklistModel unusedChecklist = checklist(3L, "Unused checklist", ComplianceArea.IK_ALKOHOL, ChecklistFrequency.MONTHLY);
+    ChecklistModel weeklyChecklist = checklist(1L, "Weekly food safety", ComplianceArea.IK_MAT,
+        ChecklistFrequency.WEEKLY);
+    ChecklistModel dailyChecklist = checklist(2L, "Daily opening", ComplianceArea.IK_MAT,
+        ChecklistFrequency.DAILY);
+    ChecklistModel unusedChecklist = checklist(3L, "Unused checklist", ComplianceArea.IK_ALKOHOL,
+        ChecklistFrequency.MONTHLY);
 
     TaskTemplate fridgeTemplate = template(11L, "Check fridge", SectionTypes.TEMPERATURE_CONTROL);
-    TaskTemplate hygieneTemplate = template(12L, "Sanitize surfaces", SectionTypes.CLEANING_SANITATION);
+    TaskTemplate hygieneTemplate = template(12L, "Sanitize surfaces",
+        SectionTypes.CLEANING_SANITATION);
 
-    TasksModel runOneTaskOne = task(101L, weeklyChecklist, fridgeTemplate, "2026-W13", true, false, from.plusDays(1));
-    TasksModel runOneTaskTwo = task(102L, weeklyChecklist, hygieneTemplate, "2026-W13", false, false, from.plusDays(1));
-    TasksModel runTwoTaskOne = task(103L, weeklyChecklist, fridgeTemplate, "2026-W14", true, false, from.plusDays(8));
-    TasksModel dailyTask = task(104L, dailyChecklist, hygieneTemplate, "2026-03-20", true, false, from.plusDays(2));
+    TasksModel runOneTaskOne = task(101L, weeklyChecklist, fridgeTemplate, "2026-W13", true, false,
+        from.plusDays(1));
+    TasksModel runOneTaskTwo = task(102L, weeklyChecklist, hygieneTemplate, "2026-W13", false,
+        false, from.plusDays(1));
+    TasksModel runTwoTaskOne = task(103L, weeklyChecklist, fridgeTemplate, "2026-W14", true, false,
+        from.plusDays(8));
+    TasksModel dailyTask = task(104L, dailyChecklist, hygieneTemplate, "2026-03-20", true, false,
+        from.plusDays(2));
 
     when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org));
     when(userRepository.findAllByOrganization(org)).thenReturn(List.of());
-    when(checklistRepository.findAllByOrganizationId(orgId)).thenReturn(List.of(weeklyChecklist, dailyChecklist, unusedChecklist));
+    when(checklistRepository.findAllByOrganizationId(orgId)).thenReturn(
+        List.of(weeklyChecklist, dailyChecklist, unusedChecklist));
     when(tasksRepository.findAllByOrgIdInPeriodWithRelations(eq(orgId), eq(from), eq(to)))
         .thenReturn(List.of(runOneTaskOne, runOneTaskTwo, runTwoTaskOne, dailyTask));
     when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(eq(orgId), eq(from), eq(to)))
@@ -213,39 +257,44 @@ class ReportServiceTest {
 
     InspectionReport report = reportService.generateInspection(orgId, from, to);
 
-    assertThat(report.getChecklists().getChecklists()).hasSize(2);
+    assertThat(report.checklists().checklists()).hasSize(2);
 
-    var weeklyRecord = report.getChecklists().getChecklists().stream()
-        .filter(record -> record.getName().equals("Weekly food safety"))
+    var weeklyRecord = report.checklists().checklists().stream()
+        .filter(record -> record.name().equals("Weekly food safety"))
         .findFirst()
         .orElseThrow();
-    assertThat(weeklyRecord.getCompletionsInPeriod()).isEqualTo(2);
-    assertThat(weeklyRecord.getExpectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.WEEKLY));
-    assertThat(weeklyRecord.getAverageCompletionRate()).isEqualTo(75.0);
-    assertThat(weeklyRecord.getDeviatedTasks()).isEqualTo(1);
+    assertThat(weeklyRecord.completionsInPeriod()).isEqualTo(2);
+    assertThat(weeklyRecord.expectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.WEEKLY));
+    assertThat(weeklyRecord.averageCompletionRate()).isEqualTo(75.0);
+    assertThat(weeklyRecord.deviatedTasks()).isEqualTo(1);
 
-    var dailyRecord = report.getChecklists().getChecklists().stream()
-        .filter(record -> record.getName().equals("Daily opening"))
+    var dailyRecord = report.checklists().checklists().stream()
+        .filter(record -> record.name().equals("Daily opening"))
         .findFirst()
         .orElseThrow();
-    assertThat(dailyRecord.getCompletionsInPeriod()).isEqualTo(1);
-    assertThat(dailyRecord.getExpectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.DAILY));
-    assertThat(dailyRecord.getAverageCompletionRate()).isEqualTo(100.0);
+    assertThat(dailyRecord.completionsInPeriod()).isEqualTo(1);
+    assertThat(dailyRecord.expectedRuns()).isEqualTo(expectedRuns(ChecklistFrequency.DAILY));
+    assertThat(dailyRecord.averageCompletionRate()).isEqualTo(100.0);
   }
 
   @Test
   void generateInspection_buildsDeviationTrendMissedTasksAndTemperatureZones() {
     OrganizationModel org = organization("North Kitchen");
-    ChecklistModel checklist = checklist(4L, "Cold storage", ComplianceArea.IK_MAT, ChecklistFrequency.DAILY);
-    TemperatureZoneModel zone = temperatureZone(90L, "Main freezer", TemperatureZone.FREEZER, new BigDecimal("-20"), new BigDecimal("-15"));
+    ChecklistModel checklist = checklist(4L, "Cold storage", ComplianceArea.IK_MAT,
+        ChecklistFrequency.DAILY);
+    TemperatureZoneModel zone = temperatureZone(90L, "Main freezer", TemperatureZone.FREEZER,
+        new BigDecimal("-20"), new BigDecimal("-15"));
     TaskTemplate template = template(21L, "Freezer reading", SectionTypes.TEMPERATURE_CONTROL);
     template.setTemperatureZone(zone);
     template.setTargetMin(new BigDecimal("-20"));
     template.setTargetMax(new BigDecimal("-15"));
 
-    TasksModel deviatedOne = task(201L, checklist, template, "2026-03-10", false, false, from.plusDays(3));
-    TasksModel deviatedTwo = task(202L, checklist, template, "2026-03-10", false, false, from.plusDays(3).plusHours(2));
-    TasksModel deviatedThree = task(203L, checklist, template, "2026-03-11", false, false, from.plusDays(4));
+    TasksModel deviatedOne = task(201L, checklist, template, "2026-03-10", false, false,
+        from.plusDays(3));
+    TasksModel deviatedTwo = task(202L, checklist, template, "2026-03-10", false, false,
+        from.plusDays(3).plusHours(2));
+    TasksModel deviatedThree = task(203L, checklist, template, "2026-03-11", false, false,
+        from.plusDays(4));
 
     UserModel recorder = new UserModel();
     recorder.setFirstName("Alex");
@@ -264,32 +313,39 @@ class ReportServiceTest {
         .thenReturn(List.of(deviatedOne, deviatedTwo, deviatedThree));
     when(tasksRepository.findDeviatedTaskByOrgIdInPeriod(eq(orgId), eq(from), eq(to)))
         .thenReturn(List.of(deviatedOne, deviatedTwo, deviatedThree));
-    when(tempRepository.findByOrgAndPeriod(eq(orgId), eq(from), eq(to))).thenReturn(List.of(measurement));
+    when(tempRepository.findByOrgAndPeriod(eq(orgId), eq(from), eq(to))).thenReturn(
+        List.of(measurement));
     stubSummaryCounts();
 
     InspectionReport report = reportService.generateInspection(orgId, from, to);
 
-    assertThat(report.getDeviationsByDay()).hasSize(2);
-    assertThat(report.getDeviationsByDay().get(0).getCount()).isEqualTo(2);
-    assertThat(report.getDeviationsByDay().get(1).getCount()).isEqualTo(1);
+    assertThat(report.deviationsByDay()).hasSize(2);
+    assertThat(report.deviationsByDay().get(0).count()).isEqualTo(2);
+    assertThat(report.deviationsByDay().get(1).count()).isEqualTo(1);
 
-    assertThat(report.getMissedTasks()).hasSize(1);
-    assertThat(report.getMissedTasks().get(0).getTaskName()).isEqualTo("Freezer reading");
-    assertThat(report.getMissedTasks().get(0).getMissedCount()).isEqualTo(3);
+    assertThat(report.missedTasks()).hasSize(1);
+    assertThat(report.missedTasks().get(0).taskName()).isEqualTo("Freezer reading");
+    assertThat(report.missedTasks().get(0).missedCount()).isEqualTo(3);
 
-    assertThat(report.getTemperatureLog()).hasSize(1);
-    assertThat(report.getTemperatureLog().get(0).getZoneId()).isEqualTo(90L);
-    assertThat(report.getTemperatureLog().get(0).getZoneName()).isEqualTo("Main freezer");
-    assertThat(report.getTemperatureLog().get(0).isWithinRange()).isFalse();
+    assertThat(report.temperatureLog()).hasSize(1);
+    assertThat(report.temperatureLog().get(0).zoneId()).isEqualTo(90L);
+    assertThat(report.temperatureLog().get(0).zoneName()).isEqualTo("Main freezer");
+    assertThat(report.temperatureLog().get(0).withinRange()).isFalse();
   }
 
   private void stubSummaryCounts() {
-    when(tasksRepository.contTaskInPeriod(eq(orgId), eq(from), eq(to), eq(ComplianceArea.IK_MAT))).thenReturn(4);
-    when(tasksRepository.countCompletedInPeriod(eq(orgId), eq(from), eq(to), eq(ComplianceArea.IK_MAT))).thenReturn(2);
-    when(tasksRepository.countDeviatedInPeriod(eq(orgId), eq(from), eq(to), eq(ComplianceArea.IK_MAT))).thenReturn(1);
-    when(tasksRepository.contTaskInPeriod(eq(orgId), eq(from), eq(to), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
-    when(tasksRepository.countCompletedInPeriod(eq(orgId), eq(from), eq(to), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
-    when(tasksRepository.countDeviatedInPeriod(eq(orgId), eq(from), eq(to), eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
+    when(tasksRepository.contTaskInPeriod(eq(orgId), eq(from), eq(to),
+        eq(ComplianceArea.IK_MAT))).thenReturn(4);
+    when(tasksRepository.countCompletedInPeriod(eq(orgId), eq(from), eq(to),
+        eq(ComplianceArea.IK_MAT))).thenReturn(2);
+    when(tasksRepository.countDeviatedInPeriod(eq(orgId), eq(from), eq(to),
+        eq(ComplianceArea.IK_MAT))).thenReturn(1);
+    when(tasksRepository.contTaskInPeriod(eq(orgId), eq(from), eq(to),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
+    when(tasksRepository.countCompletedInPeriod(eq(orgId), eq(from), eq(to),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
+    when(tasksRepository.countDeviatedInPeriod(eq(orgId), eq(from), eq(to),
+        eq(ComplianceArea.IK_ALKOHOL))).thenReturn(0);
     when(tempRepository.countReadingsInPeriod(eq(orgId), eq(from), eq(to))).thenReturn(1);
     when(tempRepository.countOutOfRangeInPeriod(eq(orgId), eq(from), eq(to))).thenReturn(1);
   }
@@ -314,7 +370,8 @@ class ReportServiceTest {
     return organization;
   }
 
-  private ChecklistModel checklist(Long id, String name, ComplianceArea area, ChecklistFrequency frequency) {
+  private ChecklistModel checklist(Long id, String name, ComplianceArea area,
+      ChecklistFrequency frequency) {
     ChecklistModel checklist = new ChecklistModel();
     checklist.setId(id);
     checklist.setName(name);
@@ -355,6 +412,87 @@ class ReportServiceTest {
     task.setEndedAt(endedAt);
     checklist.getTaskTemplates().add(template);
     return task;
+  }
+
+  @Test
+  void createDeviationReport_savesEntityAndReturnsIdWithCreatedAt() {
+    UUID userId = UUID.randomUUID();
+    edu.ntnu.idatt2105.backend.user.model.UserModel user = new edu.ntnu.idatt2105.backend.user.model.UserModel();
+    user.setId(userId);
+    edu.ntnu.idatt2105.backend.user.model.OrganizationModel org = new edu.ntnu.idatt2105.backend.user.model.OrganizationModel();
+    org.setId(orgId);
+
+    DeviationReport request = new DeviationReport();
+    request.setDeviationName("Cold chain breach");
+    request.setSeverity(DeviationSeverity.MAJOR);
+    request.setOccurredAt(LocalDateTime.of(2026, 4, 1, 10, 0));
+    request.setDescription("Fridge temperature exceeded 8°C for 2 hours.");
+
+    UUID reportId = UUID.randomUUID();
+    LocalDateTime createdAt = LocalDateTime.of(2026, 4, 9, 12, 0);
+
+    when(organizationRepository.getReferenceById(orgId)).thenReturn(org);
+    when(userRepository.getReferenceById(userId)).thenReturn(user);
+    when(deviationReportRepository.save(any(DeviationReportModel.class))).thenAnswer(inv -> {
+      DeviationReportModel m = inv.getArgument(0);
+      m.setId(reportId);
+      m.setCreatedAt(createdAt);
+      return m;
+    });
+
+    when(documentService.storeFile(any(), any(), anyString()))
+        .thenReturn("/some/path/deviation-report.pdf");
+    when(documentRepository.save(any(DocumentModel.class)))
+        .thenReturn(mock(DocumentModel.class));
+
+    DeviationCreatedResponse response = reportService.createDeviationReport(request, userId, orgId);
+
+    assertThat(response.id()).isEqualTo(reportId);
+    assertThat(response.createdAt()).isEqualTo(createdAt);
+    verify(deviationReportRepository).save(any(DeviationReportModel.class));
+  }
+
+  @Test
+  void createDeviationReport_mapsAllFieldsFromRequestToEntity() {
+    UUID userId = UUID.randomUUID();
+    when(organizationRepository.getReferenceById(orgId))
+        .thenReturn(new edu.ntnu.idatt2105.backend.user.model.OrganizationModel());
+    when(userRepository.getReferenceById(userId))
+        .thenReturn(new edu.ntnu.idatt2105.backend.user.model.UserModel());
+
+    DeviationReport request = new DeviationReport();
+    request.setDeviationName("Pest found");
+    request.setSeverity(DeviationSeverity.CRITICAL);
+    request.setOccurredAt(LocalDateTime.of(2026, 3, 15, 8, 0));
+    request.setNoticedBy("Chef Marie");
+    request.setReportedTo("Manager Lars");
+    request.setDescription("Pest traces found in storage.");
+    request.setImmediateAction("Area sealed off.");
+    request.setBelievedCause("Damaged door seal.");
+    request.setCorrectiveMeasures("Replace door seal.");
+    request.setCorrectiveMeasuresDone("Completed on 2026-03-16");
+
+    when(deviationReportRepository.save(any(DeviationReportModel.class))).thenAnswer(inv -> {
+      DeviationReportModel m = inv.getArgument(0);
+      m.setId(UUID.randomUUID());
+      return m;
+    });
+
+    reportService.createDeviationReport(request, userId, orgId);
+
+    org.mockito.ArgumentCaptor<DeviationReportModel> captor =
+        org.mockito.ArgumentCaptor.forClass(DeviationReportModel.class);
+    verify(deviationReportRepository).save(captor.capture());
+    DeviationReportModel saved = captor.getValue();
+
+    assertThat(saved.getDeviationName()).isEqualTo("Pest found");
+    assertThat(saved.getSeverity()).isEqualTo(DeviationSeverity.CRITICAL);
+    assertThat(saved.getNoticedBy()).isEqualTo("Chef Marie");
+    assertThat(saved.getReportedTo()).isEqualTo("Manager Lars");
+    assertThat(saved.getImmediateAction()).isEqualTo("Area sealed off.");
+    assertThat(saved.getBelievedCause()).isEqualTo("Damaged door seal.");
+    assertThat(saved.getCorrectiveMeasures()).isEqualTo("Replace door seal.");
+    assertThat(saved.getCorrectiveMeasuresDone()).isEqualTo("Completed on 2026-03-16");
   }
 
   private TemperatureZoneModel temperatureZone(

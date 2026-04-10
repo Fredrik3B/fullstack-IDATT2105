@@ -1,24 +1,29 @@
 package edu.ntnu.idatt2105.backend.user.model;
 
 import edu.ntnu.idatt2105.backend.user.model.enums.JoinOrgStatus;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Id;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 
+/**
+ * JPA entity representing a user's request to join an organisation.
+ *
+ * <p>A request is created in {@link JoinOrgStatus#PENDING} state when a user
+ * submits a join-code. An ADMIN or MANAGER then accepts or declines it, transitioning the status to
+ * {@link JoinOrgStatus#ACCEPTED} or {@link JoinOrgStatus#DECLINED}.
+ */
 @Entity
 @Getter
 @Setter

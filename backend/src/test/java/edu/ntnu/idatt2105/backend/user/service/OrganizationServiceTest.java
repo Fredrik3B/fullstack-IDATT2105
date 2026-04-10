@@ -1,15 +1,14 @@
 package edu.ntnu.idatt2105.backend.user.service;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import edu.ntnu.idatt2105.backend.common.repository.DocumentRepository;
+import edu.ntnu.idatt2105.backend.document.repository.DocumentRepository;
 import edu.ntnu.idatt2105.backend.exception.ResourceNotFoundException;
 import edu.ntnu.idatt2105.backend.user.dto.CreateOrganizationRequest;
 import edu.ntnu.idatt2105.backend.user.dto.JoinOrganizationDto;
@@ -44,12 +43,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class OrganizationServiceTest {
 
-  @Mock private OrganizationRepository organizationRepository;
-  @Mock private UserRepository userRepository;
-  @Mock private RoleRepository roleRepository;
-  @Spy  private OrganizationMapper organizationMapper;
-  @Mock private JoinRequestRepository joinRequestRepository;
-  @Mock private DocumentRepository documentRepository;
+  @Mock
+  private OrganizationRepository organizationRepository;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private RoleRepository roleRepository;
+  @Spy
+  private OrganizationMapper organizationMapper;
+  @Mock
+  private JoinRequestRepository joinRequestRepository;
+  @Mock
+  private DocumentRepository documentRepository;
 
   @InjectMocks
   private OrganizationService organizationService;
@@ -156,7 +161,8 @@ class OrganizationServiceTest {
 
     when(organizationRepository.findByJoinCode("TES-1234")).thenReturn(Optional.of(org));
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-    when(joinRequestRepository.existsByUserAndStatus(user, JoinOrgStatus.PENDING)).thenReturn(false);
+    when(joinRequestRepository.existsByUserAndStatus(user, JoinOrgStatus.PENDING)).thenReturn(
+        false);
 
     OrganizationResponse response = organizationService.requestToJoin(request, userId);
 
@@ -249,7 +255,9 @@ class OrganizationServiceTest {
 
     when(joinRequestRepository.findById(joinRequest.getId())).thenReturn(Optional.of(joinRequest));
 
-    assertThatThrownBy(() -> organizationService.resolveRequest(joinRequest.getId(), userId, wrongOrgId, JoinOrgStatus.ACCEPTED))
+    assertThatThrownBy(
+        () -> organizationService.resolveRequest(joinRequest.getId(), userId, wrongOrgId,
+            JoinOrgStatus.ACCEPTED))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Request does not belong to your organization");
   }
@@ -260,7 +268,8 @@ class OrganizationServiceTest {
 
     when(joinRequestRepository.findById(joinRequest.getId())).thenReturn(Optional.of(joinRequest));
 
-    assertThatThrownBy(() -> organizationService.resolveRequest(joinRequest.getId(), userId, orgId, JoinOrgStatus.ACCEPTED))
+    assertThatThrownBy(() -> organizationService.resolveRequest(joinRequest.getId(), userId, orgId,
+        JoinOrgStatus.ACCEPTED))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Request already resolved");
   }
@@ -271,7 +280,8 @@ class OrganizationServiceTest {
 
     when(joinRequestRepository.findById(requestId)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> organizationService.resolveRequest(requestId, userId, orgId, JoinOrgStatus.ACCEPTED))
+    assertThatThrownBy(
+        () -> organizationService.resolveRequest(requestId, userId, orgId, JoinOrgStatus.ACCEPTED))
         .isInstanceOf(ResourceNotFoundException.class)
         .hasMessage("Request not found");
   }
@@ -326,11 +336,13 @@ class OrganizationServiceTest {
     JoinOrganizationDto dto = JoinOrganizationDto.builder()
         .email("test@example.com").firstName("Test").lastName("User").build();
 
-    when(joinRequestRepository.findAllByOrganizationIdAndStatusWithUser(orgId, JoinOrgStatus.PENDING))
+    when(joinRequestRepository.findAllByOrganizationIdAndStatusWithUser(orgId,
+        JoinOrgStatus.PENDING))
         .thenReturn(List.of(request));
     when(organizationMapper.toJoinRequestDto(request)).thenReturn(dto);
 
-    List<JoinOrganizationDto> results = organizationService.getRequests(orgId, JoinOrgStatus.PENDING);
+    List<JoinOrganizationDto> results = organizationService.getRequests(orgId,
+        JoinOrgStatus.PENDING);
 
     assertThat(results).hasSize(1);
     assertThat(results.get(0).getEmail()).isEqualTo("test@example.com");
@@ -387,7 +399,6 @@ class OrganizationServiceTest {
   @Test
   void removeMember_userNotInOrg_throwsException() {
     UUID adminId = UUID.randomUUID();
-    // user has no organization set
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -398,7 +409,8 @@ class OrganizationServiceTest {
 
   @Test
   void updateMemberRoles_selfUpdate_throwsException() {
-    assertThatThrownBy(() -> organizationService.updateMemberRoles(orgId, userId, userId, List.of("STAFF")))
+    assertThatThrownBy(
+        () -> organizationService.updateMemberRoles(orgId, userId, userId, List.of("STAFF")))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Cannot change your own roles");
   }
@@ -413,7 +425,6 @@ class OrganizationServiceTest {
 
     when(userRepository.findById(userId)).thenReturn(Optional.of(user));
     when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(new RoleModel()));
-    // user has MANAGER not ADMIN, so wouldRemoveLastAdmin is false → countAdmins not called
 
     organizationService.updateMemberRoles(orgId, userId, adminId, List.of("STAFF"));
 
@@ -432,7 +443,8 @@ class OrganizationServiceTest {
     when(roleRepository.findByName(RoleEnum.STAFF)).thenReturn(Optional.of(new RoleModel()));
     when(userRepository.countAdminsByOrganizationId(orgId)).thenReturn(1L);
 
-    assertThatThrownBy(() -> organizationService.updateMemberRoles(orgId, userId, adminId, List.of("STAFF")))
+    assertThatThrownBy(
+        () -> organizationService.updateMemberRoles(orgId, userId, adminId, List.of("STAFF")))
         .isInstanceOf(IllegalStateException.class)
         .hasMessage("Cannot remove the last admin from the organization");
   }
