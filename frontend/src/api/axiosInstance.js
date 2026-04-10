@@ -57,7 +57,11 @@ function flushQueue(error, token = null) {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const auth = useAuthStore()
+    auth.touchActivity()
+    return response
+  },
 
   async (error) => {
     const originalRequest = error.config

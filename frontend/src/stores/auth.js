@@ -8,6 +8,10 @@ import api from '@/api/axiosInstance'
 const ACCESS_TOKEN_KEY = 'iksystem_access_token'
 /** LocalStorage key for serialized session metadata. */
 const SESSION_KEY = 'iksystem_session'
+/** LocalStorage key for the last-active timestamp (epoch ms). */
+const LAST_ACTIVE_KEY = 'iksystem_last_active'
+/** Maximum idle time before forcing re-login (5 minutes). */
+const SESSION_IDLE_LIMIT_MS = 5 * 60 * 1000
 
 /**
  * @typedef {Object} AuthUser
@@ -134,6 +138,19 @@ export const useAuthStore = defineStore('auth', () => {
       user: user.value,
       restaurant: restaurant.value,
     }))
+    touchActivity()
+  }
+
+  /** Update the last-active timestamp. Called on every API request. */
+  function touchActivity() {
+    localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()))
+  }
+
+  /** True when the session has been idle longer than the allowed limit. */
+  function _isSessionIdle() {
+    const raw = localStorage.getItem(LAST_ACTIVE_KEY)
+    if (!raw) return true
+    return Date.now() - Number(raw) > SESSION_IDLE_LIMIT_MS
   }
 
   /**
@@ -164,6 +181,7 @@ export const useAuthStore = defineStore('auth', () => {
     _initDone = false
     localStorage.removeItem(ACCESS_TOKEN_KEY)
     localStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(LAST_ACTIVE_KEY)
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('ic-session-reset'))
@@ -195,6 +213,11 @@ export const useAuthStore = defineStore('auth', () => {
 
       session = JSON.parse(raw)
     } catch {
+      _clearSession()
+      return
+    }
+
+    if (_isSessionIdle()) {
       _clearSession()
       return
     }
@@ -473,5 +496,6 @@ export const useAuthStore = defineStore('auth', () => {
     fetchMembers,
     removeMember,
     updateMemberRoles,
+    touchActivity,
   }
 })
